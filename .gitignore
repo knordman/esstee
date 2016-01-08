@@ -1,0 +1,8 @@
+*.o
+*~
+*.h.gch
+src/tests/temp
+src/testground
+bison.output
+build
+trash
