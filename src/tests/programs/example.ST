@@ -1,4 +1,4 @@
-PROGRAM hej
+PROGRAM testprgm
 
 VAR
 	myvar : SINT;
