@@ -29,6 +29,20 @@ int st_function_return_type_resolved(
     const struct st_location_t *location,
     struct errors_iface_t *errors)
 {
-    /* TODO: implement function, return type resolved */
+    if(target == NULL)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "undefined type",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+	return ESSTEE_ERROR;
+    }
+
+    struct function_t *function = (struct function_t *)referrer;
+
+    function->return_type = (struct type_iface_t *)target;
+
     return ESSTEE_OK;
 }
