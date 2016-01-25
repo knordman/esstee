@@ -30,6 +30,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/ierrors.h>
 #include <util/inamedreference.h>
 #include <util/bitflag.h>
+#include <util/iconfig.h>
 #include <parser/scanneroptions.h>
 
 #include <parser/bison.tab.h>
