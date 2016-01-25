@@ -70,10 +70,13 @@ struct expression_iface_t * st_new_explicit_literal(
     return NULL;
 }
 
-struct expression_iface_t * st_new_integer_literal(
+static struct expression_iface_t * new_integer_literal(
     char *string,
     const struct st_location_t *string_location,
-    int64_t sign_prefix, 
+    int64_t sign_prefix,
+    unsigned min_string_length,
+    int conversion_base,
+    const char *error_message,
     struct parser_t *parser)
 {
     struct integer_literal_t *il = NULL;
@@ -94,26 +97,26 @@ struct expression_iface_t * st_new_integer_literal(
     il->location = l;
     
     strip_underscores(string);
-    if(strlen(string) == 0)
+    if(strlen(string) < min_string_length)
     {
 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
     errno = 0;
-    int64_t interpreted = strtol(string, NULL, 10);
+    int64_t interpreted = strtol(string, NULL, conversion_base);
     if(errno != 0)
     {
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret integer",
+	    error_message,
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    string_location);
 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	goto error_free_resources;
     }
-    
+
     il->data.num = interpreted * sign_prefix;
     il->data.explicit_type = NULL;
 
@@ -168,57 +171,33 @@ error_free_resources:
     return NULL;
 }
 
+struct expression_iface_t * st_new_integer_literal(
+    char *string,
+    const struct st_location_t *string_location,
+    int64_t sign_prefix, 
+    struct parser_t *parser)
+{
+    return new_integer_literal(string,
+			       string_location,
+			       sign_prefix,
+			       1,
+			       10,
+			       "cannot interpret integer literal",
+			       parser);
+}
+
 struct expression_iface_t * st_new_integer_literal_binary(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: binary literal */
-    return NULL;
-
-/* struct literal_t * st_new_integer_literal_binary( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     int i, digit; */
-/*     struct integer_literal_t *il = NULL; */
-
-/*     strip_underscores(string); */
-/*     size_t string_len = strlen(string); */
-/*     if(string_len <= 2) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     il = (struct integer_literal_t *)malloc(sizeof(struct integer_literal_t)); */
-/*     if(!il) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;		 */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     for(i = string_len-1, digit = 0; i > 1; i--, digit++) */
-/*     { */
-/* 	if(string[i] == '1') */
-/* 	{ */
-/* 	    il->value |= (1 << digit); */
-/* 	} */
-/*     } */
-
-/*     il->literal.literal_class = INTEGER_LITERAL|BINARY_LITERAL; */
-
-/*     free(string); */
-/*     return &(il->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(il); */
-/*     return NULL; */
-/* } */
+    return new_integer_literal(string,
+			       string_location,
+			       1,
+			       2,
+			       2,
+			       "cannot interpret binary literal",
+			       parser);
 }
 
 struct expression_iface_t * st_new_integer_literal_octal(

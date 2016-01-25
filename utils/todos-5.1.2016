@@ -1,4 +1,4 @@
-1 /* TODO: implement function, return type resolved */ ../src/linker/lpous.c
+DONE 1 /* TODO: implement function, return type resolved */ ../src/linker/lpous.c
 2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
 4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
@@ -160,7 +160,7 @@
 160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
 161 /* TODO: return literal as value */ ../src/parser/pliterals.c
 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
-163 /* TODO: binary literal */ ../src/parser/pliterals.c
+DONE 163 /* TODO: binary literal */ ../src/parser/pliterals.c
 164 /* TODO: octal literal */ ../src/parser/pliterals.c
 165 /* TODO: hexadecimal literal */ ../src/parser/pliterals.c
 166 /* TODO: real literal */ ../src/parser/pliterals.c
