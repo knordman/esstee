@@ -75,6 +75,7 @@ static struct expression_iface_t * new_integer_literal(
     const struct st_location_t *string_location,
     int64_t sign_prefix,
     unsigned min_string_length,
+    unsigned string_conversion_offset,
     int conversion_base,
     const char *error_message,
     struct parser_t *parser)
@@ -104,7 +105,9 @@ static struct expression_iface_t * new_integer_literal(
     }
 
     errno = 0;
-    int64_t interpreted = strtol(string, NULL, conversion_base);
+    int64_t interpreted = strtol(string+string_conversion_offset,
+				 NULL,
+				 conversion_base);
     if(errno != 0)
     {
 	parser->errors->new_issue_at(
@@ -181,6 +184,7 @@ struct expression_iface_t * st_new_integer_literal(
 			       string_location,
 			       sign_prefix,
 			       1,
+			       0,
 			       10,
 			       "cannot interpret integer literal",
 			       parser);
@@ -194,6 +198,7 @@ struct expression_iface_t * st_new_integer_literal_binary(
     return new_integer_literal(string,
 			       string_location,
 			       1,
+			       3,
 			       2,
 			       2,
 			       "cannot interpret binary literal",
@@ -205,53 +210,14 @@ struct expression_iface_t * st_new_integer_literal_octal(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: octal literal */
-    return NULL;
-
-/* struct literal_t * st_new_integer_literal_octal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     struct integer_literal_t *il = NULL; */
-
-/*     strip_underscores(string); */
-/*     if(strlen(string) <= 2) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;		 */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     il = (struct integer_literal_t *)malloc(sizeof(struct integer_literal_t)); */
-/*     if(!il) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     errno = 0; */
-/*     il->value = strtol(string+2, NULL, 8); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret octal integer.", parser->errors, string_location); */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-/*     else */
-/*     { */
-/* 	il->literal.literal_class = INTEGER_LITERAL|OCTAL_LITERAL; */
-/*     } */
-	
-/*     free(string); */
-/*     return &(il->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(il); */
-/*     return NULL; */
-/* } */
+    return new_integer_literal(string,
+			       string_location,
+			       1,
+			       3,
+			       2,
+			       8,
+			       "cannot interpret octal literal",
+			       parser);
 }
 
 struct expression_iface_t * st_new_integer_literal_hex(
@@ -259,53 +225,14 @@ struct expression_iface_t * st_new_integer_literal_hex(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: hexadecimal literal */
-    return NULL;
-
-/* struct literal_t * st_new_integer_literal_hex( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     struct integer_literal_t *il = NULL; */
-
-/*     strip_underscores(string); */
-/*     if(strlen(string) <= 3) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;		 */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     il = (struct integer_literal_t *)malloc(sizeof(struct integer_literal_t)); */
-/*     if(!il) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     errno = 0; */
-/*     il->value = strtol(string+3, NULL, 16); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret hexadecimal integer.", parser->errors, string_location); */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-/*     else */
-/*     { */
-/* 	il->literal.literal_class = INTEGER_LITERAL|HEX_LITERAL; */
-/*     } */
-
-/*     free(string); */
-/*     return &(il->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(il); */
-/*     return NULL; */
-/* } */
+    return new_integer_literal(string,
+			       string_location,
+			       1,
+			       4,
+			       3,
+			       16,
+			       "cannot interpret hexadecimal literal",
+			       parser);
 }
 
 struct expression_iface_t * st_new_real_literal(
