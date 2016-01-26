@@ -33,10 +33,12 @@ extern int yydebug;
 #define PROGRAM 4
 #define RUN_CYCLES 5
 #define FILE 6
+#define QUIET_PRE_RUN 7
 
 static struct option long_options[] = {
     {"bison-debug", no_argument, NULL, BISON_DEBUG},
     {"pre-run-queries", required_argument, NULL, PRE_QUERIES},
+    {"quiet-pre-run", no_argument, NULL, QUIET_PRE_RUN},
     {"post-run-queries", required_argument, NULL, POST_QUERIES},
     {"program", required_argument, NULL, PROGRAM},
     {"run-cycles", required_argument, NULL, RUN_CYCLES},
@@ -73,6 +75,7 @@ int main(int argc, char * const argv[])
     const char *pre_run_queries = NULL;
     const char *post_run_queries = NULL;
     const char *file = NULL;
+    int quiet_pre_run = 0;
     int run_cycles = 1;
     
     int argument_parsing = 1;
@@ -107,6 +110,10 @@ int main(int argc, char * const argv[])
 
 	case FILE:
 	    file = optarg;
+	    break;
+
+	case QUIET_PRE_RUN:
+	    quiet_pre_run = 1;
 	    break;
 	    
 	default:
@@ -169,7 +176,10 @@ int main(int argc, char * const argv[])
 	    return EXIT_FAILURE;
 	}
 
-	printf("%s\n", output_buffer);
+	if(!quiet_pre_run)
+	{
+	    printf("%s\n", output_buffer);
+	}
     }
     
     for(int i = 0; i < run_cycles; i++) {

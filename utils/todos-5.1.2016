@@ -161,8 +161,8 @@ DONE 1 /* TODO: implement function, return type resolved */ ../src/linker/lpous.
 161 /* TODO: return literal as value */ ../src/parser/pliterals.c
 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
 DONE 163 /* TODO: binary literal */ ../src/parser/pliterals.c
-164 /* TODO: octal literal */ ../src/parser/pliterals.c
-165 /* TODO: hexadecimal literal */ ../src/parser/pliterals.c
+DONE 164 /* TODO: octal literal */ ../src/parser/pliterals.c
+DONE 165 /* TODO: hexadecimal literal */ ../src/parser/pliterals.c
 166 /* TODO: real literal */ ../src/parser/pliterals.c
 167 /* TODO: duration literal */ ../src/parser/pliterals.c
 168 /* TODO: date literal */ ../src/parser/pliterals.c

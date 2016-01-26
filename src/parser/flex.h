@@ -355,7 +355,7 @@ extern int yylex \
 #undef YY_DECL
 #endif
 
-#line 259 "src/parser/flex.l"
+#line 261 "src/parser/flex.l"
 
 
 #line 362 "src/parser/flex.h"

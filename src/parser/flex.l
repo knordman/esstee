@@ -68,15 +68,15 @@ direct_address                  %[IQM][XBWDL]?[[:digit:]]+(\.([[:digit:]]+|\*))?
 white_space                     ([[:space:]]{-}[\n])+
 
 /* Numeric literals */
-integer_literal                 [[:digit:]](_?[[:digit:]])*
+integer_literal                 [[:digit:]](_|[[:digit:]])*
 
 real_literal                    [[:digit:]]+\.[[:digit:]]+
 real_literal_exp                {real_literal}e[+|-]?{integer_literal}
 
-base2_literal                   2#[01]+(_?[01])*
-base8_literal                   8#[0-7]+(_?[0-7])*
+base2_literal                   2#[01]+(_|[01])*
+base8_literal                   8#[0-7]+(_|[0-7])*
 hex_digit                       [[:digit:]a-f]
-base16_literal                  16#({hex_digit})+
+base16_literal                  16#({hex_digit})+(_|{hex_digit})*
 
 boolean_true                    true
 boolean_false                   false
@@ -99,7 +99,7 @@ tod_literal                     (tod|time_of_day)#{tod_numbers}
 date_tod_literal                (dt|date_and_time)#{date_numbers}-{tod_numbers}
 
 /* Identifiers */
-identifier                      [[:alpha:]][_[:alnum:]]*
+identifier                      _*[[:alpha:]](_|[[:alnum:]])*
 
 %%
 
@@ -256,5 +256,7 @@ until                                                   RETURN(UNTIL);
 {comment_begin}						yy_push_state(comment_state, yyscanner);
 <comment_state>{comment_end}                            yy_pop_state(yyscanner);
 <comment_state>.|\n                                     /* Ignore the whole comment */
+
+.                                                       RETURN(yytext[0]);
 
 %%
