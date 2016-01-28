@@ -7,7 +7,6 @@ VAR
 	v4 : DINT;
 END_VAR
 
-(* Empty statement not yet implemented *)
-v1:=v1;
+;
 
 END_PROGRAM

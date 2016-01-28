@@ -3,7 +3,7 @@ DONE 1 /* TODO: implement function, return type resolved */ ../src/linker/lpous.
 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
 4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
 5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
-6 /*TODO: empty statement */ ../src/elements/statements.h
+DONE 6 /*TODO: empty statement */ ../src/elements/statements.h
 7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h
 8 /*TODO: if statements invoke functions */ ../src/elements/statements.h
 9 /*TODO: while statement invoke functions */ ../src/elements/statements.h

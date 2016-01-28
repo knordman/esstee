@@ -27,8 +27,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /**************************************************************************/
 struct integer_literal_t {
     struct expression_iface_t expression;
-    struct integer_value_t data;
     struct st_location_t *location;
+    struct integer_value_t data;
 };
 
 const struct st_location_t * st_integer_literal_location(

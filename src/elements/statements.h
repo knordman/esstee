@@ -30,9 +30,23 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /**************************************************************************/
 struct empty_statement_t {
     struct invoke_iface_t invoke;
+    struct st_location_t *location;
 };
 
-/* TODO: empty statement */
+int st_empty_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_empty_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+const struct st_location_t * st_empty_statement_location(
+    const struct invoke_iface_t *self);
 
 /**************************************************************************/
 /* Simple assignment                                                      */
