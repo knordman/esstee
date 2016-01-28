@@ -32,12 +32,40 @@ struct invoke_iface_t * st_append_to_statement_list(
     return statement_list;
 }
 
+/**************************************************************************/
+/* Empty statement                                                        */
+/**************************************************************************/
+
 struct invoke_iface_t * st_new_empty_statement(
     struct invoke_iface_t *statement_list,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    
+    struct empty_statement_t *es = NULL;
+    struct st_location_t *loc = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	es,
+	struct empty_statement_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    es->location = loc;
+    es->invoke.verify = st_empty_statement_verify;
+    es->invoke.step = st_empty_statement_step;
+    es->invoke.location = st_empty_statement_location;
+
+    DL_APPEND(statement_list, &(es->invoke));
+    return statement_list;
+
+error_free_resources:
+    free(loc);
     return NULL;
 }
 

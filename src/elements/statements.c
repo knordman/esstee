@@ -22,6 +22,37 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/macros.h>
 
 /**************************************************************************/
+/* Empty statement                                                        */
+/**************************************************************************/
+
+int st_empty_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    return ESSTEE_OK;
+}
+
+int st_empty_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    return INVOKE_RESULT_FINISHED;
+}
+
+const struct st_location_t * st_empty_statement_location(
+    const struct invoke_iface_t *self)
+{
+    struct empty_statement_t *es =
+	CONTAINER_OF(self, struct empty_statement_t, invoke);
+
+    return es->location;
+}
+
+/**************************************************************************/
 /* Simple assignment                                                      */
 /**************************************************************************/
 int st_assignment_statement_simple_verify(

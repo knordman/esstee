@@ -57,6 +57,9 @@ struct value_iface_t * st_extract_value_from_literal(
     struct parser_t *parser)
 {
     /* TODO: return literal as value */
+    /* the value is in the integer_literal, which also contains the
+       expression handle, how to get from the expression to the
+       sibling value structrure? */
     return NULL;
 }
 
