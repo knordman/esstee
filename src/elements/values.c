@@ -71,7 +71,7 @@ int st_integer_value_assign(
 
     iv->num = new_value->integer(new_value, config);
 
-    return ESSTEE_TRUE;
+    return ESSTEE_OK;
 }
 
 int st_integer_value_reset(
@@ -336,4 +336,173 @@ int64_t st_integer_value_integer(
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     return iv->num;
+}
+
+int st_bool_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    int written_bytes = 0;
+    int should_be_written = 0;
+    if(iv->num != 0)
+    {
+	written_bytes = snprintf(buffer, buffer_size, "true");
+	should_be_written = 4;
+    }
+    else
+    {
+	written_bytes = snprintf(buffer, buffer_size, "false");
+	should_be_written = 5;
+    }
+
+    if(written_bytes < 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    else if(written_bytes != should_be_written)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return written_bytes;
+}
+
+int st_bool_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    if(new_value->bool(new_value, config) == ESSTEE_TRUE)
+    {
+	iv->num = 1;
+    }
+    else
+    {
+	iv->num = 0;
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_bool_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->bool)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+struct value_iface_t * st_bool_value_create_temp_from(
+    const struct value_iface_t *self)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    struct integer_value_t *clone = NULL;
+    ALLOC_OR_JUMP(
+	clone,
+	struct integer_value_t,
+	error_free_resources);
+
+    memcpy(clone, iv, sizeof(struct integer_value_t));
+
+    /* Temporary value has no initial value */
+    clone->num = 0;
+    
+    /* Temporary has no type */
+    clone->value.explicit_type = NULL;
+
+    /* Temporary is assignable */
+    clone->value.assign = st_bool_value_assign;
+    
+    return &(clone->value);
+
+error_free_resources:
+    return NULL;
+}
+
+int st_bool_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(self->bool(self, config) == other_value->bool(other_value, config))
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+int st_bool_value_bool(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    if(iv->num == 0)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+int st_bool_value_xor(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
+
+    iv->num ^= ov;
+    
+    return ESSTEE_OK;
+}
+
+int st_bool_value_and(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
+
+    iv->num &= ov;
+    
+    return ESSTEE_OK;
+}
+    
+int st_bool_value_or(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
+
+    iv->num |= ov;
+    
+    return ESSTEE_OK;
 }

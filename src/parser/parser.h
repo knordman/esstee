@@ -255,9 +255,6 @@ struct value_iface_t * st_new_enum_inline_value(
     const struct st_location_t *location,
     struct parser_t *parser);
 
-struct value_iface_t * st_new_bool_temporary_value(    
-    struct errors_iface_t *errors);
-
 /**************************************************************************/
 /* Types                                                                  */
 /**************************************************************************/

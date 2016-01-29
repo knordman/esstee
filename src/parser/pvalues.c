@@ -55,10 +55,3 @@ struct value_iface_t * st_new_subrange_case_value(
     /* TODO: only used for case structure, not a value */
     return NULL;
 }
-
-struct value_iface_t * st_new_bool_temporary_value(    
-    struct errors_iface_t *errors)
-{
-    /* TODO: temporary boolean, can be defined somewhere else */
-    return NULL;
-}

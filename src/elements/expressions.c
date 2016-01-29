@@ -19,6 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/expressions.h>
 #include <elements/shared.h>
+#include <elements/types.h>
 #include <util/macros.h>
 
 #include <utlist.h>
@@ -110,17 +111,11 @@ void st_qualified_identifier_term_destroy(
 /**************************************************************************/
 /* Binary expressions                                                     */
 /**************************************************************************/
-int st_binary_expression_verify(
-    struct invoke_iface_t *self,
+static int verify_operands_and_compatibility(
+    struct binary_expression_t *be,
     const struct config_iface_t *config,
     struct errors_iface_t *errors)
 {
-    struct expression_iface_t *e =
-	CONTAINER_OF(self, struct expression_iface_t, invoke);
-
-    struct binary_expression_t *be =
-	CONTAINER_OF(e, struct binary_expression_t, expression);
-
     /* Verify right and left expressions */
     int left_operand_verification = ESSTEE_OK;
     if(be->left_operand->invoke.verify)
@@ -150,14 +145,95 @@ int st_binary_expression_verify(
 	return ESSTEE_ERROR;
     }
 
-    /* Check that temporary may be created from both left and right
-     * value. Otherwise either value is not assignable, and they
-     * cannot create an assignable tempory.  */
     const struct value_iface_t *left_value
 	= be->left_operand->return_value(be->left_operand);
     const struct value_iface_t *right_value
 	= be->right_operand->return_value(be->right_operand);
+    
+    /* Check that left operand and right operand are compatible */    
+    if(left_value->compatible(left_value, right_value, config) != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "values are not compatible",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
+	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
 
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_binary_compare_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    int verified = verify_operands_and_compatibility(
+	be,
+	config,
+	errors);
+    if(verified != ESSTEE_OK)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    /* Create a temporary boolean that can hold the result */
+    be->temporary = st_bool_type_create_value_of(NULL, config);
+    if(!be->temporary)
+    {
+	errors->memory_error(
+	    errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_binary_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    int verified = verify_operands_and_compatibility(
+	be,
+	config,
+	errors);
+    if(verified != ESSTEE_OK)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    /* After verification, temporary values are available */
+    const struct value_iface_t *left_value
+	= be->left_operand->return_value(be->left_operand);
+    const struct value_iface_t *right_value
+	= be->right_operand->return_value(be->right_operand);
+    
+    /* Check that temporary may be created from both left and right
+     * value. Otherwise either value is not assignable, and they
+     * cannot create an assignable tempory. There should be no
+     * expression where a + b is ok, but not b + a simply based on the
+     * types of a and b. */
     if(!left_value->create_temp_from && !right_value->create_temp_from)
     {
 	errors->new_issue_at(
@@ -193,20 +269,6 @@ int st_binary_expression_verify(
 	return ESSTEE_ERROR;
     }
     
-    /* Check that left operand and right operand are compatible */    
-    if(left_value->compatible(left_value, right_value, config) != ESSTEE_TRUE)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "values are not compatible",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
-	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
-
-	return ESSTEE_ERROR;
-    }
-
     /* Create a temporary value for the operation result*/
     be->temporary = left_value->create_temp_from(left_value);
     if(!be->temporary)
@@ -616,6 +678,162 @@ int st_division_expression_step(
 	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
 
 	return INVOKE_RESULT_ERROR;
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_greater_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    int operand_step_result =
+	binary_expression_step_operands(be, cursor, time, config, errors);
+
+    if(operand_step_result != INVOKE_RESULT_FINISHED)
+    {
+	return operand_step_result;
+    }
+
+    const struct value_iface_t *left_value
+	= be->left_operand->return_value(be->left_operand);
+    const struct value_iface_t *right_value
+	= be->right_operand->return_value(be->right_operand);
+
+    int comparison = left_value->greater(left_value, right_value, config);
+
+    if(comparison == ESSTEE_ERROR)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "unable determine whether one is greater than the other",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
+	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
+	
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(comparison == ESSTEE_TRUE)
+    {
+	st_bool_type_true(be->temporary);
+    }
+    else
+    {
+	st_bool_type_false(be->temporary);
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_lesser_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    int operand_step_result =
+	binary_expression_step_operands(be, cursor, time, config, errors);
+
+    if(operand_step_result != INVOKE_RESULT_FINISHED)
+    {
+	return operand_step_result;
+    }
+
+    const struct value_iface_t *left_value
+	= be->left_operand->return_value(be->left_operand);
+    const struct value_iface_t *right_value
+	= be->right_operand->return_value(be->right_operand);
+
+    int comparison = left_value->lesser(left_value, right_value, config);
+
+    if(comparison == ESSTEE_ERROR)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "unable determine whether one is smaller than the other",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
+	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
+	
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(comparison == ESSTEE_TRUE)
+    {
+	st_bool_type_true(be->temporary);
+    }
+    else
+    {
+	st_bool_type_false(be->temporary);
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_equals_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    int operand_step_result =
+	binary_expression_step_operands(be, cursor, time, config, errors);
+
+    if(operand_step_result != INVOKE_RESULT_FINISHED)
+    {
+	return operand_step_result;
+    }
+
+    const struct value_iface_t *left_value
+	= be->left_operand->return_value(be->left_operand);
+    const struct value_iface_t *right_value
+	= be->right_operand->return_value(be->right_operand);
+
+    int comparison = left_value->equals(left_value, right_value, config);
+
+    if(comparison == ESSTEE_ERROR)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "unable determine whether one equals the other",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
+	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
+	
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(comparison == ESSTEE_TRUE)
+    {
+	st_bool_type_true(be->temporary);
+    }
+    else
+    {
+	st_bool_type_false(be->temporary);
     }
 
     return INVOKE_RESULT_FINISHED;

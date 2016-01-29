@@ -31,9 +31,9 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .location = st_built_in_type_location_get,
-	    .create_value_of = st_integer_type_create_value_of,
+	    .create_value_of = st_bool_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
-	    .can_hold = NULL,
+	    .can_hold = st_bool_type_can_hold,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .class = INTEGER_BOOL_TYPE,
@@ -600,6 +600,77 @@ void st_integer_type_destroy(
     struct type_iface_t *self)
 {
     /* TODO: integer type destructor */
+}
+
+/* Bool specializations */
+struct value_iface_t * st_bool_type_create_value_of(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv = NULL;
+    ALLOC_OR_JUMP(
+	iv,
+	struct integer_value_t,
+	error_free_resources);
+    
+    iv->explicit_type = self;
+    memset(&(iv->value), 0, sizeof(struct value_iface_t));
+    
+    iv->value.display = st_bool_value_display;
+    iv->value.assign = st_bool_value_assign;
+    iv->value.reset = st_integer_value_reset;
+    iv->value.explicit_type = st_integer_value_explicit_type;
+    iv->value.compatible = st_bool_value_compatible;
+    iv->value.create_temp_from = st_bool_value_create_temp_from;
+    iv->value.destroy = st_integer_value_destroy;
+
+    iv->value.equals = st_bool_value_equals;
+
+    iv->value.xor = st_bool_value_xor;
+    iv->value.and = st_bool_value_and;
+    iv->value.or = st_bool_value_or;
+    
+    iv->value.bool = st_bool_value_bool;
+
+    return &(iv->value);
+    
+error_free_resources:
+    return NULL;
+}
+
+int st_bool_type_can_hold(
+    const struct type_iface_t *self,
+    const struct value_iface_t *value,
+    const struct config_iface_t *config)
+{
+    if(!value->bool)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+int st_bool_type_true(
+    struct value_iface_t *value)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(value, struct integer_value_t, value);
+
+    iv->num = 1;
+
+    return ESSTEE_OK;
+}
+
+int st_bool_type_false(
+    struct value_iface_t *value)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(value, struct integer_value_t, value);
+
+    iv->num = 0;
+
+    return ESSTEE_OK;
 }
 
 /**************************************************************************/

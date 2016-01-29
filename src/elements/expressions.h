@@ -131,6 +131,11 @@ struct binary_expression_t {
     struct value_iface_t *temporary;
 };
 
+int st_binary_compare_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_binary_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -185,6 +190,27 @@ int st_multiply_expression_step(
     struct errors_iface_t *errors);
 
 int st_division_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_greater_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_lesser_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_equals_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
