@@ -109,6 +109,50 @@ int64_t st_integer_value_integer(
     const struct value_iface_t *self,
     const struct config_iface_t *config);
 
+/* Bool specializations */
+int st_bool_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_bool_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_bool_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+struct value_iface_t * st_bool_value_create_temp_from(
+    const struct value_iface_t *self);	
+
+int st_bool_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_bool_value_bool(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
+
+int st_bool_value_xor(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_bool_value_and(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+    
+int st_bool_value_or(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
 /**************************************************************************/
 /* Real values                                                            */
 /**************************************************************************/

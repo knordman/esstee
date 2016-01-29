@@ -172,6 +172,10 @@ struct expression_iface_t * st_new_not_term(
 static struct expression_iface_t * new_binary_expression(
     struct expression_iface_t *left_operand,
     struct expression_iface_t *right_operand,
+    int (*verify_function)(
+	struct invoke_iface_t *self,
+	const struct config_iface_t *config,
+	struct errors_iface_t *errors),
     const struct st_location_t *location,
     int (*step_function)(
 	struct invoke_iface_t *,
@@ -199,7 +203,7 @@ static struct expression_iface_t * new_binary_expression(
     be->invoke_state = 0;
     
     be->expression.invoke.step = step_function;
-    be->expression.invoke.verify = st_binary_expression_verify;
+    be->expression.invoke.verify = verify_function;
     be->expression.invoke.location = st_binary_expression_location;
     be->expression.return_value = st_binary_expression_return_value;
     
@@ -222,6 +226,7 @@ struct expression_iface_t * st_new_xor_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,
 	location,
 	st_xor_expression_step,
 	parser);
@@ -236,6 +241,7 @@ struct expression_iface_t * st_new_and_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,       
 	location,
 	st_and_expression_step,
 	parser);
@@ -250,6 +256,7 @@ struct expression_iface_t * st_new_or_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,	
 	location,
 	st_or_expression_step,
 	parser);
@@ -261,7 +268,13 @@ struct expression_iface_t * st_new_greater_expression(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    return NULL;
+    return new_binary_expression(
+	left_operand,
+	right_operand,
+	st_binary_compare_expression_verify,	
+	location,
+	st_greater_expression_step,
+	parser);
 }
 
 struct expression_iface_t * st_new_lesser_expression(
@@ -270,8 +283,13 @@ struct expression_iface_t * st_new_lesser_expression(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: implement binary lesser expression */
-    return NULL;
+    return new_binary_expression(
+	left_operand,
+	right_operand,
+	st_binary_compare_expression_verify,	
+	location,
+	st_lesser_expression_step,
+	parser);
 }
 
 struct expression_iface_t * st_new_equals_expression(
@@ -280,8 +298,13 @@ struct expression_iface_t * st_new_equals_expression(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: implement binary equals expression */
-    return NULL;
+    return new_binary_expression(
+	left_operand,
+	right_operand,
+	st_binary_compare_expression_verify,	
+	location,
+	st_equals_expression_step,
+	parser);
 }
 
 struct expression_iface_t * st_new_gequals_expression(
@@ -322,6 +345,7 @@ struct expression_iface_t * st_new_plus_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,	
 	location,
 	st_plus_expression_step,
 	parser);
@@ -336,6 +360,7 @@ struct expression_iface_t * st_new_minus_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,	
 	location,
 	st_minus_expression_step,
 	parser);
@@ -350,6 +375,7 @@ struct expression_iface_t * st_new_multiply_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,	
 	location,
 	st_multiply_expression_step,
 	parser);
@@ -364,6 +390,7 @@ struct expression_iface_t * st_new_division_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_binary_expression_verify,	
 	location,
 	st_division_expression_step,
 	parser);

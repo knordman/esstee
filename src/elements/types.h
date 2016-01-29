@@ -95,6 +95,22 @@ int st_integer_type_can_hold(
 void st_integer_type_destroy(
     struct type_iface_t *self);
 
+/* Bool specializations */
+struct value_iface_t * st_bool_type_create_value_of(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config);
+
+int st_bool_type_can_hold(
+    const struct type_iface_t *self,
+    const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+int st_bool_type_true(
+    struct value_iface_t *value);
+
+int st_bool_type_false(
+    struct value_iface_t *value);
+
 /**************************************************************************/
 /* Real types                                                             */
 /**************************************************************************/

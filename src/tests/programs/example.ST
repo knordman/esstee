@@ -1,14 +1,14 @@
 PROGRAM testprgm
 
 VAR
-	myvar : SINT;
+	myvar : DINT;
 	mydint : DINT;
-	
+	mybool : BOOL;
 END_VAR
 
-myvar := 10;
+myvar := 1000;
 mydint := 100;
 
-myvar := 30 * 4;
+mybool := (1 > 0) and (2 = 2) and (3 < 5);
 
 END_PROGRAM
