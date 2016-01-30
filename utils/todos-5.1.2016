@@ -6,6 +6,8 @@ DONE 6 /*TODO: empty statement */ ../src/elements/statements.h
 DONE 155 /* TODO: implement binary lesser expression */ ../src/parser/pexpressions.c
 DONE 156 /* TODO: implement binary equals expression */ ../src/parser/pexpressions.c
 DONE 118 /* TODO: temporary boolean, can be defined somewhere else */ ../src/parser/pvalues.c
+DONE 157 /* TODO: implement binary gequals expression */ ../src/parser/pexpressions.c
+DONE 158 /* TODO: implement binary lequals expression */ ../src/parser/pexpressions.c
 
 2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
@@ -148,13 +150,13 @@ DONE 118 /* TODO: temporary boolean, can be defined somewhere else */ ../src/par
 152 /* TODO: new exit statement */ ../src/parser/pstatements.c
 153 /* TODO: new return statement */ ../src/parser/pstatements.c
 
-157 /* TODO: implement binary gequals expression */ ../src/parser/pexpressions.c
-158 /* TODO: implement binary lequals expression */ ../src/parser/pexpressions.c
 159 /* TODO: implement binary mod expression */ ../src/parser/pexpressions.c
 160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
 
+first:
 161 /* TODO: return literal as value */ ../src/parser/pliterals.c
 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
+then:
 166 /* TODO: real literal */ ../src/parser/pliterals.c
 167 /* TODO: duration literal */ ../src/parser/pliterals.c
 168 /* TODO: date literal */ ../src/parser/pliterals.c

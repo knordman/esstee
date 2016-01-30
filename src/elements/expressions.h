@@ -147,10 +147,20 @@ const struct st_location_t * st_binary_expression_location(
 const struct value_iface_t * st_binary_expression_return_value(
     struct expression_iface_t *self);
 
+int st_xor_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_xor_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_and_expression_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -161,10 +171,20 @@ int st_and_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+int st_or_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_or_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_plus_expression_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -175,10 +195,20 @@ int st_plus_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+int st_minus_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_minus_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_multiply_expression_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -189,10 +219,20 @@ int st_multiply_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+int st_division_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_division_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_greater_expression_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -203,6 +243,11 @@ int st_greater_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+int st_lesser_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_lesser_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
@@ -210,7 +255,48 @@ int st_lesser_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+int st_equals_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_equals_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_gequals_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_gequals_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_lequals_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_lequals_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_nequals_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_nequals_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
