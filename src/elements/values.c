@@ -486,7 +486,7 @@ int st_bool_value_and(
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
-
+    
     iv->num &= ov;
     
     return ESSTEE_OK;
