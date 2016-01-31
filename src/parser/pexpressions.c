@@ -418,8 +418,13 @@ struct expression_iface_t * st_new_mod_expression(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: implement binary mod expression */
-    return NULL;
+    return new_binary_expression(
+	left_operand,
+	right_operand,
+	st_mod_expression_verify,	
+	location,
+	st_mod_expression_step,
+	parser);
 }
 
 struct expression_iface_t * st_new_to_power_expression(
@@ -428,6 +433,11 @@ struct expression_iface_t * st_new_to_power_expression(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: implement binary to power expression */
-    return NULL;
+    return new_binary_expression(
+	left_operand,
+	right_operand,
+	st_power_expression_verify,	
+	location,
+	st_power_expression_step,
+	parser);
 }

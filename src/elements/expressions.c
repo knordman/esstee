@@ -1008,3 +1008,57 @@ int st_nequals_expression_step(
 
     return INVOKE_RESULT_FINISHED;
 }
+
+int st_mod_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    BINARY_EXPRESSION_VERIFY(
+	modulus,
+	"value does not support the modulus operation",
+	be_create_cloned_temporary);
+
+    return ESSTEE_OK;
+}
+
+int st_mod_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    BINARY_EXPRESSION_STEP(
+        modulus,
+	"unable to perform modulus operation");
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_power_expression_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    BINARY_EXPRESSION_VERIFY(
+	to_power,
+	"value does not support the ** operation",
+	be_create_cloned_temporary);
+
+    return ESSTEE_OK;
+}
+
+int st_power_expression_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    BINARY_EXPRESSION_STEP(
+        to_power,
+	"unable to perform the ** operation");
+
+    return INVOKE_RESULT_FINISHED;
+}

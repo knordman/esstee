@@ -8,151 +8,68 @@ DONE 156 /* TODO: implement binary equals expression */ ../src/parser/pexpressio
 DONE 118 /* TODO: temporary boolean, can be defined somewhere else */ ../src/parser/pvalues.c
 DONE 157 /* TODO: implement binary gequals expression */ ../src/parser/pexpressions.c
 DONE 158 /* TODO: implement binary lequals expression */ ../src/parser/pexpressions.c
+DONE pending-binary-expression
+DONE 6 /* TODO: integer value modulus */ ../src/elements/values.c
+DONE 17 /* TODO: integer value to power */ ../src/elements/values.c
+DONE 159 /* TODO: implement binary mod expression */ ../src/parser/pexpressions.c
+DONE 160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
 
-2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
-3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
-4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
-5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
+type-var-glue
+125 /* TODO: append new type declaration to type block */ ../src/parser/ptypes.c
+121 /* TODO: new type block */ ../src/parser/ppous.c
+123 /* TODO: append type block to header */ ../src/parser/ppous.c
+122 /* TODO: new var block */ ../src/parser/ppous.c
 
-7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h
-8 /*TODO: if statements invoke functions */ ../src/elements/statements.h
-9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
-10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
-11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
-12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
-
-16 /* TODO: integer value modulus */ ../src/elements/values.c
-17 /* TODO: integer value to power */ ../src/elements/values.c
-18 /* TODO: add data of direct memory */ ../src/elements/directmemory.h
-
-21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
-22 /*TODO: negative prefix term expression functions */ ../src/elements/expressions.h
-23 /*TODO: function invocation term expression functions */ ../src/elements/expressions.h
-24 /*TODO: not prefix term expression functions */ ../src/elements/expressions.h
-25 /* TODO: return offset into direct memory based on direct address */ ../src/elements/directmemory.c
-26 /* TODO: reset direct memory, to zero, or resetted value?  */ ../src/elements/directmemory.c
-32 /*TODO: Real values, determine value interface functions */ ../src/elements/values.h
-33 /*TODO: String values, determine value interface function */ ../src/elements/values.h
-34 /*TODO: Duration value, determine value interface function */ ../src/elements/values.h
-35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
-36 /*TODO: Tod value, determine value interface function */ ../src/elements/values.h
-37 /*TODO: Date tod value, determine value interface function */ ../src/elements/values.h
+derived-type-value
+126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
+127 /* TODO: new derived type from other type name */ ../src/parser/ptypes.c
 38 /*TODO: Derived value */ ../src/elements/values.h
-39 /*TODO: Enumerated value */ ../src/elements/values.h
-40 /*TODO: Subrange value */ ../src/elements/values.h
-41 /*TODO: Array value */ ../src/elements/values.h
-42 /*TODO: Struct value */ ../src/elements/values.h
-43 /*TODO: Function block value */ ../src/elements/values.h
-44 /*TODO: structs for string type with defined length */ ../src/elements/types.h
-
-49 /* TODO: create real type value */ ../src/elements/types.c
-50 /* TODO: real type reset value of */ ../src/elements/types.c
-51 /* TODO: real type can hold evaluation */ ../src/elements/types.c
-52 /* TODO: real type destructor */ ../src/elements/types.c
-53 /* TODO: string type create value of */ ../src/elements/types.c
-54 /* TODO: string type reset value of */ ../src/elements/types.c
-55 /* TODO: string type can hold */ ../src/elements/types.c
-56 /* TODO: string type destructor */ ../src/elements/types.c
-57 /* TODO: duration type create value of */ ../src/elements/types.c
-58 /* TODO: duration type reset value of */ ../src/elements/types.c
-59 /* TODO: duration type can hold */ ../src/elements/types.c
-60 /* TODO: duration type destructor */ ../src/elements/types.c
-61 /* TODO: date type create value of */ ../src/elements/types.c
-62 /* TODO: date type reset value of */ ../src/elements/types.c
-63 /* TODO: date type can hold */ ../src/elements/types.c
-64 /* TODO: date type destructor */ ../src/elements/types.c
-65 /* TODO: tod type create value of */ ../src/elements/types.c
-66 /* TODO: tod type reset value of */ ../src/elements/types.c
-67 /* TODO: tod type can hold */ ../src/elements/types.c
-68 /* TODO: tod type destructor */ ../src/elements/types.c
-69 /* TODO: date tod type create value */ ../src/elements/types.c
-70 /* TODO: date tod type reset value of */ ../src/elements/types.c
-71 /* TODO: date tod type can hold */ ../src/elements/types.c
-72 /* TODO: date tod type destructor */ ../src/elements/types.c
 73 /* TODO: derived type location */ ../src/elements/types.c
 74 /* TODO: derived type create value of */ ../src/elements/types.c
 75 /* TODO: derived type reset value of */ ../src/elements/types.c
 76 /* TODO: derived type can hold */ ../src/elements/types.c
-77 /* TODO: derived type destructor */ ../src/elements/types.c
+
+enum-type-value
+130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
+131 /* TODO: new enum type */ ../src/parser/ptypes.c
+39 /*TODO: Enumerated value */ ../src/elements/values.h
 78 /* TODO: enum type location */ ../src/elements/types.c
 79 /* TODO: enum type create value of */ ../src/elements/types.c
 80 /* TODO: enum type reset value of */ ../src/elements/types.c
 81 /* TODO: enum type can hold */ ../src/elements/types.c
 82 /* TODO: enum type compatible, true when; enum of same values, or ../src/elements/types.c
-83 /* TODO: enum type destructor */ ../src/elements/types.c
+
+subrange-type-value
+128 /* TODO: new subrange */ ../src/parser/ptypes.c
+129 /* TODO: new subrange type */ ../src/parser/ptypes.c
+40 /*TODO: Subrange value */ ../src/elements/values.h
 84 /* TODO: subrange type location */ ../src/elements/types.c
 85 /* TODO: subrange type create value of */ ../src/elements/types.c
 86 /* TODO: subrange type reset value of */ ../src/elements/types.c
 87 /* TODO: subrange type can hold */ ../src/elements/types.c
 88 /* TODO: subrange type compatible */ ../src/elements/types.c
-89 /* TODO: subrange type destructor */ ../src/elements/types.c
-90 /* TODO: array type location */ ../src/elements/types.c
-91 /* TODO: array type create value of */ ../src/elements/types.c
-92 /* TODO: array type reset value of */ ../src/elements/types.c
-93 /* TODO: array type destructor */ ../src/elements/types.c
-94 /* TODO: struct type location */ ../src/elements/types.c
-95 /* TODO: struct type create value of */ ../src/elements/types.c
-96 /* TODO: struct type reset value of */ ../src/elements/types.c
-97 /* TODO: struct type destructor */ ../src/elements/types.c
-98 /* TODO: function block type location */ ../src/elements/types.c
-99 /* TODO: function block type create value of */ ../src/elements/types.c
-100 /* TODO: function block type reset value of */ ../src/elements/types.c
-101 /* TODO: function block type destructor */ ../src/elements/types.c
-102 /*TODO: functions for string type with defined length */ ../src/elements/types.c
-103 /* TODO: implement set config */ ../src/esstee/esstee.c
-104 /* TODO: implement get config */ ../src/esstee/esstee.c
-105 /* TODO: implement loading of buffer */ ../src/esstee/esstee.c
 
-107 /* TODO: Functionality, resetting linking prior to link operation */ ../src/esstee/esstee.c
-108 /* TODO: implement construction of new direct address */ ../src/parser/pdirectmemory.c
-109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c
-110 /* TODO: initialization of direct memory */ ../src/parser/pvariables.c
-111 /* TODO: initialization of direct memory by explicit value */ ../src/parser/pvariables.c
-112 /* TODO: new direct variable */ ../src/parser/pvariables.c
-113 /* TODO: new direct var by explicit initial value */ ../src/parser/pvariables.c
-114 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
-115 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
-116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
-117 /* TODO: only used for case structure, not a value */ ../src/parser/pvalues.c
-119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
-120 /* TODO: new function block */ ../src/parser/ppous.c
-121 /* TODO: new type block */ ../src/parser/ppous.c
-122 /* TODO: new var block */ ../src/parser/ppous.c
-123 /* TODO: append type block to header */ ../src/parser/ppous.c
-
-125 /* TODO: append new type declaration to type block */ ../src/parser/ptypes.c
-126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
-127 /* TODO: new derived type from other type name */ ../src/parser/ptypes.c
-128 /* TODO: new subrange */ ../src/parser/ptypes.c
-129 /* TODO: new subrange type */ ../src/parser/ptypes.c
-130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
-131 /* TODO: new enum type */ ../src/parser/ptypes.c
+array-type-value
 132 /* TODO: extend array range by subrange */ ../src/parser/ptypes.c
 133 /* TODO: append new initial element to array */ ../src/parser/ptypes.c
 134 /* TODO: append initial elements to array by multiplier */ ../src/parser/ptypes.c
 135 /* TODO: new array type */ ../src/parser/ptypes.c
+41 /*TODO: Array value */ ../src/elements/values.h
+90 /* TODO: array type location */ ../src/elements/types.c
+91 /* TODO: array type create value of */ ../src/elements/types.c
+92 /* TODO: array type reset value of */ ../src/elements/types.c
+
+struct-type-value
+42 /*TODO: Struct value */ ../src/elements/values.h
+94 /* TODO: struct type location */ ../src/elements/types.c
+95 /* TODO: struct type create value of */ ../src/elements/types.c
+96 /* TODO: struct type reset value of */ ../src/elements/types.c
 136 /* TODO: add new struct element to struct element group */ ../src/parser/ptypes.c
 137 /* TODO: new struct type */ ../src/parser/ptypes.c
 138 /* TODO: add new struct element initializer to initializer group */ ../src/parser/ptypes.c
 139 /* TODO: new struct element initializer from value */ ../src/parser/ptypes.c
-140 /* TODO: new string type with defined value */ ../src/parser/ptypes.c
-141 /* TODO: new invoke statement */ ../src/parser/pstatements.c
-142 /* TODO: new if statement */ ../src/parser/pstatements.c
-143 /* TODO: append else if to if */ ../src/parser/pstatements.c
-144 /* TODO: new if statement */ ../src/parser/pstatements.c
-145 /* TODO: append case value to case */ ../src/parser/pstatements.c
-146 /* TODO: new case */ ../src/parser/pstatements.c
-147 /* TODO: append case to case conditional */ ../src/parser/pstatements.c
-148 /* TODO: new case statement */ ../src/parser/pstatements.c
-149 /* TODO: new for statement */ ../src/parser/pstatements.c
-150 /* TODO: new while statement */ ../src/parser/pstatements.c
-151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
-152 /* TODO: new exit statement */ ../src/parser/pstatements.c
-153 /* TODO: new return statement */ ../src/parser/pstatements.c
 
-159 /* TODO: implement binary mod expression */ ../src/parser/pexpressions.c
-160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
-
+literals
 first:
 161 /* TODO: return literal as value */ ../src/parser/pliterals.c
 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
@@ -166,6 +83,105 @@ then:
 172 /* TODO: string literal */ ../src/parser/pliterals.c
 173 /* TODO: double literal */ ../src/parser/pliterals.c
 
+real-type-value
+49 /* TODO: create real type value */ ../src/elements/types.c
+50 /* TODO: real type reset value of */ ../src/elements/types.c
+51 /* TODO: real type can hold evaluation */ ../src/elements/types.c
+32 /*TODO: Real values, determine value interface functions */ ../src/elements/values.h
+
+string-types-value
+44 /*TODO: structs for string type with defined length */ ../src/elements/types.h
+140 /* TODO: new string type with defined value */ ../src/parser/ptypes.c
+33 /*TODO: String values, determine value interface function */ ../src/elements/values.h
+53 /* TODO: string type create value of */ ../src/elements/types.c
+54 /* TODO: string type reset value of */ ../src/elements/types.c
+55 /* TODO: string type can hold */ ../src/elements/types.c
+
+duration-type-value
+34 /*TODO: Duration value, determine value interface function */ ../src/elements/values.h
+57 /* TODO: duration type create value of */ ../src/elements/types.c
+58 /* TODO: duration type reset value of */ ../src/elements/types.c
+59 /* TODO: duration type can hold */ ../src/elements/types.c
+
+date-type-value
+35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
+61 /* TODO: date type create value of */ ../src/elements/types.c
+62 /* TODO: date type reset value of */ ../src/elements/types.c
+63 /* TODO: date type can hold */ ../src/elements/types.c
+
+tod-type-value
+36 /*TODO: Tod value, determine value interface function */ ../src/elements/values.h
+65 /* TODO: tod type create value of */ ../src/elements/types.c
+66 /* TODO: tod type reset value of */ ../src/elements/types.c
+67 /* TODO: tod type can hold */ ../src/elements/types.c
+
+datetod-type-value
+37 /*TODO: Date tod value, determine value interface function */ ../src/elements/values.h
+69 /* TODO: date tod type create value */ ../src/elements/types.c
+70 /* TODO: date tod type reset value of */ ../src/elements/types.c
+71 /* TODO: date tod type can hold */ ../src/elements/types.c
+
+fb-type-value
+120 /* TODO: new function block */ ../src/parser/ppous.c
+43 /*TODO: Function block value */ ../src/elements/values.h
+p98 /* TODO: function block type location */ ../src/elements/types.c
+99 /* TODO: function block type create value of */ ../src/elements/types.c
+100 /* TODO: function block type reset value of */ ../src/elements/types.c
+102 /*TODO: functions for string type with defined length */ ../src/elements/types.c
+
+config
+103 /* TODO: implement set config */ ../src/esstee/esstee.c
+104 /* TODO: implement get config */ ../src/esstee/esstee.c
+
+unsorted
+105 /* TODO: implement loading of buffer */ ../src/esstee/esstee.c
+107 /* TODO: Functionality, resetting linking prior to link operation */ ../src/esstee/esstee.c
+109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c
+114 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
+115 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
+116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
+117 /* TODO: only used for case structure, not a value */ ../src/parser/pvalues.c
+119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
+2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
+3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
+4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
+5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
+7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h
+9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
+10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
+11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
+12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
+8 /*TODO: if statements invoke functions */ ../src/elements/statements.h
+142 /* TODO: new if statement */ ../src/parser/pstatements.c
+143 /* TODO: append else if to if */ ../src/parser/pstatements.c
+144 /* TODO: new if statement */ ../src/parser/pstatements.c
+145 /* TODO: append case value to case */ ../src/parser/pstatements.c
+146 /* TODO: new case */ ../src/parser/pstatements.c
+147 /* TODO: append case to case conditional */ ../src/parser/pstatements.c
+148 /* TODO: new case statement */ ../src/parser/pstatements.c
+141 /* TODO: new invoke statement */ ../src/parser/pstatements.c
+149 /* TODO: new for statement */ ../src/parser/pstatements.c
+150 /* TODO: new while statement */ ../src/parser/pstatements.c
+151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
+152 /* TODO: new exit statement */ ../src/parser/pstatements.c
+153 /* TODO: new return statement */ ../src/parser/pstatements.c
+
+direct-memory
+21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
+22 /*TODO: negative prefix term expression functions */ ../src/elements/expressions.h
+23 /*TODO: function invocation term expression functions */ ../src/elements/expressions.h
+24 /*TODO: not prefix term expression functions */ ../src/elements/expressions.h
+25 /* TODO: return offset into direct memory based on direct address */ ../src/elements/directmemory.c
+26 /* TODO: reset direct memory, to zero, or resetted value?  */ ../src/elements/directmemory.c
+108 /* TODO: implement construction of new direct address */ ../src/parser/pdirectmemory.c
+110 /* TODO: initialization of direct memory */ ../src/parser/pvariables.c
+111 /* TODO: initialization of direct memory by explicit value */ ../src/parser/pvariables.c
+112 /* TODO: new direct variable */ ../src/parser/pvariables.c
+113 /* TODO: new direct var by explicit initial value */ ../src/parser/pvariables.c
+18 /* TODO: add data of direct memory */ ../src/elements/directmemory.h
+
+destructors
+83 /* TODO: enum type destructor */ ../src/elements/types.c
 154 /* TODO: destructor for compilation unit */ ../src/parser/parser.c
 124 // TODO: destroy vars block ../src/parser/ppous.c
 13 /* TODO: destructor array index */ ../src/elements/shared.c
@@ -183,3 +199,14 @@ then:
 46 /* TODO: literal destructor from value */ ../src/elements/literals.c
 48 /* TODO: integer type destructor */ ../src/elements/types.c
 15 /* TODO: integer value destroy */ ../src/elements/values.c
+72 /* TODO: date tod type destructor */ ../src/elements/types.c
+52 /* TODO: real type destructor */ ../src/elements/types.c
+56 /* TODO: string type destructor */ ../src/elements/types.c
+60 /* TODO: duration type destructor */ ../src/elements/types.c
+68 /* TODO: tod type destructor */ ../src/elements/types.c
+77 /* TODO: derived type destructor */ ../src/elements/types.c
+89 /* TODO: subrange type destructor */ ../src/elements/types.c
+93 /* TODO: array type destructor */ ../src/elements/types.c
+97 /* TODO: struct type destructor */ ../src/elements/types.c
+101 /* TODO: function block type destructor */ ../src/elements/types.c
+64 /* TODO: date type destructor */ ../src/elements/types.c
