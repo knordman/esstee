@@ -117,7 +117,7 @@ int st_new_type_block_pou(
     struct type_iface_t *types,
     struct parser_t *parser)
 {
-    /* TODO: new type block */
+    DL_CONCAT(parser->global_types, types);
     return ESSTEE_OK;
 }
 
@@ -125,7 +125,7 @@ int st_new_var_block_pou(
     struct variable_t *variables,
     struct parser_t *parser)
 {
-    /* TODO: new var block */
+    DL_CONCAT(parser->global_variables, variables);
     return ESSTEE_OK;
 }
 
@@ -134,8 +134,25 @@ struct header_t * st_append_types_to_header(
     struct type_iface_t *type_block, 
     struct parser_t *parser)
 {
-    /* TODO: append type block to header */
-    return ESSTEE_OK;
+    if(!header)
+    {
+	ALLOCATE_OR_ERROR_JUMP(
+	    header,
+	    struct header_t,
+	    parser->errors,
+	    error_free_resources);
+
+	header->types = NULL;
+	header->variables = NULL;
+    }
+
+    DL_CONCAT(header->types, type_block);
+    return header;
+
+error_free_resources:
+    /* TODO: clear named references in header */
+    /* TODO: destroy types block */
+    return NULL;
 }
 
 struct header_t * st_append_vars_to_header(
@@ -160,6 +177,7 @@ struct header_t * st_append_vars_to_header(
     return header;
 
 error_free_resources:
+    /* TODO: clear named references in header */    
     // TODO: destroy vars block
     return NULL;
 }

@@ -48,7 +48,7 @@ struct parser_t {
     const char *active_buffer;
     
     struct type_iface_t *global_types;	 /* List of defined global types */
-    struct variable_t *global_variables; /* List of degined global variables */
+    struct variable_t *global_variables; /* List of defined global variables */
     struct function_t *functions;	 /* List of defined functions */
     struct function_block_t *function_blocks; /* List of defined function block types */
     struct program_t *programs;		      /* List of defined programs */

@@ -20,14 +20,15 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <parser/parser.h>
 #include <elements/types.h>
 
+#include <utlist.h>
 
 struct type_iface_t * st_append_type_declaration(
     struct type_iface_t *type_block,
     struct type_iface_t *type,
     struct parser_t *parser)
 {
-    /* TODO: append new type declaration to type block */
-    return NULL;
+    DL_APPEND(type_block, type);
+    return type_block;
 }
 
 /**************************************************************************/

@@ -13,12 +13,11 @@ DONE 6 /* TODO: integer value modulus */ ../src/elements/values.c
 DONE 17 /* TODO: integer value to power */ ../src/elements/values.c
 DONE 159 /* TODO: implement binary mod expression */ ../src/parser/pexpressions.c
 DONE 160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
-
-type-var-glue
-125 /* TODO: append new type declaration to type block */ ../src/parser/ptypes.c
-121 /* TODO: new type block */ ../src/parser/ppous.c
-123 /* TODO: append type block to header */ ../src/parser/ppous.c
-122 /* TODO: new var block */ ../src/parser/ppous.c
+DONE type-var-glue
+DONE 125 /* TODO: append new type declaration to type block */ ../src/parser/ptypes.c
+DONE 121 /* TODO: new type block */ ../src/parser/ppous.c
+DONE 123 /* TODO: append type block to header */ ../src/parser/ppous.c
+DONE 122 /* TODO: new var block */ ../src/parser/ppous.c
 
 derived-type-value
 126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
