@@ -21,7 +21,8 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/macros.h>
 
 #include <stdio.h>
-
+#include <math.h>
+#include <errno.h>
 
 /**************************************************************************/
 /* Integer values                                                         */
@@ -315,7 +316,11 @@ int st_integer_value_modulus(
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
 {
-    /* TODO: integer value modulus */
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    iv->num %= other_value->integer(other_value, config);
+
     return ESSTEE_OK;
 }
 
@@ -324,8 +329,24 @@ int st_integer_value_to_power(
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
 {
-    /* TODO: integer value to power */
-    return ESSTEE_OK;
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    int64_t start_num = iv->num;
+
+    long double dnum = (long double)iv->num;
+    long double exp = (long double)other_value->integer(other_value, config);
+
+    errno = 0;
+    long double result = powl(dnum, exp);
+    if(errno != 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    iv->num = (int64_t)result;
+
+    return binary_expression_result_after_type_check(iv, start_num, config);
 }
 
 int64_t st_integer_value_integer(
