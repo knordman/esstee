@@ -314,6 +314,8 @@ int st_link(struct st_t *st)
 	}
     }
 
+    /* Add second sweep for types */
+    
     if(st->errors->new_error_occured(st->errors) != ESSTEE_FALSE)
     {
 	goto error_free_resources;

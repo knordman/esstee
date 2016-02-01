@@ -19,6 +19,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <parser/parser.h>
 #include <elements/types.h>
+#include <util/macros.h>
+#include <linker/linker.h>
 
 #include <utlist.h>
 
@@ -41,18 +43,103 @@ struct type_iface_t * st_new_derived_type(
     struct value_iface_t *default_value,
     struct parser_t *parser)
 {
-    /* TODO: new derived type by inline defined type */
+    struct derived_type_t *dt = NULL;
+    struct st_location_t *loc = NULL;
+	
+    ALLOC_OR_ERROR_JUMP(
+	dt,
+	struct derived_type_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    dt->ancestor = parent_type;
+    dt->parent = parent_type;
+    dt->location = loc;
+    dt->default_value = default_value;
+
+    dt->type.class = DERIVED_TYPE;    
+    dt->type.identifier = type_name;
+    dt->type.location = st_derived_type_location;
+    dt->type.create_value_of = st_derived_type_create_value_of;
+    dt->type.reset_value_of = st_derived_type_reset_value_of;
+    dt->type.can_hold = st_derived_type_can_hold;
+    dt->type.compatible = st_derived_type_compatible;
+    dt->type.destroy = st_derived_type_destroy;
+
+    return &(dt->type);
+
+error_free_resources:
+    free(loc);
     return NULL;
 }
 
 struct type_iface_t * st_new_derived_type_by_name(
     char *type_name,
     char *parent_type_name,
+    const struct st_location_t *parent_type_name_location,
     const struct st_location_t *location,
     struct value_iface_t *default_value,
     struct parser_t *parser)
 {
-    /* TODO: new derived type from other type name */
+    struct derived_type_t *dt = NULL;
+    struct st_location_t *loc = NULL;
+	
+    ALLOC_OR_ERROR_JUMP(
+	dt,
+	struct derived_type_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    int ref_add_result = parser->pou_type_ref_pool->add_two_step(
+	parser->pou_type_ref_pool,
+	parent_type_name,
+	dt,
+	NULL,
+	parent_type_name_location,
+	st_derived_type_parent_name_resolved,
+	st_derived_type_resolve_ancestor);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+    
+    dt->ancestor = NULL;
+    dt->parent = NULL;
+    dt->location = loc;
+    dt->default_value = default_value;
+
+    dt->type.class = DERIVED_TYPE;
+    dt->type.identifier = type_name;
+    dt->type.location = st_derived_type_location;
+    dt->type.create_value_of = st_derived_type_create_value_of;
+    dt->type.reset_value_of = st_derived_type_reset_value_of;
+    dt->type.can_hold = st_derived_type_can_hold;
+    dt->type.compatible = st_derived_type_compatible;
+    dt->type.destroy = st_derived_type_destroy;
+    
+    return &(dt->type);
+
+error_free_resources:
+    free(loc);
     return NULL;
 }
 

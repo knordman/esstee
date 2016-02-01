@@ -33,6 +33,7 @@ struct namedreference_iface_t * st_new_named_ref_pool(void)
     np->not_committed = NULL;
     np->iterator = NULL;
     
+    np->named_ref.add_two_step = st_named_ref_pool_add_two_step_ref;
     np->named_ref.add = st_named_ref_pool_add_ref;
     np->named_ref.clear = st_named_ref_pool_clear;
     np->named_ref.commit = st_named_ref_pool_commit;
@@ -70,15 +71,17 @@ void st_destroy_named_ref_pool(
     }
 }
 
-int st_named_ref_pool_add_ref(
+int st_named_ref_pool_add_two_step_ref(
     struct namedreference_iface_t *self,
     const char *identifier,
     void *referrer,
     void *subreferrer,
     const struct st_location_t *location,
-    resolved_callback_t callback)
+    resolved_callback_t callback,
+    resolved_callback_t secondary_callback)
 {
-    struct named_ref_pool_t *np = CONTAINER_OF(self, struct named_ref_pool_t, named_ref);
+    struct named_ref_pool_t *np
+	= CONTAINER_OF(self, struct named_ref_pool_t, named_ref);
 
     struct named_ref_referrer_t *referrer_entry = NULL;
     struct named_ref_entry_t *ref_entry = NULL;
@@ -96,6 +99,7 @@ int st_named_ref_pool_add_ref(
 	location,
 	sizeof(struct st_location_t));
     referrer_entry->callback = callback;
+    referrer_entry->secondary_callback = secondary_callback;
     
     struct named_ref_entry_t *found = NULL;
     HASH_FIND_STR(np->ref_table, identifier, found);
@@ -138,6 +142,25 @@ error_free_resources:
     free(ref_entry);
     free(ref_identifier);
     return ESSTEE_ERROR;
+}
+
+
+int st_named_ref_pool_add_ref(
+    struct namedreference_iface_t *self,
+    const char *identifier,
+    void *referrer,
+    void *subreferrer,
+    const struct st_location_t *location,
+    resolved_callback_t callback)
+{
+    return st_named_ref_pool_add_two_step_ref(
+	self,
+	identifier,
+	referrer,
+	subreferrer,
+	location,
+	callback,
+	NULL);
 }
 
 int st_named_ref_pool_commit(
@@ -261,7 +284,8 @@ int st_named_ref_pool_trigger_resolve_callbacks(
     struct named_ref_referrer_t *referrer_itr  = NULL;
 
     int result = ESSTEE_OK, referrer_result;
-    
+
+    /* First sweep */
     for(ref_entry_itr = np->ref_table; ref_entry_itr != NULL; ref_entry_itr = ref_entry_itr->hh.next)
     {
 	DL_FOREACH(ref_entry_itr->referrers, referrer_itr)
@@ -285,6 +309,30 @@ int st_named_ref_pool_trigger_resolve_callbacks(
 	}	
     }
 
+    /* Secondary sweep */
+    for(ref_entry_itr = np->ref_table; ref_entry_itr != NULL; ref_entry_itr = ref_entry_itr->hh.next)
+    {
+	DL_FOREACH(ref_entry_itr->referrers, referrer_itr)
+	{
+	    referrer_result = ESSTEE_OK;
+	    if(referrer_itr->referrer && referrer_itr->secondary_callback)
+	    {
+		referrer_result = referrer_itr->secondary_callback(
+		    referrer_itr->referrer,
+		    referrer_itr->subreferrer,
+		    ref_entry_itr->target,
+		    ref_entry_itr->remark,
+		    &(referrer_itr->location),
+		    err);
+	    }
+
+	    if(referrer_result == ESSTEE_ERROR)
+	    {
+		result = ESSTEE_ERROR;
+	    }
+	}	
+    }
+    
     return result;
 }
     

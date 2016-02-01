@@ -35,6 +35,15 @@ typedef int (*resolved_callback_t)(
 
 struct namedreference_iface_t {
 
+    int (*add_two_step)(
+	struct namedreference_iface_t *self,
+	const char *identifier,
+	void *referrer,
+	void *subreferrer,
+	const struct st_location_t *location,
+	resolved_callback_t callback,
+	resolved_callback_t secondary_callback);
+    
     int (*add)(
 	struct namedreference_iface_t *self,
 	const char *identifier,
@@ -42,7 +51,7 @@ struct namedreference_iface_t {
 	void *subreferrer,
 	const struct st_location_t *location,
 	resolved_callback_t callback);
-
+    
     int (*commit)(
 	struct namedreference_iface_t *self);
 

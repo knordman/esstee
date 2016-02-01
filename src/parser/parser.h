@@ -273,6 +273,7 @@ struct type_iface_t * st_new_derived_type(
 struct type_iface_t * st_new_derived_type_by_name(
     char *type_name,
     char *parent_type_name,
+    const struct st_location_t *parent_type_name_location,
     const struct st_location_t *location,
     struct value_iface_t *initial_value,
     struct parser_t *parser);

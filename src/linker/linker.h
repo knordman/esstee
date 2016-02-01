@@ -135,3 +135,22 @@ int st_variable_list_type_resolved(
     st_bitflag_t remark,
     const struct st_location_t *location,
     struct errors_iface_t *errors);
+
+/**************************************************************************/
+/* Types                                                                  */
+/**************************************************************************/
+int st_derived_type_parent_name_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors);
+
+int st_derived_type_resolve_ancestor(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors);

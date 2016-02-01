@@ -18,15 +18,14 @@ DONE 125 /* TODO: append new type declaration to type block */ ../src/parser/pty
 DONE 121 /* TODO: new type block */ ../src/parser/ppous.c
 DONE 123 /* TODO: append type block to header */ ../src/parser/ppous.c
 DONE 122 /* TODO: new var block */ ../src/parser/ppous.c
-
-derived-type-value
-126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
-127 /* TODO: new derived type from other type name */ ../src/parser/ptypes.c
-38 /*TODO: Derived value */ ../src/elements/values.h
-73 /* TODO: derived type location */ ../src/elements/types.c
-74 /* TODO: derived type create value of */ ../src/elements/types.c
-75 /* TODO: derived type reset value of */ ../src/elements/types.c
-76 /* TODO: derived type can hold */ ../src/elements/types.c
+DONE derived-type-value
+DONE 126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
+DONE 127 /* TODO: new derived type from other type name */ ../src/parser/ptypes.c
+DONE 73 /* TODO: derived type location */ ../src/elements/types.c
+DONE 74 /* TODO: derived type create value of */ ../src/elements/types.c
+DONE 75 /* TODO: derived type reset value of */ ../src/elements/types.c
+DONE 76 /* TODO: derived type can hold */ ../src/elements/types.c
+DONE 38 /*TODO: Derived value */ ../src/elements/values.h
 
 enum-type-value
 130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
