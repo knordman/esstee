@@ -304,6 +304,11 @@ int st_derived_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config);
 
+int st_derived_type_compatible(
+    const struct type_iface_t *self,
+    const struct type_iface_t *other_type,
+    const struct config_iface_t *config);
+
 void st_derived_type_destroy(
     struct type_iface_t *self);
 

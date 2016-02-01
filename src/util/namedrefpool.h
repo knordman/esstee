@@ -27,6 +27,7 @@ struct named_ref_referrer_t {
     void *referrer;
     void *subreferrer;
     resolved_callback_t callback;
+    resolved_callback_t secondary_callback;
     struct st_location_t location;
     
     struct named_ref_referrer_t *prev;
@@ -60,6 +61,15 @@ struct namedreference_iface_t * st_new_named_ref_pool(void);
 
 void st_destroy_named_ref_pool(
     struct namedreference_iface_t *self);
+
+int st_named_ref_pool_add_two_step_ref(
+    struct namedreference_iface_t *self,
+    const char *identifier,
+    void *referrer,
+    void *subreferrer,
+    const struct st_location_t *location,
+    resolved_callback_t callback,
+    resolved_callback_t secondary_callback);
 
 int st_named_ref_pool_add_ref(
     struct namedreference_iface_t *self,
@@ -95,7 +105,11 @@ int st_named_ref_pool_reset_resolved(
 int st_named_ref_pool_trigger_resolve_callbacks(
     struct namedreference_iface_t *self,
     struct errors_iface_t *err);
-    
+
+int st_named_ref_pool_trigger_secondary_resolve_callbacks(
+    struct namedreference_iface_t *self,
+    struct errors_iface_t *err);
+
 struct namedreference_iface_t * st_named_ref_pool_merge(
     struct namedreference_iface_t *self,
     struct namedreference_iface_t *to_merge);

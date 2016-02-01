@@ -40,6 +40,7 @@ OBJECTS := 		build/util/errorcontext.o \
 			build/esstee/esstee.o \
 			build/linker/lpous.o \
 			build/linker/lvariables.o \
+			build/linker/ltypes.o \
 			build/linker/lstatements.o \
 			build/linker/lexpressions.o \
 			build/linker/linker.o \

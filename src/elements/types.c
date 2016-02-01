@@ -889,16 +889,40 @@ void st_date_tod_type_destroy(
 const struct st_location_t * st_derived_type_location(
     const struct type_iface_t *self)
 {
-    /* TODO: derived type location */
-    return NULL;
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    return dt->location;
 }
 
 struct value_iface_t * st_derived_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: derived type create value of */
-    return NULL;
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    struct value_iface_t *new_value =
+	dt->ancestor->create_value_of(dt->ancestor, config);
+
+    if(!new_value)
+    {
+	return NULL;
+    }
+
+    if(dt->default_value)
+    {
+	int assign_default_result =
+	    new_value->assign(new_value, dt->default_value, config);
+
+	if(assign_default_result != ESSTEE_OK)
+	{
+	    /* TODO: destroy new value */
+	    return NULL;
+	}
+    }
+
+    return new_value;
 }
 
 int st_derived_type_reset_value_of(
@@ -906,8 +930,28 @@ int st_derived_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: derived type reset value of */
-    return ESSTEE_FALSE;
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    int reset_result = ESSTEE_ERROR;
+    if(!dt->default_value)
+    {
+	reset_result = dt->ancestor->reset_value_of(dt->ancestor,
+						    value_of,
+						    config);
+    }
+    else
+    {
+	reset_result =
+	    value_of->assign(value_of, dt->default_value, config);
+    }
+
+    if(reset_result != ESSTEE_OK)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
 }
 
 int st_derived_type_can_hold(
@@ -915,8 +959,21 @@ int st_derived_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: derived type can hold */
-    return ESSTEE_FALSE;
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    return dt->ancestor->can_hold(dt->ancestor, value, config);
+}
+
+int st_derived_type_compatible(
+    const struct type_iface_t *self,
+    const struct type_iface_t *other_type,
+    const struct config_iface_t *config)
+{
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    return dt->ancestor->compatible(dt->ancestor, other_type, config);
 }
 
 void st_derived_type_destroy(

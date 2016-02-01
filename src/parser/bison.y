@@ -521,7 +521,7 @@ derived_type_name ':' derive_type ';'
 }
 | derived_type_name ':' simple_type_name ';'
 {
-    if(($$ = st_new_derived_type_by_name($1, $3, &@$, NULL, parser)) == NULL)
+    if(($$ = st_new_derived_type_by_name($1, $3, &@3, &@$, NULL, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -533,7 +533,7 @@ subrange_type
 | string_defined_length_type 
 | simple_type_name ASSIGN simple_type_initial_value
 {
-    if(($$ = st_new_derived_type_by_name(NULL, $1, &@$, $3, parser)) == NULL)
+    if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -547,7 +547,7 @@ variable_type :
 basic_type
 | simple_type_name ASSIGN structure_initialization
 {
-    if(($$ = st_new_derived_type_by_name(NULL, $1, &@$, $3, parser)) == NULL)
+    if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;

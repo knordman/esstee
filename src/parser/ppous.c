@@ -136,7 +136,7 @@ struct header_t * st_append_types_to_header(
 {
     if(!header)
     {
-	ALLOCATE_OR_ERROR_JUMP(
+	ALLOC_OR_ERROR_JUMP(
 	    header,
 	    struct header_t,
 	    parser->errors,
