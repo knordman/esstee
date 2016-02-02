@@ -26,16 +26,21 @@ DONE 74 /* TODO: derived type create value of */ ../src/elements/types.c
 DONE 75 /* TODO: derived type reset value of */ ../src/elements/types.c
 DONE 76 /* TODO: derived type can hold */ ../src/elements/types.c
 DONE 38 /*TODO: Derived value */ ../src/elements/values.h
+DONE enum-type-value
+DONE 130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
+DONE 131 /* TODO: new enum type */ ../src/parser/ptypes.c
+DONE 39 /*TODO: Enumerated value */ ../src/elements/values.h
+DONE 78 /* TODO: enum type location */ ../src/elements/types.c
+DONE 79 /* TODO: enum type create value of */ ../src/elements/types.c
+DONE 80 /* TODO: enum type reset value of */ ../src/elements/types.c
+DONE 81 /* TODO: enum type can hold */ ../src/elements/types.c
+DONE 82 /* TODO: enum type compatible, true when; enum of same values, or ../src/elements/types.c
+DONE 2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
+DONE 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
+DONE 4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
+DONE 5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
 
-enum-type-value
-130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
-131 /* TODO: new enum type */ ../src/parser/ptypes.c
-39 /*TODO: Enumerated value */ ../src/elements/values.h
-78 /* TODO: enum type location */ ../src/elements/types.c
-79 /* TODO: enum type create value of */ ../src/elements/types.c
-80 /* TODO: enum type reset value of */ ../src/elements/types.c
-81 /* TODO: enum type can hold */ ../src/elements/types.c
-82 /* TODO: enum type compatible, true when; enum of same values, or ../src/elements/types.c
+
 
 subrange-type-value
 128 /* TODO: new subrange */ ../src/parser/ptypes.c
@@ -140,10 +145,6 @@ unsorted
 116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
 117 /* TODO: only used for case structure, not a value */ ../src/parser/pvalues.c
 119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
-2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
-3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
-4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
-5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
 7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h
 9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
 10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h

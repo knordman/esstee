@@ -988,15 +988,42 @@ void st_derived_type_destroy(
 const struct st_location_t * st_enum_type_location(
     const struct type_iface_t *self)
 {
-    /* TODO: enum type location */
-    return NULL;
+    struct enum_type_t *et =
+	CONTAINER_OF(self, struct enum_type_t, type);
+
+    return et->location;
 }
 
 struct value_iface_t * st_enum_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: enum type create value of */
+    struct enum_value_t *ev = NULL;
+    ALLOC_OR_JUMP(
+	ev,
+	struct enum_value_t,
+	error_free_resources);
+
+    struct enum_type_t *et =
+	CONTAINER_OF(self, struct enum_type_t, type);
+
+    ev->explicit_type = self;
+    ev->constant = et->default_item;
+
+    memset(&(ev->value), 0, sizeof(struct value_iface_t));
+
+    ev->value.display = st_enum_value_display;
+    ev->value.assign = st_enum_value_assign;
+    ev->value.reset = st_enum_value_reset;
+    ev->value.explicit_type = st_enum_value_explicit_type;
+    ev->value.compatible = st_enum_value_compatible;
+    ev->value.destroy = st_enum_value_destroy;
+    ev->value.equals = st_enum_value_equals;
+    ev->value.enumeration = st_enum_value_enumeration;
+
+    return &(ev->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -1014,20 +1041,25 @@ int st_enum_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: enum type can hold */
-    return ESSTEE_FALSE;
-}
+    if(!value->enumeration)
+    {
+	return ESSTEE_FALSE;
+    }
 
-int st_enum_type_compatible(
-    const struct type_iface_t *self,
-    const struct type_iface_t *other_type,
-    const struct config_iface_t *config)
-{
-    /* TODO: enum type compatible, true when; enum of same values, or
-     * derived type of such type */
-    return ESSTEE_FALSE;
-}
+    struct enum_type_t *et = CONTAINER_OF(self, struct enum_type_t, type);
 
+    const char *value_constant = value->enumeration(value, config)->identifier;
+    
+    struct enum_item_t *found = NULL;
+    HASH_FIND_STR(et->values, value_constant, found);
+    if(!found)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+    
 void st_enum_type_destroy(
     struct type_iface_t *self)
 {

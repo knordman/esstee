@@ -23,7 +23,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/macros.h>
 
 #include <utlist.h>
-
+#include <stdio.h>
 
 /**************************************************************************/
 /* Single identifier term, either an enum, or a variable reference        */
@@ -62,6 +62,72 @@ void st_single_identifier_term_destroy(
     struct expression_iface_t *self)
 {
     /* TODO: single identifier term destructor */
+}
+
+int st_inline_enum_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct single_identifier_term_t *sit
+	= CONTAINER_OF(self, struct single_identifier_term_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%s",
+				 sit->inline_enum.identifier);
+    if(written_bytes == 0)
+    {
+	return ESSTEE_FALSE;
+    }
+    else if(written_bytes < 0)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return written_bytes;
+}
+
+int st_inline_enum_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->enumeration)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+int st_inline_enum_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct single_identifier_term_t *sit
+	= CONTAINER_OF(self, struct single_identifier_term_t, value);
+
+    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+    
+    if(strcmp(sit->inline_enum.identifier, other_value_enum->identifier) == 0)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+const struct enum_item_t * st_inline_enum_value_enumeration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct single_identifier_term_t *sit
+	= CONTAINER_OF(self, struct single_identifier_term_t, value);
+
+    return &(sit->inline_enum);
 }
 
 /**************************************************************************/

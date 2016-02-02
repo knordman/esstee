@@ -20,9 +20,9 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <linker/linker.h>
 
 #include <utlist.h>
+#include <stdio.h>
 
-
-int st_variable_list_type_resolved(
+int st_variable_type_resolved(
     void *referrer,
     void *subreferrer,
     void *target,
@@ -41,13 +41,8 @@ int st_variable_list_type_resolved(
 	return ESSTEE_ERROR;
     }
 
-    struct variable_t *var_list = (struct variable_t *)referrer;
-
-    struct variable_t *itr = NULL;
-    DL_FOREACH(var_list, itr)
-    {
-	itr->type = (struct type_iface_t *)target;
-    }
+    struct variable_t *var = (struct variable_t *)referrer;
+    var->type = (struct type_iface_t *)target;
 
     return ESSTEE_OK;
 }

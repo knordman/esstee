@@ -591,12 +591,12 @@ subrange_point : literal_implicit_type_possible_sign_prefix;
 enum_type :
 '(' enum_items ')'
 {
-    if(($$ = st_new_enum_type($2, NULL, NULL, parser)) == NULL)
+    if(($$ = st_new_enum_type($2, &@$, NULL, NULL, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | '(' enum_items ')' ASSIGN IDENTIFIER
 {
-    if(($$ = st_new_enum_type($2, $5, &@5, parser)) == NULL)
+    if(($$ = st_new_enum_type($2, &@$, $5, &@5, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;

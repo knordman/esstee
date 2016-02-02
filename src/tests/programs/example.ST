@@ -2,21 +2,20 @@ PROGRAM testprgm
 
 TYPE
 
-third : DINT := 10;
+myenum : (one, two, three) := two;
+
+customdint : DINT;
 
 END_TYPE
 
 VAR
-	mytypevar : third;
-	myvar : DINT;
-	mydint : DINT;
-	mybool : BOOL;
+	mytypevar : BOOL;
+
+	myenumone, myenumtwo : myenum;
+
+	mydint : customdint;
 END_VAR
 
-myvar := 1000;
-mydint := 100;
-
-(*mytypevar := 100;*)
-
+mytypevar := (myenumone = two);
 
 END_PROGRAM

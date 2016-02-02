@@ -237,8 +237,46 @@ struct date_tod_value_t {
 /**************************************************************************/
 /* Enumerated value                                                       */
 /**************************************************************************/
+struct enum_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *explicit_type;
+    const struct enum_item_t *constant;
+};
 
-/* TODO: Enumerated value */
+int st_enum_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_enum_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_enum_value_reset(
+    struct value_iface_t *self,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_enum_value_explicit_type(
+    const struct value_iface_t *self);
+
+int st_enum_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+void st_enum_value_destroy(
+    struct value_iface_t *self);
+
+int st_enum_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct enum_item_t * st_enum_value_enumeration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Subrange value                                                         */

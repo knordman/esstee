@@ -29,6 +29,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 struct array_index_t;
 struct variable_t;
+struct enum_item_t;
 
 struct value_iface_t {
 
@@ -149,7 +150,7 @@ struct value_iface_t {
 	st_bitflag_t string_type,
 	const struct config_iface_t *conf);
 
-    const char * (*enumeration)(
+    const struct enum_item_t * (*enumeration)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
     
