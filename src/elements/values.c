@@ -527,3 +527,149 @@ int st_bool_value_or(
     
     return ESSTEE_OK;
 }
+
+/**************************************************************************/
+/* Enumerated value                                                       */
+/**************************************************************************/
+int st_enum_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%s",
+				 ev->constant->identifier);
+    if(written_bytes == 0)
+    {
+	return ESSTEE_FALSE;
+    }
+    else if(written_bytes < 0)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return written_bytes;
+}
+
+int st_enum_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    int can_hold = ev->explicit_type->can_hold(
+	ev->explicit_type,
+	new_value,
+	config);
+    if(can_hold != ESSTEE_TRUE)
+    {
+	return can_hold;
+    }
+    
+    ev->constant = new_value->enumeration(new_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_enum_value_reset(
+    struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    return ev->explicit_type->reset_value_of(ev->explicit_type,
+					     self,
+					     config);
+}
+
+const struct type_iface_t * st_enum_value_explicit_type(
+    const struct value_iface_t *self)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    return ev->explicit_type;
+}
+
+int st_enum_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    if(!other_value->enumeration)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    /* Check that the enumeration of the other value is present by the
+     * values defined by the type */
+    int can_hold = ev->explicit_type->can_hold(
+	ev->explicit_type,
+	other_value,
+	config);
+    if(can_hold != ESSTEE_TRUE)
+    {
+	return can_hold;
+    }
+
+    /* If the other value has a reference to its values group, check
+     * that the group is the same as the self group. Inline enum
+     * values do not have any values group, since they lack a
+     * reference to their type. */
+    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+
+    if(other_value_enum->group)
+    {
+	if(ev->constant->group != other_value_enum->group)
+	{
+	    return ESSTEE_FALSE;
+	}
+    }
+
+    return ESSTEE_TRUE;
+}
+
+void st_enum_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: enum value destructor */
+}
+
+int st_enum_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+    
+    if(strcmp(ev->constant->identifier, other_value_enum->identifier) == 0)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+const struct enum_item_t * st_enum_value_enumeration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
+    return ev->constant;
+}

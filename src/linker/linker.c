@@ -20,7 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <linker/linker.h>
 
 #include <utlist.h>
-
+#include <stdio.h>
 
 static int create_header_tables(
     struct header_t *header,

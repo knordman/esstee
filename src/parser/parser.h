@@ -298,7 +298,8 @@ struct enum_item_t * st_append_new_enum_item(
     struct parser_t *parser);
 
 struct type_iface_t * st_new_enum_type(
-    struct enum_item_t *value_group, 
+    struct enum_item_t *value_group,
+    const struct st_location_t *location,
     char *initial_value_identifier, 
     const struct st_location_t *initial_value_location,
     struct parser_t *parser);

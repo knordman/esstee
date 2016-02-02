@@ -128,7 +128,7 @@ int st_simple_assignment_variable_resolved(
 /**************************************************************************/
 /* Variables                                                              */
 /**************************************************************************/
-int st_variable_list_type_resolved(
+int st_variable_type_resolved(
     void *referrer,
     void *subreferrer,
     void *target,

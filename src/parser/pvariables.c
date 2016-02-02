@@ -48,7 +48,7 @@ struct variable_t * st_append_var_declarations(
     struct variable_t *new_variables,
     struct parser_t *parser)
 {
-    DL_APPEND(variable_group, new_variables);
+    DL_CONCAT(variable_group, new_variables);
     return variable_group;
 }
 
@@ -105,16 +105,20 @@ struct variable_t * st_finalize_var_list_by_name(
     const struct st_location_t *type_name_location,
     struct parser_t *parser)
 {
-    if(parser->pou_type_ref_pool->add(
-	   parser->pou_type_ref_pool,
-	   type_name,
-	   var_list,
-	   NULL,
-	   type_name_location,
-	   st_variable_list_type_resolved) != ESSTEE_OK)
+    struct variable_t *itr = NULL;
+    DL_FOREACH(var_list, itr)
     {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	return NULL;
+	if(parser->pou_type_ref_pool->add(
+	       parser->pou_type_ref_pool,
+	       type_name,
+	       itr,
+	       NULL,
+	       type_name_location,
+	       st_variable_type_resolved) != ESSTEE_OK)
+	{
+	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	    return NULL;
+	}
     }
 
     return var_list;

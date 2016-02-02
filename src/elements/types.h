@@ -53,6 +53,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define TOD_TYPE              (1 << 25)
 #define DATE_TOD_TYPE         (1 << 26)
 #define DERIVED_TYPE          (1 << 27)
+#define ENUM_TYPE             (1 << 28)
 
 const struct st_location_t * st_built_in_type_location_get(
     const struct type_iface_t *self);
@@ -317,6 +318,8 @@ void st_derived_type_destroy(
 /**************************************************************************/
 struct enum_item_t {
     char *identifier;
+    struct st_location_t *location;
+    struct enum_item_t *group;
     UT_hash_handle hh;
 };
 
@@ -324,7 +327,7 @@ struct enum_type_t {
     struct type_iface_t type;
     struct enum_item_t *values;
     struct st_location_t *location;
-    struct enum_item_t *default_item;
+    const struct enum_item_t *default_item;
 };
 
 const struct st_location_t * st_enum_type_location(
@@ -342,11 +345,6 @@ int st_enum_type_reset_value_of(
 int st_enum_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
-
-int st_enum_type_compatible(
-    const struct type_iface_t *self,
-    const struct type_iface_t *other_type,
     const struct config_iface_t *config);
 
 void st_enum_type_destroy(

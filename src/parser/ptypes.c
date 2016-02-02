@@ -171,22 +171,122 @@ struct type_iface_t * st_new_subrange_type(
 /* Enum type                                                              */
 /**************************************************************************/
 struct enum_item_t * st_append_new_enum_item(
-    struct enum_item_t *enumerated_value_group,
+    struct enum_item_t *enum_value_group,
     char *identifier,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: add new enum item to enum item group */
+    struct enum_item_t *ei = NULL;
+    struct st_location_t *loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	ei,
+	struct enum_item_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ei->identifier = identifier;
+    ei->location = loc;
+    if(!enum_value_group)
+    {
+	ei->group = ei;
+    }
+    else
+    {
+	ei->group = enum_value_group;
+    }
+
+    struct enum_item_t *found = NULL;
+    HASH_FIND_STR(enum_value_group, ei->identifier, found);
+    if(found)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "non unique enumeration",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    ei->location);
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	
+	goto error_free_resources;
+    }
+    
+    HASH_ADD_KEYPTR(hh, 
+		    enum_value_group, 
+		    ei->identifier, 
+		    strlen(ei->identifier), 
+		    ei);
+
+    return enum_value_group;
+    
+error_free_resources:
+    free(ei);
+    free(loc);
     return NULL;
 }
 
 struct type_iface_t * st_new_enum_type(
     struct enum_item_t *value_group, 
+    const struct st_location_t *location,
     char *initial_value_identifier, 
     const struct st_location_t *initial_value_location,
     struct parser_t *parser)
 {
-    /* TODO: new enum type */
+    struct enum_type_t *et = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	et,
+	struct enum_type_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    struct enum_item_t *initial_value = value_group;
+    if(initial_value_identifier != NULL)
+    {
+	HASH_FIND_STR(value_group, initial_value_identifier, initial_value);
+	if(initial_value == NULL)
+	{
+	    parser->errors->new_issue_at(
+		parser->errors,
+		"enumeration value not found",
+		ISSUE_ERROR_CLASS,
+		1,
+		initial_value_location);
+
+	    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	    goto error_free_resources;
+	}
+    }
+
+    et->default_item = initial_value;
+    et->values = value_group;
+    et->location = loc;
+    
+    et->type.class = ENUM_TYPE;
+    et->type.location = st_enum_type_location;
+    et->type.create_value_of = st_enum_type_create_value_of;
+    et->type.reset_value_of = st_enum_type_reset_value_of;
+    et->type.can_hold = st_enum_type_can_hold;
+    et->type.compatible = st_type_general_compatible;
+    et->type.destroy = st_enum_type_destroy;
+
+    return &(et->type);
+    
+error_free_resources:
+    free(loc);
+    free(et);
     return NULL;
 }
 

@@ -19,7 +19,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linker/linker.h>
 #include <elements/expressions.h>
-#include <elements/values.h>
 
 
 int st_single_identifier_variable_resolved(
@@ -43,11 +42,17 @@ int st_single_identifier_variable_resolved(
     {
 	/* Interpret as enum */
 	sit->expression.return_value = st_single_identifier_term_enum_return_value;
+
+	sit->inline_enum.group = NULL;
+	sit->inline_enum.location = NULL;
+	sit->inline_enum.identifier = sit->identifier;
 	
-	sit->value.display = NULL; /* TODO: set to correct function */
-	sit->value.compatible = NULL; /* TODO: set to correct function */
-	sit->value.equals = NULL;     /* TODO: set to correct function */
-	sit->value.enumeration = NULL; /* TODO: set correct function */
+	memset(&(sit->value), 0, sizeof(struct value_iface_t));
+
+	sit->value.display = st_inline_enum_value_display;
+	sit->value.compatible = st_inline_enum_value_compatible;
+	sit->value.equals = st_inline_enum_value_equals;
+	sit->value.enumeration = st_inline_enum_value_enumeration;
     }
 
     return ESSTEE_OK;

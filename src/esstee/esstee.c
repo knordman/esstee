@@ -314,8 +314,6 @@ int st_link(struct st_t *st)
 	}
     }
 
-    /* Add second sweep for types */
-    
     if(st->errors->new_error_occured(st->errors) != ESSTEE_FALSE)
     {
 	goto error_free_resources;
@@ -324,9 +322,8 @@ int st_link(struct st_t *st)
     /* Create variable values */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
-	for(struct variable_t *vitr = cuitr->global_variables;
-	    vitr != NULL;
-	    vitr = vitr->hh.next)
+	struct variable_t *vitr = NULL;
+	DL_FOREACH(cuitr->global_variables, vitr)
 	{
 	    if((vitr->value = vitr->type->create_value_of(vitr->type, st->config)) == NULL)
 	    {
@@ -351,9 +348,8 @@ int st_link(struct st_t *st)
 	struct program_t *pitr = NULL;
 	DL_FOREACH(cuitr->programs, pitr)
 	{
-	    for(struct variable_t *vitr = pitr->header->variables;
-		vitr != NULL;
-		vitr = vitr->hh.next)
+	    struct variable_t *vitr = NULL;
+	    DL_FOREACH(pitr->header->variables, vitr)
 	    {
 		if((vitr->value = vitr->type->create_value_of(vitr->type, st->config)) == NULL)
 		{
