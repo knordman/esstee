@@ -63,7 +63,6 @@ struct type_iface_t * st_new_derived_type(
     dt->location = loc;
     dt->default_value = default_value;
 
-    dt->type.class = DERIVED_TYPE;    
     dt->type.identifier = type_name;
     dt->type.location = st_derived_type_location;
     dt->type.create_value_of = st_derived_type_create_value_of;
@@ -127,7 +126,6 @@ struct type_iface_t * st_new_derived_type_by_name(
     dt->location = loc;
     dt->default_value = default_value;
 
-    dt->type.class = DERIVED_TYPE;
     dt->type.identifier = type_name;
     dt->type.location = st_derived_type_location;
     dt->type.create_value_of = st_derived_type_create_value_of;
@@ -147,12 +145,127 @@ error_free_resources:
 /* Subrange type                                                          */
 /**************************************************************************/
 struct subrange_t * st_new_subrange(
-    struct expression_iface_t *min, 
-    struct expression_iface_t *max, 
+    struct value_iface_t *min,
+    const struct st_location_t *min_location,
+    struct value_iface_t *max,
+    const struct st_location_t *max_location,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new subrange */
+    int min_max_accepted = 1;
+
+    if(!min->integer)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "wrong minimum value, must be of integer type",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    min_location);
+	
+	min_max_accepted = 0;
+    }
+    else if(!min->greater || !min->lesser)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "wrong minimum value, must suppoer > and < operators",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    min_location);
+	
+	min_max_accepted = 0;
+    }
+
+    if(!max->integer)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "wrong maximum value, must be of integer type",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    max_location);
+	
+	min_max_accepted = 0;
+    }
+    else if(!min->greater || !min->lesser)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "wrong maximum value, must suppoer > and < operators",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    min_location);
+	
+	min_max_accepted = 0;
+    }
+    
+    if(!min_max_accepted)
+    {
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    int min_greater_than_max = min->greater(min, max, parser->config);	
+    if(min_greater_than_max != ESSTEE_FALSE)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "maximum must be larger or equal to the minumum value",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    min_location);
+	
+	min_max_accepted = 0;	
+    }
+
+    if(!min_max_accepted)
+    {
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+    
+    struct subrange_t *sr = NULL;
+    struct st_location_t *loc = NULL;
+    struct st_location_t *min_loc = NULL;
+    struct st_location_t *max_loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	sr,
+	struct subrange_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	min_loc,
+	min_location,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	max_loc,
+	max_location,
+	parser->errors,
+	error_free_resources);
+
+    sr->min = min;
+    sr->min_location = min_loc;
+    sr->max = max;
+    sr->max_location = max_loc;
+
+    return sr;
+    
+error_free_resources:
+    free(sr);
+    free(loc);
+    free(min_loc);
+    free(max_loc);
+    min->destroy(min);
+    max->destroy(max);
     return NULL;
 }
 
@@ -160,10 +273,127 @@ struct type_iface_t * st_new_subrange_type(
     char *storage_type_identifier,
     const struct st_location_t *storage_type_identifier_location,
     struct subrange_t *subrange,
-    struct expression_iface_t *initial_value_literal,
+    struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser)
 {
-    /* TODO: new subrange type */
+    if(default_value)
+    {
+	if(!default_value->integer)
+	{
+	    parser->errors->new_issue_at(
+		parser->errors,
+		"wrong default value, must be of integer type",
+		ISSUE_ERROR_CLASS,
+		1,
+		default_value_location);
+	    goto error_free_resources;
+	}
+
+	if(!default_value->greater || !default_value->lesser)
+	{
+	    parser->errors->new_issue_at(
+		parser->errors,
+		"wrong default value, must support > and < operations",
+		ISSUE_ERROR_CLASS,
+		1,
+		default_value_location);
+	    goto error_free_resources;
+	}
+
+	int default_greater_than_max = default_value->greater(default_value,
+							      subrange->max,
+							      parser->config);
+	if(default_greater_than_max != ESSTEE_FALSE)
+	{
+	    parser->errors->new_issue_at(
+		parser->errors,
+		"default value cannot be larger than max",
+		ISSUE_ERROR_CLASS,
+		2,
+		default_value_location,
+		subrange->max_location);
+	    goto error_free_resources;
+	}
+	
+	int default_lesser_than_min = default_value->lesser(default_value,
+							    subrange->min,
+							    parser->config);
+	if(default_lesser_than_min != ESSTEE_FALSE)
+	{
+	    parser->errors->new_issue_at(
+		parser->errors,
+		"default value cannot be smaller than min",
+		ISSUE_ERROR_CLASS,
+		2,
+		default_value_location,
+		subrange->min_location);
+	    goto error_free_resources;
+	}
+    }
+
+    struct subrange_type_t *st = NULL;
+    struct st_location_t *default_value_loc = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	st,
+	struct subrange_type_t,
+	parser->errors,
+	error_free_resources);
+
+    if(default_value)
+    {
+	LOCDUP_OR_ERROR_JUMP(
+	    default_value_loc,
+	    default_value_location,
+	    parser->errors,
+	    error_free_resources);
+
+	st->default_value = default_value;
+	st->default_value_location = default_value_loc;
+    }
+    else
+    {
+	st->default_value = NULL;
+	st->default_value_location = NULL;
+    }
+
+    int ref_add_result = parser->pou_type_ref_pool->add_two_step(
+	parser->pou_type_ref_pool,
+	storage_type_identifier,
+	st,
+	NULL,
+	storage_type_identifier_location,
+	st_subrange_type_storage_type_resolved,
+	st_subrange_type_storage_type_check);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+
+    st->subranged_type = NULL;
+    st->subrange = subrange;
+    
+    memset(&(st->type), 0, sizeof(struct type_iface_t));
+    st->type.location = NULL;
+    st->type.create_value_of = st_subrange_type_create_value_of;
+    st->type.reset_value_of = st_subrange_type_reset_value_of;
+    st->type.can_hold = st_subrange_type_can_hold;
+    st->type.class = st_subrange_type_class;
+    st->type.compatible = st_subrange_type_compatible;
+    st->type.destroy = st_subrange_type_destroy;
+
+    return &(st->type);
+    
+error_free_resources:
+    /* TODO: destroy stuff */
     return NULL;
 }
 
@@ -274,7 +504,6 @@ struct type_iface_t * st_new_enum_type(
     et->values = value_group;
     et->location = loc;
     
-    et->type.class = ENUM_TYPE;
     et->type.location = st_enum_type_location;
     et->type.create_value_of = st_enum_type_create_value_of;
     et->type.reset_value_of = st_enum_type_reset_value_of;
@@ -313,7 +542,7 @@ struct value_iface_t * st_append_initial_element(
 
 struct value_iface_t * st_append_initial_elements(
     struct value_iface_t *values,
-    struct expression_iface_t *multiplier,
+    struct value_iface_t *multiplier,
     struct value_iface_t *new_value,
     struct parser_t *parser)
 {
@@ -378,8 +607,8 @@ struct struct_element_init_t * st_new_struct_element_initializer(
 /**************************************************************************/
 struct type_iface_t * st_new_string_type(
     char *string_type_identifier,
-    struct expression_iface_t *length,
-    struct expression_iface_t *default_value,
+    struct value_iface_t *length,
+    struct value_iface_t *default_value,
     struct parser_t *parser)
 {
     /* TODO: new string type with defined value */

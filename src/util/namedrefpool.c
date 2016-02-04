@@ -276,7 +276,8 @@ int st_named_ref_pool_reset_resolved(
 
 int st_named_ref_pool_trigger_resolve_callbacks(
     struct namedreference_iface_t *self,
-    struct errors_iface_t *err)
+    struct errors_iface_t *err,
+    const struct config_iface_t *config)
 {
     struct named_ref_pool_t *np = CONTAINER_OF(self, struct named_ref_pool_t, named_ref);
 
@@ -299,7 +300,8 @@ int st_named_ref_pool_trigger_resolve_callbacks(
 		    ref_entry_itr->target,
 		    ref_entry_itr->remark,
 		    &(referrer_itr->location),
-		    err);
+		    err,
+		    config);
 	    }
 
 	    if(referrer_result == ESSTEE_ERROR)
@@ -323,7 +325,8 @@ int st_named_ref_pool_trigger_resolve_callbacks(
 		    ref_entry_itr->target,
 		    ref_entry_itr->remark,
 		    &(referrer_itr->location),
-		    err);
+		    err,
+		    config);
 	    }
 
 	    if(referrer_result == ESSTEE_ERROR)

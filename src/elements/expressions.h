@@ -31,6 +31,24 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <esstee/locations.h>
 
 /**************************************************************************/
+/* Wrapped value expression (e.g. literal)                                */
+/**************************************************************************/
+struct value_expression_t {
+    struct expression_iface_t expression;
+    struct st_location_t *location;
+    struct value_iface_t *value;
+};
+
+const struct st_location_t * st_value_expression_location(
+    const struct invoke_iface_t *self);
+    
+const struct value_iface_t * st_value_expression_return_value(
+    struct expression_iface_t *self);
+
+void st_value_expression_destroy(
+    struct expression_iface_t *self);
+
+/**************************************************************************/
 /* Single identifier term, either an enum, or a variable reference        */
 /**************************************************************************/
 struct single_identifier_term_t {

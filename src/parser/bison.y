@@ -223,11 +223,11 @@ void yyerror(
 %type	<string>	simple_type_name_not_string
 %type	<string>	simple_type_name_literal
 %type	<integer>	sign_prefix
-%type	<expression>	literal
-%type	<expression>	literal_no_sign_prefix
-%type	<expression>	literal_explicit_type
-%type	<expression>	literal_implicit_type
-%type	<expression>	literal_implicit_type_possible_sign_prefix
+%type	<value>		literal
+%type	<value>		literal_no_sign_prefix
+%type	<value>		literal_explicit_type
+%type	<value>		literal_implicit_type
+%type	<value>		literal_implicit_type_possible_sign_prefix
 %type	<type>		type_declaration_block
 %type	<type>		type_declarations
 %type	<type>		type_declaration
@@ -237,7 +237,7 @@ void yyerror(
 %type	<value>		simple_type_initial_value
 %type	<type>		subrange_type
 %type	<subrange>	subrange
-%type	<expression>	subrange_point
+%type	<value>		subrange_point
 %type	<type>		enum_type
 %type	<enum_item>	enum_items
 %type	<type>		array_type
@@ -250,7 +250,7 @@ void yyerror(
 %type	<value>		structure_initialization
 %type	<struct_element_init> structure_element_initializations
 %type	<struct_element_init> structure_element_initialization
-%type	<expression>	string_defined_length
+%type	<value>		string_defined_length
 %type	<type>		string_defined_length_type
 %type	<variable>	var_declaration_block
 %type	<bitflag>	var_start
@@ -554,10 +554,6 @@ basic_type
 
 simple_type_initial_value :
 literal
-{
-    if(($$ = st_extract_value_from_literal($1, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
 | IDENTIFIER
 {
     if(($$ = st_new_enum_inline_value($1, &@1, parser)) == NULL)
@@ -568,12 +564,12 @@ literal
 subrange_type :
 simple_type_name_not_string '(' subrange ')'
 {
-    if(($$ = st_new_subrange_type($1, &@1, $3, NULL, parser)) == NULL)
+    if(($$ = st_new_subrange_type($1, &@1, $3, NULL, NULL, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);			
 }
 | simple_type_name_not_string '(' subrange ')' ASSIGN literal_implicit_type_possible_sign_prefix
 {
-    if(($$ = st_new_subrange_type($1, &@1, $3, $6, parser)) == NULL)
+    if(($$ = st_new_subrange_type($1, &@1, $3, $6, &@6, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -581,7 +577,7 @@ simple_type_name_not_string '(' subrange ')'
 subrange :
 subrange_point DOTDOT subrange_point
 {
-    if(($$ = st_new_subrange($1, $3, &@$, parser)) == NULL)
+    if(($$ = st_new_subrange($1, &@1, $3, &@3, &@$, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -673,19 +669,12 @@ array_initial_element
 
 array_initial_element :
 literal_implicit_type_possible_sign_prefix
-{
-    if(($$ = st_extract_value_from_literal($1, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
 | IDENTIFIER
 {
     if(($$ = st_new_enum_inline_value($1, &@1, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | array_initialization
-{
-    $$ = $1;
-}
 ;
 
 structure_type :
@@ -844,8 +833,7 @@ retain_specifier :
 
 var_declarations :
 var_declaration ';'
-{
-    if(($$ = st_append_var_declarations(NULL, $1, parser)) == NULL)
+{    if(($$ = st_append_var_declarations(NULL, $1, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | var_declarations var_declaration ';'
@@ -1055,7 +1043,8 @@ IDENTIFIER '[' array_index ']'
 term :
 literal_no_sign_prefix
 {
-    $$ = $1;
+    if(($$ = st_new_expression_value($1, &@1, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
 }
 | direct_address
 {
@@ -1275,10 +1264,6 @@ subrange
     	DO_ERROR_STRATEGY(parser);
 }
 | literal
-{
-    if(($$ = st_extract_value_from_literal($1, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
 | IDENTIFIER_CASE_LABEL
 {
     if(($$ = st_new_enum_inline_value($1, &@1, parser)) == NULL)

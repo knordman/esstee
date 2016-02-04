@@ -22,7 +22,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/types.h>
 #include <elements/variables.h>
 #include <elements/pous.h>
-#include <elements/literals.h>
 #include <elements/expressions.h>
 #include <elements/statements.h>
 #include <elements/query.h>
@@ -164,73 +163,69 @@ struct header_t * st_append_vars_to_header(
 /**************************************************************************/
 /* Literals                                                               */
 /**************************************************************************/
-struct value_iface_t * st_extract_value_from_literal(
-    struct expression_iface_t *expression,
-    struct parser_t *parser);
-
-struct expression_iface_t * st_new_explicit_literal(
+struct value_iface_t * st_new_explicit_literal(
     char *type_identifier,
     const struct st_location_t *type_identifier_location,
-    struct expression_iface_t *implicit_literal,
+    struct value_iface_t *implicit_literal,
     struct parser_t *parser);	
 
-struct expression_iface_t * st_new_integer_literal(
+struct value_iface_t * st_new_integer_literal(
     char *string,
     const struct st_location_t *string_location,
     int64_t sign_prefix, 
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_integer_literal_binary(
+struct value_iface_t * st_new_integer_literal_binary(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_integer_literal_octal(
+struct value_iface_t * st_new_integer_literal_octal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_integer_literal_hex(
+struct value_iface_t * st_new_integer_literal_hex(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_real_literal(
+struct value_iface_t * st_new_real_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_duration_literal(
+struct value_iface_t * st_new_duration_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_date_literal(
+struct value_iface_t * st_new_date_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_tod_literal(
+struct value_iface_t * st_new_tod_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_date_tod_literal(
+struct value_iface_t * st_new_date_tod_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_boolean_literal(
+struct value_iface_t * st_new_boolean_literal(
     int64_t integer,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_single_string_literal(
+struct value_iface_t * st_new_single_string_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
 
-struct expression_iface_t * st_new_double_string_literal(
+struct value_iface_t * st_new_double_string_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser);
@@ -279,8 +274,10 @@ struct type_iface_t * st_new_derived_type_by_name(
     struct parser_t *parser);
 
 struct subrange_t * st_new_subrange(
-    struct expression_iface_t *min, 
-    struct expression_iface_t *max, 
+    struct value_iface_t *min,
+    const struct st_location_t *min_location,
+    struct value_iface_t *max,
+    const struct st_location_t *max_location,
     const struct st_location_t *location,
     struct parser_t *parser);
 
@@ -288,7 +285,8 @@ struct type_iface_t * st_new_subrange_type(
     char *storage_type_identifier,
     const struct st_location_t *storage_type_identifier_location,
     struct subrange_t *subrange,
-    struct expression_iface_t *initial_value_literal,
+    struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser);
 
 struct enum_item_t * st_append_new_enum_item(
@@ -316,7 +314,7 @@ struct value_iface_t * st_append_initial_element(
 
 struct value_iface_t * st_append_initial_elements(
     struct value_iface_t *values,
-    struct expression_iface_t *multiplier,
+    struct value_iface_t *multiplier,
     struct value_iface_t *new_value,
     struct parser_t *parser);
 
@@ -351,8 +349,8 @@ struct struct_element_init_t * st_new_struct_element_initializer(
 
 struct type_iface_t * st_new_string_type(
     char *string_type_identifier,
-    struct expression_iface_t *length,
-    struct expression_iface_t *default_value,
+    struct value_iface_t *length,
+    struct value_iface_t *default_value,
     struct parser_t *parser);
 
 /**************************************************************************/
@@ -484,6 +482,11 @@ struct qualified_identifier_t * st_new_qualified_identifier_array_index(
 /**************************************************************************/
 /* Expressions                                                            */
 /**************************************************************************/
+struct expression_iface_t * st_new_expression_value(
+    struct value_iface_t *value,
+    const struct st_location_t *value_location,
+    struct parser_t *parser);
+
 struct expression_iface_t * st_new_qualified_identifier_term(
     struct qualified_identifier_t *qualified_identifier,
     const struct st_location_t *location,

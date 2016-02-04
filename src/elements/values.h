@@ -281,8 +281,59 @@ const struct enum_item_t * st_enum_value_enumeration(
 /**************************************************************************/
 /* Subrange value                                                         */
 /**************************************************************************/
+struct subrange_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *explicit_type;
+    struct value_iface_t *current;
+};
 
-/* TODO: Subrange value */
+int st_subrange_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_subrange_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_subrange_value_reset(
+    struct value_iface_t *self,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_subrange_value_explicit_type(
+    const struct value_iface_t *self);
+
+int st_subrange_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+struct value_iface_t * st_subrange_value_create_temp_from(
+    const struct value_iface_t *self);	
+
+int st_subrange_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_subrange_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_subrange_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+void st_subrange_value_destroy(
+    struct value_iface_t *self);
+
+int64_t st_subrange_value_integer(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Array value                                                            */

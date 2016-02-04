@@ -267,26 +267,31 @@ int st_link(struct st_t *st)
     {
 	cuitr->global_type_ref_pool->trigger_resolve_callbacks(
 	    cuitr->global_type_ref_pool,
-	    st->errors);
+	    st->errors,
+	    st->config);
 
 	cuitr->global_var_ref_pool->trigger_resolve_callbacks(
 	    cuitr->global_var_ref_pool,
-	    st->errors);
+	    st->errors,
+	    st->config);
 
 	cuitr->function_ref_pool->trigger_resolve_callbacks(
 	    cuitr->function_ref_pool,
-	    st->errors);
+	    st->errors,
+	    st->config);
 
 	struct function_t *fitr = NULL;
 	DL_FOREACH(cuitr->functions, fitr)
 	{
 	    fitr->type_ref_pool->trigger_resolve_callbacks(
 		fitr->type_ref_pool,
-		st->errors);
+		st->errors,
+		st->config);
 
 	    fitr->var_ref_pool->trigger_resolve_callbacks(
 		fitr->var_ref_pool,
-		st->errors);
+		st->errors,
+		st->config);
 	}
 
 	struct function_block_t *fbitr = NULL;
@@ -294,11 +299,13 @@ int st_link(struct st_t *st)
 	{
 	    fbitr->type_ref_pool->trigger_resolve_callbacks(
 		fbitr->type_ref_pool,
-		st->errors);
+		st->errors,
+		st->config);
 
 	    fbitr->var_ref_pool->trigger_resolve_callbacks(
 		fbitr->var_ref_pool,
-		st->errors);
+		st->errors,
+		st->config);
 	}
 
 	struct program_t *pitr = NULL;
@@ -306,11 +313,13 @@ int st_link(struct st_t *st)
 	{
 	    pitr->type_ref_pool->trigger_resolve_callbacks(
 		pitr->type_ref_pool,
-		st->errors);
+		st->errors,
+		st->config);
 
 	    pitr->var_ref_pool->trigger_resolve_callbacks(
 		pitr->var_ref_pool,
-		st->errors);
+		st->errors,
+		st->config);
 	}
     }
 

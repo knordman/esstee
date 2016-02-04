@@ -54,6 +54,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define DATE_TOD_TYPE         (1 << 26)
 #define DERIVED_TYPE          (1 << 27)
 #define ENUM_TYPE             (1 << 28)
+#define SUBRANGE_TYPE         (1 << 29)
 
 const struct st_location_t * st_built_in_type_location_get(
     const struct type_iface_t *self);
@@ -73,6 +74,7 @@ void st_destroy_types_in_list(
 /**************************************************************************/
 struct integer_type_t {
     struct type_iface_t type;
+    st_bitflag_t class;
     unsigned size;
     int64_t default_value;
     int64_t min;
@@ -91,6 +93,10 @@ int st_integer_type_reset_value_of(
 int st_integer_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_integer_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 void st_integer_type_destroy(
@@ -118,6 +124,7 @@ int st_bool_type_false(
 struct real_type_t {
     struct type_iface_t type;
     unsigned size;
+    st_bitflag_t class;
     double default_value;
 };
 
@@ -144,6 +151,7 @@ void st_real_type_destroy(
 struct string_type_t {
     struct type_iface_t type;
     unsigned length;
+    st_bitflag_t class;
     const char *default_value;
 };
 
@@ -310,6 +318,10 @@ int st_derived_type_compatible(
     const struct type_iface_t *other_type,
     const struct config_iface_t *config);
 
+st_bitflag_t st_derived_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config);
+
 void st_derived_type_destroy(
     struct type_iface_t *self);
 
@@ -347,6 +359,10 @@ int st_enum_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config);
 
+st_bitflag_t st_enum_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config);
+
 void st_enum_type_destroy(
     struct type_iface_t *self);
 
@@ -355,18 +371,18 @@ void st_enum_type_destroy(
 /**************************************************************************/
 struct subrange_t {
     struct value_iface_t *min;
+    struct st_location_t *min_location;
     struct value_iface_t *max;
+    struct st_location_t *max_location;
 };
 
 struct subrange_type_t {
     struct type_iface_t type;
     struct type_iface_t *subranged_type;
-    struct expression_iface_t *default_value;
+    struct value_iface_t *default_value;
+    struct st_location_t *default_value_location;
     struct subrange_t *subrange;
 };
-
-const struct st_location_t * st_subrange_type_location(
-    const struct type_iface_t *self);
 
 struct value_iface_t * st_subrange_type_create_value_of(
     const struct type_iface_t *self,
@@ -380,6 +396,10 @@ int st_subrange_type_reset_value_of(
 int st_subrange_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_subrange_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 int st_subrange_type_compatible(

@@ -236,7 +236,6 @@ static int binary_expression_result_after_type_check(
     int64_t start_num,
     const struct config_iface_t *config)
 {
-
     if(iv->explicit_type)
     {
 	int fit_into_type =
@@ -672,4 +671,148 @@ const struct enum_item_t * st_enum_value_enumeration(
 	CONTAINER_OF(self, struct enum_value_t, value);
 
     return ev->constant;
+}
+
+/**************************************************************************/
+/* Subrange value                                                         */
+/**************************************************************************/
+int st_subrange_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->current->display(sv->current,
+				buffer,
+				buffer_size,
+				config);
+}
+
+int st_subrange_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    int can_hold = sv->explicit_type->can_hold(
+	sv->explicit_type,
+	new_value,
+	config);
+	
+    if(can_hold != ESSTEE_TRUE)
+    {
+	return can_hold;
+    }
+
+    return sv->current->assign(sv->current, new_value, config);
+}
+
+int st_subrange_value_reset(
+    struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->explicit_type->reset_value_of(sv->explicit_type,
+					     self,
+					     config);
+}
+
+const struct type_iface_t * st_subrange_value_explicit_type(
+    const struct value_iface_t *self)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->explicit_type;
+}
+
+int st_subrange_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    if(!other_value->integer)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    if(other_value->explicit_type)
+    {
+	const struct type_iface_t *other_value_type =
+	    other_value->explicit_type(other_value);
+	
+	return sv->explicit_type->compatible(sv->explicit_type,
+					     other_value_type,
+					     config);
+    }
+
+    return ESSTEE_TRUE;
+}
+
+struct value_iface_t * st_subrange_value_create_temp_from(
+    const struct value_iface_t *self)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+    
+    return sv->current->create_temp_from(sv->current);
+}
+
+int st_subrange_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->current->greater(sv->current, other_value, config);
+}
+
+int st_subrange_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->current->lesser(sv->current, other_value, config);
+}
+
+int st_subrange_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->current->equals(sv->current, other_value, config);
+}
+
+void st_subrange_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: subrange value destructor */
+}
+
+int64_t st_subrange_value_integer(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct subrange_value_t *sv =
+	CONTAINER_OF(self, struct subrange_value_t, value);
+
+    return sv->current->integer(sv->current, config);
 }

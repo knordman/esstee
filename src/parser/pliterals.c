@@ -18,6 +18,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <parser/parser.h>
+#include <elements/values.h>
 #include <util/macros.h>
 
 #include <stdlib.h>
@@ -52,28 +53,18 @@ static char * strip_underscores(char *string)
     return string;	
 }
 
-struct value_iface_t * st_extract_value_from_literal(
-    struct expression_iface_t *expression,
-    struct parser_t *parser)
-{
-    /* TODO: return literal as value */
-    /* the value is in the integer_literal, which also contains the
-       expression handle, how to get from the expression to the
-       sibling value structrure? */
-    return NULL;
-}
 
-struct expression_iface_t * st_new_explicit_literal(
+struct value_iface_t * st_new_explicit_literal(
     char *type_identifier,
     const struct st_location_t *type_identifier_location,
-    struct expression_iface_t *implicit_literal,
+    struct value_iface_t *implicit_literal,
     struct parser_t *parser)
 {
     /* TODO: explicit type to literal */
     return NULL;
 }
 
-static struct expression_iface_t * new_integer_literal(
+static struct value_iface_t * new_integer_literal(
     char *string,
     const struct st_location_t *string_location,
     int64_t sign_prefix,
@@ -83,22 +74,11 @@ static struct expression_iface_t * new_integer_literal(
     const char *error_message,
     struct parser_t *parser)
 {
-    struct integer_literal_t *il = NULL;
-    struct st_location_t *l = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	il,
-	struct integer_literal_t,
-	parser->errors,
-	error_free_resources);
+    struct value_iface_t *v =
+	st_integer_type_create_value_of(NULL, parser->config);
 
-    LOCDUP_OR_ERROR_JUMP(
-	l,
-	string_location,
-	parser->errors,
-	error_free_resources);
-
-    il->location = l;
+    struct integer_value_t *iv =
+	CONTAINER_OF(v, struct integer_value_t, value);
     
     strip_underscores(string);
     if(strlen(string) < min_string_length)
@@ -123,61 +103,23 @@ static struct expression_iface_t * new_integer_literal(
 	goto error_free_resources;
     }
 
-    il->data.num = interpreted * sign_prefix;
-    il->data.explicit_type = NULL;
-
-    il->data.value.display = st_integer_value_display;
-    il->data.value.assign = NULL;
-    il->data.value.reset = NULL;
-    il->data.value.explicit_type = st_integer_value_explicit_type;
-    il->data.value.index = NULL;
-    il->data.value.sub_variable = NULL;
-    il->data.value.compatible = st_integer_value_compatible;
-    il->data.value.create_temp_from = st_integer_value_create_temp_from;
-    il->data.value.destroy = st_integer_literal_value_destroy;
-
-    il->data.value.greater = st_integer_value_greater;
-    il->data.value.lesser = st_integer_value_lesser;
-    il->data.value.equals = st_integer_value_equals;
-
-    il->data.value.xor = NULL;
-    il->data.value.and = NULL;
-    il->data.value.or = NULL;
-    il->data.value.plus = st_integer_value_plus;
-    il->data.value.minus = st_integer_value_minus;
-    il->data.value.multiply = st_integer_value_multiply;
-    il->data.value.divide = st_integer_value_divide;
-    il->data.value.modulus = st_integer_value_modulus;
-    il->data.value.to_power = st_integer_value_to_power;
-    
-    il->data.value.integer = st_integer_value_integer;
-    il->data.value.bool = NULL;
-    il->data.value.real = NULL;
-    il->data.value.string = NULL;
-    il->data.value.enumeration = NULL;
-    il->data.value.date = NULL;
-    il->data.value.tod = NULL;
-    il->data.value.date_tod = NULL;
-    il->data.value.array_init_value = NULL;
-    il->data.value.struct_init_value = NULL;
-
-    il->expression.return_value = st_integer_literal_expression_return_value;
-    il->expression.destroy = st_integer_literal_expression_destroy;
-    il->expression.invoke.location = st_integer_literal_location;
-    il->expression.invoke.step = NULL;
-    il->expression.invoke.verify = NULL;
+    iv->num = interpreted * sign_prefix;
+    iv->value.assign = NULL;
+    iv->value.reset = NULL;
     
     free(string);
-    return &(il->expression);
+    return &(iv->value);
 
 error_free_resources:
-    free(il);
-    free(l);
+    if(v)
+    {
+	v->destroy(v);
+    }
     free(string);
     return NULL;
 }
 
-struct expression_iface_t * st_new_integer_literal(
+struct value_iface_t * st_new_integer_literal(
     char *string,
     const struct st_location_t *string_location,
     int64_t sign_prefix, 
@@ -193,7 +135,7 @@ struct expression_iface_t * st_new_integer_literal(
 			       parser);
 }
 
-struct expression_iface_t * st_new_integer_literal_binary(
+struct value_iface_t * st_new_integer_literal_binary(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -208,7 +150,7 @@ struct expression_iface_t * st_new_integer_literal_binary(
 			       parser);
 }
 
-struct expression_iface_t * st_new_integer_literal_octal(
+struct value_iface_t * st_new_integer_literal_octal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -223,7 +165,7 @@ struct expression_iface_t * st_new_integer_literal_octal(
 			       parser);
 }
 
-struct expression_iface_t * st_new_integer_literal_hex(
+struct value_iface_t * st_new_integer_literal_hex(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -238,7 +180,7 @@ struct expression_iface_t * st_new_integer_literal_hex(
 			       parser);
 }
 
-struct expression_iface_t * st_new_real_literal(
+struct value_iface_t * st_new_real_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -282,7 +224,7 @@ struct expression_iface_t * st_new_real_literal(
 /* } */
 }
 
-struct expression_iface_t * st_new_duration_literal(
+struct value_iface_t * st_new_duration_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -401,7 +343,7 @@ struct expression_iface_t * st_new_duration_literal(
 /* } */
 }
 
-struct expression_iface_t * st_new_date_literal(
+struct value_iface_t * st_new_date_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -464,7 +406,7 @@ struct expression_iface_t * st_new_date_literal(
 /* } */    
 }
 
-struct expression_iface_t * st_new_tod_literal(
+struct value_iface_t * st_new_tod_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -528,7 +470,7 @@ struct expression_iface_t * st_new_tod_literal(
 /* } */    
 }
 
-struct expression_iface_t * st_new_date_tod_literal(
+struct value_iface_t * st_new_date_tod_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -620,7 +562,7 @@ struct expression_iface_t * st_new_date_tod_literal(
 /* } */
 }
 
-struct expression_iface_t * st_new_boolean_literal(
+struct value_iface_t * st_new_boolean_literal(
     int64_t integer,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -659,7 +601,7 @@ struct expression_iface_t * st_new_boolean_literal(
 /* } */    
 }
 
-struct expression_iface_t * st_new_single_string_literal(
+struct value_iface_t * st_new_single_string_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
@@ -732,7 +674,7 @@ struct expression_iface_t * st_new_single_string_literal(
 /* } */
 }
 
-struct expression_iface_t * st_new_double_string_literal(
+struct value_iface_t * st_new_double_string_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)

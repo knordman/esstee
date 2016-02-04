@@ -29,7 +29,6 @@ OBJECTS := 		build/util/errorcontext.o \
 			build/parser/pshared.o \
 			build/parser/pquery.o \
 			build/elements/shared.o \
-			build/elements/literals.o \
 			build/elements/types.o \
 			build/elements/values.o \
 			build/elements/pous.o \

@@ -25,6 +25,37 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <utlist.h>
 #include <stdio.h>
 
+
+/**************************************************************************/
+/* Wrapped value expression (e.g. literal)                                */
+/**************************************************************************/
+const struct st_location_t * st_value_expression_location(
+    const struct invoke_iface_t *self)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct value_expression_t *ve
+	= CONTAINER_OF(e, struct value_expression_t, expression);
+
+    return ve->location;
+}
+    
+const struct value_iface_t * st_value_expression_return_value(
+    struct expression_iface_t *self)
+{
+    struct value_expression_t *ve
+	= CONTAINER_OF(self, struct value_expression_t, expression);
+
+    return ve->value;
+}
+
+void st_value_expression_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: value expression destructor */
+}
+
 /**************************************************************************/
 /* Single identifier term, either an enum, or a variable reference        */
 /**************************************************************************/

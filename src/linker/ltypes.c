@@ -33,7 +33,8 @@ static struct type_iface_t * resolve_ancestor(
     struct type_chain_entry_t *children,
     void *parent,
     const struct st_location_t *error_location,
-    struct errors_iface_t *errors)
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
 {
     /* Check if parent is defined */
     if(!parent)
@@ -68,7 +69,10 @@ static struct type_iface_t * resolve_ancestor(
 	}
     }
 
-    if(ST_FLAG_IS_SET(parent_type->class, DERIVED_TYPE))
+    st_bitflag_t parent_type_class = parent_type->class(parent_type,
+						   config);
+    
+    if(ST_FLAG_IS_SET(parent_type_class, DERIVED_TYPE))
     {
 	/* Stays on the stack for the whole recursive call, no need to
 	 * malloc */
@@ -92,7 +96,11 @@ static struct type_iface_t * resolve_ancestor(
 	    next_parent = pdt->parent;
 	}
 	
-	return resolve_ancestor(children, next_parent, error_location, errors);
+	return resolve_ancestor(children,
+				next_parent,
+				error_location,
+				errors,
+				config);
     }
 
     return parent_type;
@@ -104,7 +112,8 @@ int st_derived_type_parent_name_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors)
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
 {
     struct derived_type_t *dt =
 	(struct derived_type_t *)referrer;
@@ -121,7 +130,8 @@ int st_derived_type_resolve_ancestor(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors)
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
 {
     struct derived_type_t *dt =
 	(struct derived_type_t *)referrer;
@@ -132,7 +142,11 @@ int st_derived_type_resolve_ancestor(
     struct type_chain_entry_t *children = NULL;
     DL_APPEND(children, &start);
     
-    struct type_iface_t *ancestor = resolve_ancestor(children, target, location, errors);
+    struct type_iface_t *ancestor = resolve_ancestor(children,
+						     target,
+						     location,
+						     errors,
+						     config);
 
     if(!ancestor)
     {
@@ -140,7 +154,81 @@ int st_derived_type_resolve_ancestor(
     }
 
     dt->ancestor = ancestor;
-    dt->type.class |= ancestor->class;
     
+    return ESSTEE_OK;
+}
+
+int st_subrange_type_storage_type_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct subrange_type_t *st =
+	(struct subrange_type_t *)referrer;
+
+    st->subranged_type = (struct type_iface_t *)target;
+
+    return ESSTEE_OK;
+}
+
+int st_subrange_type_storage_type_check(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct subrange_type_t *st =
+	(struct subrange_type_t *)referrer;
+
+    if(!st->subranged_type)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "reference to undefined type",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+	return ESSTEE_ERROR;
+    }
+    
+    int subranged_type_can_hold_min =
+	st->subranged_type->can_hold(st->subranged_type,
+				     st->subrange->min,
+				     config);
+    if(subranged_type_can_hold_min != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "the subranged type cannot hold the minimum value",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    location,
+	    st->subrange->min_location);
+	return ESSTEE_ERROR;
+    }    
+
+    int subranged_type_can_hold_max =
+	st->subranged_type->can_hold(st->subranged_type,
+				     st->subrange->max,
+				     config);
+    if(subranged_type_can_hold_max != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "the subranged type cannot hold the maximum value",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    location,
+	    st->subrange->max_location);
+	return ESSTEE_ERROR;
+    }
+
     return ESSTEE_OK;
 }

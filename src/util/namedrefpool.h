@@ -104,11 +104,8 @@ int st_named_ref_pool_reset_resolved(
 
 int st_named_ref_pool_trigger_resolve_callbacks(
     struct namedreference_iface_t *self,
-    struct errors_iface_t *err);
-
-int st_named_ref_pool_trigger_secondary_resolve_callbacks(
-    struct namedreference_iface_t *self,
-    struct errors_iface_t *err);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 struct namedreference_iface_t * st_named_ref_pool_merge(
     struct namedreference_iface_t *self,

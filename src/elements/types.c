@@ -34,13 +34,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_bool_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_bool_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_BOOL_TYPE,
 	    .identifier = "BOOL",
 	},
 	.size = 1,
 	.default_value = 0,
+	.class = INTEGER_BOOL_TYPE,
 	.min = 0,
 	.max = 1
     },
@@ -49,13 +50,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_SINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	    .identifier = "SINT",
 	},
 	.size = 1,
 	.default_value = 0,
+	.class = INTEGER_SINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	.min = -127,
 	.max = 127
     },
@@ -65,13 +67,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_INT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	    .identifier = "INT",
 	},
 	.size = 2,
 	.default_value = 0,
+	.class = INTEGER_INT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	.min = -32767,
 	.max = 32767,
     },
@@ -80,13 +83,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_DINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	    .identifier = "DINT",
 	},
 	.size = 4,
 	.default_value = 0,
+	.class = INTEGER_DINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	.min = -2147483647,
 	.max = 2147483647
     },
@@ -95,13 +99,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_LINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	    .identifier = "LINT",
 	},
 	.size = 8,
 	.default_value = 0,
+	.class = INTEGER_LINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_SIGNED,
 	.min = -9223372036854775806,
 	.max = 9223372036854775806
     },
@@ -110,13 +115,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_USINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	    .identifier = "USINT",
 	},
 	.size = 1,
 	.default_value = 0,
+	.class = INTEGER_USINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	.min = 0,
 	.max = 255
     },
@@ -125,13 +131,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_UINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	    .identifier = "UINT",
 	},
 	.size = 2,
 	.default_value = 0,
+	.class = INTEGER_UINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	.min = 0,
 	.max = 65535 
     },
@@ -140,13 +147,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_UDINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	    .identifier = "UDINT",
 	},
 	.size = 4,
 	.default_value = 0,
+	.class = INTEGER_UDINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	.min = 0,
 	.max = 4294967295
     },
@@ -155,13 +163,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_ULINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	    .identifier = "ULINT",
 	},
 	.size = 8,
 	.default_value = 0,
+	.class = INTEGER_ULINT_TYPE|INTEGER_NUMERIC_CLASS|INTEGER_UNSIGNED,
 	.min = 0,
 	.max = 9223372036854775806 /* Full range not supported */
     },
@@ -170,13 +179,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_BYTE_TYPE|INTEGER_BITDATA_CLASS,
 	    .identifier = "BYTE",
 	},
 	.size = 1,
 	.default_value = 0x00,
+	.class = INTEGER_BYTE_TYPE|INTEGER_BITDATA_CLASS,
 	.min = 0x00,
 	.max = 0xff,
     },
@@ -185,13 +195,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_WORD_TYPE|INTEGER_BITDATA_CLASS,
 	    .identifier = "WORD",
 	},
 	.size = 2,
 	.default_value = 0x0000,
+	.class = INTEGER_WORD_TYPE|INTEGER_BITDATA_CLASS,
 	.min = 0x0000,
 	.max = 0xffff,
     },
@@ -200,13 +211,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_DWORD_TYPE|INTEGER_BITDATA_CLASS,
 	    .identifier = "DWORD",
 	},
 	.size = 4,
 	.default_value = 0x00000000,
+	.class = INTEGER_DWORD_TYPE|INTEGER_BITDATA_CLASS,
 	.min = 0x00000000,
 	.max = 0xffffffff,
     },
@@ -215,13 +227,14 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
-	    .class = INTEGER_LWORD_TYPE|INTEGER_BITDATA_CLASS,
 	    .identifier = "LWORD",
 	},
 	.size = 8,
 	.default_value = 0x0000000000000000,
+	.class = INTEGER_LWORD_TYPE|INTEGER_BITDATA_CLASS,
 	.min = 0x0000000000000000,
 	.max = 0xffffffffffffffff,
     },
@@ -234,10 +247,10 @@ static struct real_type_t real_type_templates[] = {
 	    .can_hold = NULL,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_real_type_destroy,
-	    .class = REAL_TYPE,
 	    .identifier = "REAL",
 	},
 	.size = 4,
+	.class = REAL_TYPE,
 	.default_value = 0.0,
     },
     {	.type = {
@@ -246,10 +259,10 @@ static struct real_type_t real_type_templates[] = {
 	    .can_hold = NULL,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_real_type_destroy,
-	    .class = LREAL_TYPE,
 	    .identifier = "LREAL",
 	},
 	.size = 8,
+	.class = LREAL_TYPE,
 	.default_value = 0.0,
     },
 };
@@ -261,9 +274,9 @@ static struct string_type_t string_type_templates[] = {
 	    .can_hold = NULL,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_string_type_destroy,
-	    .class = STRING_TYPE,
 	    .identifier = "STRING",
 	},
+	.class = STRING_TYPE,
 	.default_value = "",
     },
     {	.type = {
@@ -272,9 +285,9 @@ static struct string_type_t string_type_templates[] = {
 	    .can_hold = NULL,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_string_type_destroy,
-	    .class = WSTRING_TYPE,
 	    .identifier = "WSTRING",
 	},
+	.class = WSTRING_TYPE,
 	.default_value = "",
     },
 };
@@ -286,7 +299,6 @@ static struct duration_type_t duration_type_template = {
 	.can_hold = NULL,
 	.compatible = st_type_general_compatible,
 	.destroy = st_duration_type_destroy,
-	.class = TIME_TYPE,
 	.identifier = "TIME",
     },
     .default_d = 0.0,
@@ -303,7 +315,6 @@ static struct date_type_t date_type_template = {
 	.can_hold = NULL,
 	.compatible = st_type_general_compatible,
 	.destroy = st_date_type_destroy,
-	.class = DATE_TYPE,
 	.identifier = "DATE",
     },
     .default_year = 1,
@@ -318,7 +329,6 @@ static struct tod_type_t tod_type_template = {
 	.can_hold = NULL,
 	.compatible = st_type_general_compatible,
 	.destroy = st_tod_type_destroy,
-	.class = TOD_TYPE,
 	.identifier = "TIME_OF_DAY",
     },
     .default_hour = 0,
@@ -333,7 +343,6 @@ static struct date_tod_type_t date_tod_type_template = {
 	.can_hold = NULL,
 	.compatible = st_type_general_compatible,
 	.destroy = st_date_tod_type_destroy,
-	.class = DATE_TOD_TYPE,
 	.identifier = "DATE_AND_TIME",
     },
     .default_year = 1,
@@ -355,14 +364,17 @@ int st_type_general_compatible(
     const struct type_iface_t *other_type,
     const struct config_iface_t *config)
 {
-    if(self->class == other_type->class)
+    st_bitflag_t self_class = self->class(self, config);
+    st_bitflag_t other_type_class = other_type->class(other_type, config);
+    
+    if(self_class == other_type_class)
     {
 	return ESSTEE_TRUE;
     }
 
-    /* Clear derived flag from both types */
-    st_bitflag_t self_class_cmp = self->class & (~DERIVED_TYPE);
-    st_bitflag_t other_type_class_cmp = other_type->class & (~DERIVED_TYPE);
+    /* Clear derived and subrange flags from both types */
+    st_bitflag_t self_class_cmp = self_class & (~(DERIVED_TYPE|SUBRANGE_TYPE));
+    st_bitflag_t other_type_class_cmp = other_type_class & (~(DERIVED_TYPE|SUBRANGE_TYPE));
 
     if(self_class_cmp == other_type_class_cmp)
     {
@@ -371,7 +383,6 @@ int st_type_general_compatible(
 
     return ESSTEE_FALSE;
 }
-
 
 struct type_iface_t * st_new_elementary_types(void) 
 {
@@ -595,6 +606,17 @@ int st_integer_type_can_hold(
 
     return ESSTEE_TRUE;
 }
+
+st_bitflag_t st_integer_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct integer_type_t *it =
+	CONTAINER_OF(self, struct integer_type_t, type);
+
+    return it->class;
+}
+
 
 void st_integer_type_destroy(
     struct type_iface_t *self)
@@ -976,6 +998,18 @@ int st_derived_type_compatible(
     return dt->ancestor->compatible(dt->ancestor, other_type, config);
 }
 
+st_bitflag_t st_derived_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    st_bitflag_t ancestor_class = dt->ancestor->class(dt->ancestor, config);
+
+    return (ancestor_class | DERIVED_TYPE);
+}
+
 void st_derived_type_destroy(
     struct type_iface_t *self)
 {
@@ -1059,7 +1093,14 @@ int st_enum_type_can_hold(
 
     return ESSTEE_TRUE;
 }
-    
+
+st_bitflag_t st_enum_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return ENUM_TYPE;
+}
+
 void st_enum_type_destroy(
     struct type_iface_t *self)
 {
@@ -1069,18 +1110,62 @@ void st_enum_type_destroy(
 /**************************************************************************/
 /* Subrange type                                                          */
 /**************************************************************************/
-const struct st_location_t * st_subrange_type_location(
-    const struct type_iface_t *self)
-{
-    /* TODO: subrange type location */
-    return NULL;
-}
-
 struct value_iface_t * st_subrange_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: subrange type create value of */
+    struct subrange_value_t *sv = NULL;
+    ALLOC_OR_JUMP(
+	sv,
+	struct subrange_value_t,
+	error_free_resources);
+
+    struct subrange_type_t *st =
+	CONTAINER_OF(self, struct subrange_type_t, type);
+
+    sv->explicit_type = self;
+
+    sv->current = st_integer_type_create_value_of(NULL, config);
+    if(!sv->current)
+    {
+	goto error_free_resources;
+    }
+
+    int assign_result = ESSTEE_ERROR;
+    if(st->default_value)
+    {
+	assign_result = sv->current->assign(sv->current,
+					    st->default_value,
+					    config);
+    }
+    else
+    {
+	assign_result = sv->current->assign(sv->current,
+					    st->subrange->min,
+					    config);
+    }
+    
+    if(assign_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    memset(&(sv->value), 0, sizeof(struct value_iface_t));
+    
+    sv->value.display = st_subrange_value_display;
+    sv->value.assign = st_subrange_value_assign;
+    sv->value.reset = st_subrange_value_reset;
+    sv->value.explicit_type = st_subrange_value_explicit_type;
+    sv->value.compatible = st_subrange_value_compatible;
+    sv->value.create_temp_from = st_subrange_value_create_temp_from;
+    sv->value.destroy = st_subrange_value_destroy;
+    sv->value.integer = st_subrange_value_integer;
+
+    return &(sv->value);
+    
+error_free_resources:
+    free(sv);
+    /* TODO: destroy subranged value */
     return NULL;
 }
 
@@ -1089,8 +1174,27 @@ int st_subrange_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: subrange type reset value of */
-    return ESSTEE_FALSE;
+    struct subrange_type_t *st =
+	CONTAINER_OF(self, struct subrange_type_t, type);
+
+    struct subrange_value_t *sv =
+	CONTAINER_OF(value_of, struct subrange_value_t, value);
+
+    int assign_result = ESSTEE_ERROR;
+    if(st->default_value)
+    {
+	assign_result = sv->current->assign(sv->current,
+					    st->default_value,
+					    config);
+    }
+    else
+    {
+	assign_result = sv->current->assign(sv->current,
+					    st->subrange->min,
+					    config);
+    }
+
+    return assign_result;
 }
 
 int st_subrange_type_can_hold(
@@ -1098,8 +1202,54 @@ int st_subrange_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: subrange type can hold */
-    return ESSTEE_FALSE;
+    struct subrange_type_t *st =
+	CONTAINER_OF(self, struct subrange_type_t, type);
+
+    int subranged_type_can_hold =
+	st->subranged_type->can_hold(st->subranged_type, value, config);
+
+    if(subranged_type_can_hold != ESSTEE_OK)
+    {
+	return subranged_type_can_hold;
+    }
+
+    if(!value->lesser || !value->greater)
+    {
+	return ESSTEE_FALSE;
+    }
+    
+    int min_check_result = ESSTEE_ERROR;
+    min_check_result = st->subrange->min->greater(st->subrange->min,
+						  value,
+						  config);
+    if(min_check_result != ESSTEE_FALSE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    int max_check_result = ESSTEE_ERROR;
+    max_check_result = st->subrange->max->lesser(st->subrange->max,
+						 value,
+						 config);
+    if(max_check_result != ESSTEE_FALSE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_subrange_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct subrange_type_t *st =
+	CONTAINER_OF(self, struct subrange_type_t, type);
+
+    int subranged_type_class = st->subranged_type->class(st->subranged_type,
+							 config);
+
+    return (subranged_type_class | SUBRANGE_TYPE);
 }
 
 int st_subrange_type_compatible(
@@ -1107,8 +1257,12 @@ int st_subrange_type_compatible(
     const struct type_iface_t *other_type,
     const struct config_iface_t *config)
 {
-    /* TODO: subrange type compatible */
-    return ESSTEE_FALSE;
+    struct subrange_type_t *st =
+	CONTAINER_OF(self, struct subrange_type_t, type);
+
+    return st->subranged_type->compatible(st->subranged_type,
+					  other_type,
+					  config);
 }
 
 void st_subrange_type_destroy(

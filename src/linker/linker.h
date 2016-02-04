@@ -90,7 +90,8 @@ int st_function_return_type_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Shared                                                                 */
@@ -101,7 +102,8 @@ int st_qualified_identifier_base_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *err);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Expressions                                                            */
@@ -112,7 +114,8 @@ int st_single_identifier_variable_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Statements                                                             */
@@ -123,7 +126,8 @@ int st_simple_assignment_variable_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Variables                                                              */
@@ -134,7 +138,8 @@ int st_variable_type_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Types                                                                  */
@@ -145,7 +150,8 @@ int st_derived_type_parent_name_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 int st_derived_type_resolve_ancestor(
     void *referrer,
@@ -153,4 +159,24 @@ int st_derived_type_resolve_ancestor(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_subrange_type_storage_type_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_subrange_type_storage_type_check(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
