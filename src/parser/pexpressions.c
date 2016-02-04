@@ -23,6 +23,47 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <utlist.h>
 
+/**************************************************************************/
+/* Wrapped value expression (e.g. literal)                                */
+/**************************************************************************/
+struct expression_iface_t * st_new_expression_value(
+    struct value_iface_t *value,
+    const struct st_location_t *value_location,
+    struct parser_t *parser)
+{
+    struct value_expression_t *ve = NULL;
+    struct st_location_t *loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	ve,
+	struct value_expression_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	value_location,
+	parser->errors,
+	error_free_resources);
+
+    ve->location = loc;
+    ve->value = value;
+
+    memset(&(ve->expression), 0, sizeof(struct expression_iface_t));
+    
+    ve->expression.invoke.location = st_value_expression_location;
+    ve->expression.invoke.step = NULL;
+    ve->expression.invoke.verify = NULL;
+    
+    ve->expression.return_value = st_value_expression_return_value;
+    ve->expression.destroy = st_value_expression_destroy;
+
+    return &(ve->expression);
+    
+error_free_resources:
+    free(ve);
+    return NULL;
+}
 
 /**************************************************************************/
 /* Single identifier term, either an enum, or a variable reference        */

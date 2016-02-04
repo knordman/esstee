@@ -1,13 +1,3 @@
-subrange-type-value
-128 /* TODO: new subrange */ ../src/parser/ptypes.c
-129 /* TODO: new subrange type */ ../src/parser/ptypes.c
-40 /*TODO: Subrange value */ ../src/elements/values.h
-84 /* TODO: subrange type location */ ../src/elements/types.c
-85 /* TODO: subrange type create value of */ ../src/elements/types.c
-86 /* TODO: subrange type reset value of */ ../src/elements/types.c
-87 /* TODO: subrange type can hold */ ../src/elements/types.c
-88 /* TODO: subrange type compatible */ ../src/elements/types.c
-
 array-type-value
 132 /* TODO: extend array range by subrange */ ../src/parser/ptypes.c
 133 /* TODO: append new initial element to array */ ../src/parser/ptypes.c
@@ -30,7 +20,6 @@ struct-type-value
 
 literals
 first:
-161 /* TODO: return literal as value */ ../src/parser/pliterals.c
 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
 then:
 166 /* TODO: real literal */ ../src/parser/pliterals.c
@@ -207,3 +196,13 @@ DONE 2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/lin
 DONE 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
 DONE 4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
 DONE 5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
+DONE subrange-type-value
+DONE 128 /* TODO: new subrange */ ../src/parser/ptypes.c
+DONE 129 /* TODO: new subrange type */ ../src/parser/ptypes.c
+DONE 40 /*TODO: Subrange value */ ../src/elements/values.h
+DONE 84 /* TODO: subrange type location */ ../src/elements/types.c
+DONE 85 /* TODO: subrange type create value of */ ../src/elements/types.c
+DONE 86 /* TODO: subrange type reset value of */ ../src/elements/types.c
+DONE 87 /* TODO: subrange type can hold */ ../src/elements/types.c
+DONE 88 /* TODO: subrange type compatible */ ../src/elements/types.c
+DONE 161 /* TODO: return literal as value */ ../src/parser/pliterals.c

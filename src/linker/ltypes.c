@@ -157,3 +157,78 @@ int st_derived_type_resolve_ancestor(
     
     return ESSTEE_OK;
 }
+
+int st_subrange_type_storage_type_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct subrange_type_t *st =
+	(struct subrange_type_t *)referrer;
+
+    st->subranged_type = (struct type_iface_t *)target;
+
+    return ESSTEE_OK;
+}
+
+int st_subrange_type_storage_type_check(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct subrange_type_t *st =
+	(struct subrange_type_t *)referrer;
+
+    if(!st->subranged_type)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "reference to undefined type",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+	return ESSTEE_ERROR;
+    }
+    
+    int subranged_type_can_hold_min =
+	st->subranged_type->can_hold(st->subranged_type,
+				     st->subrange->min,
+				     config);
+    if(subranged_type_can_hold_min != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "the subranged type cannot hold the minimum value",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    location,
+	    st->subrange->min_location);
+	return ESSTEE_ERROR;
+    }    
+
+    int subranged_type_can_hold_max =
+	st->subranged_type->can_hold(st->subranged_type,
+				     st->subrange->max,
+				     config);
+    if(subranged_type_can_hold_max != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "the subranged type cannot hold the maximum value",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    location,
+	    st->subrange->max_location);
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}

@@ -371,19 +371,18 @@ void st_enum_type_destroy(
 /**************************************************************************/
 struct subrange_t {
     struct value_iface_t *min;
+    struct st_location_t *min_location;
     struct value_iface_t *max;
+    struct st_location_t *max_location;
 };
 
 struct subrange_type_t {
     struct type_iface_t type;
     struct type_iface_t *subranged_type;
     struct value_iface_t *default_value;
+    struct st_location_t *default_value_location;
     struct subrange_t *subrange;
-    struct st_location_t *location;
 };
-
-const struct st_location_t * st_subrange_type_location(
-    const struct type_iface_t *self);
 
 struct value_iface_t * st_subrange_type_create_value_of(
     const struct type_iface_t *self,

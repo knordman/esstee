@@ -741,9 +741,22 @@ int st_subrange_value_compatible(
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    return sv->explicit_type->can_hold(sv->explicit_type,
-				       other_value,
-				       config);
+    if(!other_value->integer)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    if(other_value->explicit_type)
+    {
+	const struct type_iface_t *other_value_type =
+	    other_value->explicit_type(other_value);
+	
+	return sv->explicit_type->compatible(sv->explicit_type,
+					     other_value_type,
+					     config);
+    }
+
+    return ESSTEE_TRUE;
 }
 
 struct value_iface_t * st_subrange_value_create_temp_from(

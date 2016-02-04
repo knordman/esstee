@@ -34,6 +34,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_bool_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_bool_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "BOOL",
@@ -49,6 +50,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "SINT",
@@ -65,6 +67,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "INT",
@@ -80,6 +83,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "DINT",
@@ -95,6 +99,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "LINT",
@@ -110,6 +115,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "USINT",
@@ -125,6 +131,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "UINT",
@@ -140,6 +147,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "UDINT",
@@ -155,6 +163,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "ULINT",
@@ -170,6 +179,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "BYTE",
@@ -185,6 +195,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "WORD",
@@ -200,6 +211,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "DWORD",
@@ -215,6 +227,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .can_hold = st_integer_type_can_hold,
+	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_integer_type_destroy,
 	    .identifier = "LWORD",
@@ -1097,15 +1110,6 @@ void st_enum_type_destroy(
 /**************************************************************************/
 /* Subrange type                                                          */
 /**************************************************************************/
-const struct st_location_t * st_subrange_type_location(
-    const struct type_iface_t *self)
-{
-    struct subrange_type_t *st =
-	CONTAINER_OF(self, struct subrange_type_t, type);
-
-    return st->location;
-}
-
 struct value_iface_t * st_subrange_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)

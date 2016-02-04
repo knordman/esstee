@@ -6,16 +6,21 @@ myenum : (one, two, three) := two;
 
 customdint : DINT;
 
+mysubrange : USINT ( 10 .. 20 ) := 15;
+
 END_TYPE
 
 VAR
-	mytypevar : BOOL;
+	mytypevar : mysubrange;
 
 	myenumone, myenumtwo : myenum;
 
 	mydint : customdint;
 END_VAR
 
-mytypevar := (myenumone = two);
+(* mydint := mytypevar + 1; *)
+
+mytypevar := 20 + 1;
+
 
 END_PROGRAM

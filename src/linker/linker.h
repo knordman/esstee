@@ -162,3 +162,21 @@ int st_derived_type_resolve_ancestor(
     struct errors_iface_t *errors,
     const struct config_iface_t *config);
 
+int st_subrange_type_storage_type_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_subrange_type_storage_type_check(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
