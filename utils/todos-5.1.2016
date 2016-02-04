@@ -1,47 +1,3 @@
-DONE 1 /* TODO: implement function, return type resolved */ ../src/linker/lpous.c
-DONE 163 /* TODO: binary literal */ ../src/parser/pliterals.c
-DONE 164 /* TODO: octal literal */ ../src/parser/pliterals.c
-DONE 165 /* TODO: hexadecimal literal */ ../src/parser/pliterals.c
-DONE 6 /*TODO: empty statement */ ../src/elements/statements.h
-DONE 155 /* TODO: implement binary lesser expression */ ../src/parser/pexpressions.c
-DONE 156 /* TODO: implement binary equals expression */ ../src/parser/pexpressions.c
-DONE 118 /* TODO: temporary boolean, can be defined somewhere else */ ../src/parser/pvalues.c
-DONE 157 /* TODO: implement binary gequals expression */ ../src/parser/pexpressions.c
-DONE 158 /* TODO: implement binary lequals expression */ ../src/parser/pexpressions.c
-DONE pending-binary-expression
-DONE 6 /* TODO: integer value modulus */ ../src/elements/values.c
-DONE 17 /* TODO: integer value to power */ ../src/elements/values.c
-DONE 159 /* TODO: implement binary mod expression */ ../src/parser/pexpressions.c
-DONE 160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
-DONE type-var-glue
-DONE 125 /* TODO: append new type declaration to type block */ ../src/parser/ptypes.c
-DONE 121 /* TODO: new type block */ ../src/parser/ppous.c
-DONE 123 /* TODO: append type block to header */ ../src/parser/ppous.c
-DONE 122 /* TODO: new var block */ ../src/parser/ppous.c
-DONE derived-type-value
-DONE 126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
-DONE 127 /* TODO: new derived type from other type name */ ../src/parser/ptypes.c
-DONE 73 /* TODO: derived type location */ ../src/elements/types.c
-DONE 74 /* TODO: derived type create value of */ ../src/elements/types.c
-DONE 75 /* TODO: derived type reset value of */ ../src/elements/types.c
-DONE 76 /* TODO: derived type can hold */ ../src/elements/types.c
-DONE 38 /*TODO: Derived value */ ../src/elements/values.h
-DONE enum-type-value
-DONE 130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
-DONE 131 /* TODO: new enum type */ ../src/parser/ptypes.c
-DONE 39 /*TODO: Enumerated value */ ../src/elements/values.h
-DONE 78 /* TODO: enum type location */ ../src/elements/types.c
-DONE 79 /* TODO: enum type create value of */ ../src/elements/types.c
-DONE 80 /* TODO: enum type reset value of */ ../src/elements/types.c
-DONE 81 /* TODO: enum type can hold */ ../src/elements/types.c
-DONE 82 /* TODO: enum type compatible, true when; enum of same values, or ../src/elements/types.c
-DONE 2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
-DONE 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
-DONE 4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
-DONE 5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c
-
-
-
 subrange-type-value
 128 /* TODO: new subrange */ ../src/parser/ptypes.c
 129 /* TODO: new subrange type */ ../src/parser/ptypes.c
@@ -209,3 +165,45 @@ destructors
 97 /* TODO: struct type destructor */ ../src/elements/types.c
 101 /* TODO: function block type destructor */ ../src/elements/types.c
 64 /* TODO: date type destructor */ ../src/elements/types.c
+
+DONE 1 /* TODO: implement function, return type resolved */ ../src/linker/lpous.c
+DONE 163 /* TODO: binary literal */ ../src/parser/pliterals.c
+DONE 164 /* TODO: octal literal */ ../src/parser/pliterals.c
+DONE 165 /* TODO: hexadecimal literal */ ../src/parser/pliterals.c
+DONE 6 /*TODO: empty statement */ ../src/elements/statements.h
+DONE 155 /* TODO: implement binary lesser expression */ ../src/parser/pexpressions.c
+DONE 156 /* TODO: implement binary equals expression */ ../src/parser/pexpressions.c
+DONE 118 /* TODO: temporary boolean, can be defined somewhere else */ ../src/parser/pvalues.c
+DONE 157 /* TODO: implement binary gequals expression */ ../src/parser/pexpressions.c
+DONE 158 /* TODO: implement binary lequals expression */ ../src/parser/pexpressions.c
+DONE pending-binary-expression
+DONE 6 /* TODO: integer value modulus */ ../src/elements/values.c
+DONE 17 /* TODO: integer value to power */ ../src/elements/values.c
+DONE 159 /* TODO: implement binary mod expression */ ../src/parser/pexpressions.c
+DONE 160 /* TODO: implement binary to power expression */ ../src/parser/pexpressions.c
+DONE type-var-glue
+DONE 125 /* TODO: append new type declaration to type block */ ../src/parser/ptypes.c
+DONE 121 /* TODO: new type block */ ../src/parser/ppous.c
+DONE 123 /* TODO: append type block to header */ ../src/parser/ppous.c
+DONE 122 /* TODO: new var block */ ../src/parser/ppous.c
+DONE derived-type-value
+DONE 126 /* TODO: new derived type by inline defined type */ ../src/parser/ptypes.c
+DONE 127 /* TODO: new derived type from other type name */ ../src/parser/ptypes.c
+DONE 73 /* TODO: derived type location */ ../src/elements/types.c
+DONE 74 /* TODO: derived type create value of */ ../src/elements/types.c
+DONE 75 /* TODO: derived type reset value of */ ../src/elements/types.c
+DONE 76 /* TODO: derived type can hold */ ../src/elements/types.c
+DONE 38 /*TODO: Derived value */ ../src/elements/values.h
+DONE enum-type-value
+DONE 130 /* TODO: add new enum item to enum item group */ ../src/parser/ptypes.c
+DONE 131 /* TODO: new enum type */ ../src/parser/ptypes.c
+DONE 39 /*TODO: Enumerated value */ ../src/elements/values.h
+DONE 78 /* TODO: enum type location */ ../src/elements/types.c
+DONE 79 /* TODO: enum type create value of */ ../src/elements/types.c
+DONE 80 /* TODO: enum type reset value of */ ../src/elements/types.c
+DONE 81 /* TODO: enum type can hold */ ../src/elements/types.c
+DONE 82 /* TODO: enum type compatible, true when; enum of same values, or ../src/elements/types.c
+DONE 2 sit->value.display = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
+DONE 3 sit->value.compatible = NULL; /* TODO: set to correct function */ ../src/linker/lexpressions.c
+DONE 4 sit->value.equals = NULL;     /* TODO: set to correct function */ ../src/linker/lexpressions.c
+DONE 5 sit->value.enumeration = NULL; /* TODO: set correct function */ ../src/linker/lexpressions.c

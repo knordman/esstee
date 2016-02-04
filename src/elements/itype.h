@@ -50,11 +50,14 @@ struct type_iface_t {
 	const struct type_iface_t *self,
 	const struct type_iface_t *other_type,
 	const struct config_iface_t *config);
+
+    st_bitflag_t (*class)(
+	const struct type_iface_t *self,
+	const struct config_iface_t *config);
     
     void (*destroy)(
 	struct type_iface_t *self);
 
-    st_bitflag_t class;
     char *identifier;
     UT_hash_handle hh;
     struct type_iface_t *prev;

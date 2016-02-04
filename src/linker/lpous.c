@@ -27,7 +27,8 @@ int st_function_return_type_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors)
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
 {
     if(target == NULL)
     {

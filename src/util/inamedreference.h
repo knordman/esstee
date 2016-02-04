@@ -22,6 +22,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/ierrors.h>
 #include <esstee/locations.h>
 #include <util/bitflag.h>
+#include <util/iconfig.h>
 
 #define PROGRAM_IN_QUERY_RESOLVE_REMARK (1 << 0)
 
@@ -31,7 +32,8 @@ typedef int (*resolved_callback_t)(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 struct namedreference_iface_t {
 
@@ -77,7 +79,8 @@ struct namedreference_iface_t {
     
     int (*trigger_resolve_callbacks)(
 	struct namedreference_iface_t *self,
-	struct errors_iface_t *err);
+	struct errors_iface_t *err,
+	const struct config_iface_t *config);
     
     struct namedreference_iface_t * (*merge)(
 	struct namedreference_iface_t *self,

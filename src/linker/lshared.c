@@ -28,7 +28,8 @@ int st_qualified_identifier_base_resolved(
     void *target,
     st_bitflag_t remark,
     const struct st_location_t *location,
-    struct errors_iface_t *errors)
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
 {
     if(ST_FLAG_IS_SET(remark, PROGRAM_IN_QUERY_RESOLVE_REMARK))
     {

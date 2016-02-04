@@ -97,8 +97,8 @@ int st_link_queries(
     st_resolve_function_refs(func_ref_pool, functions);
 
     /* Do resolve callbacks */
-    var_ref_pool->trigger_resolve_callbacks(var_ref_pool, errors);
-    func_ref_pool->trigger_resolve_callbacks(func_ref_pool, errors);
+    var_ref_pool->trigger_resolve_callbacks(var_ref_pool, errors, config);
+    func_ref_pool->trigger_resolve_callbacks(func_ref_pool, errors, config);
 
     if(errors->new_error_occured(errors) == ESSTEE_TRUE)
     {
