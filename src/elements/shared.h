@@ -53,7 +53,8 @@ struct qualified_identifier_t {
 
 int st_inner_resolve_qualified_identifier(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors);
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 
 void st_destroy_qualified_identifier(
     struct qualified_identifier_t *qi);

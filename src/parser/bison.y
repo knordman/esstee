@@ -99,6 +99,7 @@ void yyerror(
     struct header_t *header;
 
     struct value_iface_t *value;
+    struct listed_value_t *listed_value;
     struct enum_item_t *enum_item;
     struct array_init_value_t *array_init_value;
     struct struct_init_value_t *struct_init_value;
@@ -243,7 +244,7 @@ void yyerror(
 %type	<type>		array_type
 %type	<array_range>	array_range
 %type	<value>		array_initialization
-%type	<value>		array_initial_elements
+%type	<listed_value>	array_initial_elements
 %type	<value>		array_initial_element
 %type	<type>		structure_type
 %type	<struct_element> structure_elements 
@@ -639,7 +640,7 @@ subrange
 array_initialization :
 '[' array_initial_elements ']'
 {
-    if(($$ = st_new_array_init_value($2, parser)) == NULL)
+    if(($$ = st_new_array_init_value($2, &@2, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -647,22 +648,22 @@ array_initialization :
 array_initial_elements :
 array_initial_element
 {
-    if(($$ = st_append_initial_element(NULL, $1, parser)) == NULL)
+    if(($$ = st_append_initial_element(NULL, $1, &@1, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | literal_implicit_type '(' array_initial_element ')'
 {
-    if(($$ = st_append_initial_elements(NULL, $1, $3, parser)) == NULL)
+    if(($$ = st_append_initial_elements(NULL, $1, $3, &@3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | array_initial_elements ',' array_initial_element
 {
-    if(($$ = st_append_initial_element($1, $3, parser)) == NULL)
+    if(($$ = st_append_initial_element($1, $3, &@3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | array_initial_elements ',' literal_implicit_type '(' array_initial_element ')'
 {
-    if(($$ = st_append_initial_elements($1, $3, $5, parser)) == NULL)
+    if(($$ = st_append_initial_elements($1, $3, $5, &@5, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;

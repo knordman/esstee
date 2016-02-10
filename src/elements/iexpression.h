@@ -22,6 +22,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/ivalue.h>
 #include <elements/iinvoke.h>
 
+#define EXPR_CLASS_COMPILETIME_DEFINED (1 << 0)
+
 struct expression_iface_t {
 
     struct invoke_iface_t invoke;
@@ -29,6 +31,9 @@ struct expression_iface_t {
     const struct value_iface_t * (*return_value)(
 	struct expression_iface_t *self);
 
+    st_bitflag_t (*class)(
+	struct expression_iface_t *self);
+    
     void (*destroy)(
 	struct expression_iface_t *self);
 };

@@ -19,6 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linker/linker.h>
 #include <elements/types.h>
+#include <elements/values.h>
 #include <util/bitflag.h>
 #include <util/macros.h>
 
@@ -230,5 +231,176 @@ int st_subrange_type_storage_type_check(
 	return ESSTEE_ERROR;
     }
 
+    return ESSTEE_OK;
+}
+
+int st_array_type_arrayed_type_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct array_type_t *st =
+	(struct array_type_t *)referrer;
+
+    st->arrayed_type = (struct type_iface_t *)target;
+
+    return ESSTEE_OK;
+}
+
+static int check_array_initializer(
+    struct array_range_t *ranges,
+    struct value_iface_t *default_value,
+    struct type_iface_t *arrayed_type,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    const struct array_init_value_t *initializer =
+	default_value->array_init_value(default_value, config);
+    size_t checked_entries = 0;
+    struct array_range_t *current_range = ranges;
+    struct listed_value_t *itr = NULL;
+	
+    for(itr = initializer->values; itr != NULL; itr = itr->next)
+    {
+	if(itr->value->array_init_value)
+	{
+	    if(!current_range->next)
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "value addresses a new array level, but that does not match the array specification.", 
+		    ISSUE_ERROR_CLASS,
+		    1,
+		    itr->location);
+
+		return ESSTEE_ERROR;
+	    }
+	    else
+	    {
+		if(check_array_initializer(
+		       current_range->next,
+		       itr->value,
+		       arrayed_type,
+		       errors,
+		       config) == ESSTEE_ERROR)
+		{
+		    return ESSTEE_ERROR;
+		}
+	    }
+	}
+	else
+	{
+	    if(!current_range->next)
+	    {
+		if(arrayed_type->can_hold(arrayed_type, itr->value, config) != ESSTEE_OK)
+		{
+		    errors->new_issue_at(
+			errors,
+			"incompatible initialization value.",
+			ISSUE_ERROR_CLASS,
+			1,
+			itr->location);
+
+		    return ESSTEE_ERROR;
+		}
+	    }
+	    else
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "according to the array specification the value should address a new level.", 
+		    ISSUE_ERROR_CLASS,
+		    1,
+		    itr->location);
+
+		return ESSTEE_ERROR;
+	    }
+	}
+
+	if(itr->multiplier)
+	{
+	    if(!itr->multiplier->integer)
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "bad multiplier in array initializer.",
+		    ISSUE_ERROR_CLASS,
+		    1,
+		    itr->location);
+
+		return ESSTEE_ERROR;
+	    }
+
+	    int64_t multiplier = itr->multiplier->integer(itr->multiplier, config);
+	    checked_entries += multiplier;
+	}
+	else
+	{
+	    checked_entries++;
+	}
+    }
+
+    if(checked_entries < current_range->entries)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "too few values in array initializer.",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    initializer->location);
+
+	return ESSTEE_ERROR;
+    }
+    else if(checked_entries > current_range->entries)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "too many values in array initializer.", 
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    initializer->location);
+
+	return ESSTEE_ERROR;
+    }
+	
+    return ESSTEE_OK;
+}
+
+int st_array_type_arrayed_type_check(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct array_type_t *at =
+	(struct array_type_t *)referrer;
+
+    if(!at->arrayed_type)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "reference to undefined type",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+	return ESSTEE_ERROR;
+    }
+    
+    if(at->default_value)
+    {
+	return check_array_initializer(at->ranges,
+				       at->default_value,
+				       at->arrayed_type,
+				       errors,
+				       config);
+    }
+    
     return ESSTEE_OK;
 }

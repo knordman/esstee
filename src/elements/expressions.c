@@ -175,7 +175,79 @@ int st_qualified_identifier_term_verify(
     struct qualified_identifier_term_t *qit
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
 
-    return st_inner_resolve_qualified_identifier(qit->identifier, errors);
+    return st_inner_resolve_qualified_identifier(qit->identifier, errors, config);
+}
+
+int st_qualified_identifier_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    /* Step or verified used, if step, means array indices'
+     * expressions need to be stepped */
+
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct qualified_identifier_term_t *qit
+	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
+    
+    /* qit->identifier->array_index */
+
+    /* Skip already stepped indices */
+    struct array_index_t *itr = NULL;
+    int skipped = 0;
+    DL_FOREACH(qit->identifier->array_index, itr)
+    {
+	if(skipped >= qit->invoke_state)
+	{
+	    break;
+	}
+
+	skipped++;
+    }
+
+    int index_step_result = INVOKE_RESULT_FINISHED;
+    if(itr->index_expression->invoke.step)
+    {
+	struct invoke_iface_t *invokee = &(itr->index_expression->invoke);
+	
+	index_step_result = invokee->step(invokee,
+					  cursor,
+					  time,
+					  config,
+					  errors);
+
+	    if(index_step_result == INVOKE_RESULT_ERROR)
+	    {
+		qit->invoke_state = 0;
+		return INVOKE_RESULT_ERROR;
+	    }
+	    else if(index_step_result == INVOKE_RESULT_IN_PROGRESS)
+	    {
+		return INVOKE_RESULT_IN_PROGRESS;
+	    }
+    }
+
+    if(itr->next)
+    {
+	qit->invoke_state++;
+	return INVOKE_RESULT_IN_PROGRESS;
+    }
+
+    /* All indices stepped */
+    qit->invoke_state = 0;
+
+    int resolve_result = st_inner_resolve_qualified_identifier(qit->identifier, errors, config);
+
+    if(resolve_result != ESSTEE_OK)
+    {
+	return INVOKE_RESULT_ERROR;
+    }
+
+    return INVOKE_RESULT_FINISHED;
 }
 
 const struct value_iface_t * st_qualified_identifier_term_return_value(

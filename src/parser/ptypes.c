@@ -19,6 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <parser/parser.h>
 #include <elements/types.h>
+#include <elements/values.h>
 #include <util/macros.h>
 #include <linker/linker.h>
 
@@ -527,26 +528,124 @@ struct array_range_t * st_add_sub_to_new_array_range(
     struct subrange_t *subrange,
     struct parser_t *parser)
 {
-    /* TODO: extend array range by subrange */
+    struct array_range_t *ar = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	ar,
+	struct array_range_t,
+	parser->errors,
+	error_free_resources);
+    
+    ar->subrange = subrange;
+
+    int64_t max_num = subrange->max->integer(subrange->max, parser->config);
+    int64_t min_num = subrange->min->integer(subrange->min, parser->config);
+    ar->entries = max_num - min_num + 1;
+
+    DL_APPEND(array_ranges, ar);
+
+    return array_ranges;
+
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
-struct value_iface_t * st_append_initial_element(
-    struct value_iface_t *values,
-    struct value_iface_t *new_value,
-    struct parser_t *parser)
-{
-    /* TODO: append new initial element to array */
-    return NULL;
-}
-
-struct value_iface_t * st_append_initial_elements(
-    struct value_iface_t *values,
+static struct listed_value_t * append_initial_elements(
+    struct listed_value_t *values,
     struct value_iface_t *multiplier,
     struct value_iface_t *new_value,
+    const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: append initial elements to array by multiplier */
+    struct listed_value_t *lv = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	lv,
+	struct listed_value_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    lv->value = new_value;
+    lv->multiplier = multiplier;
+    lv->location = loc;
+
+    DL_APPEND(values, lv);
+
+    return values;
+
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
+struct listed_value_t * st_append_initial_element(
+    struct listed_value_t *values,
+    struct value_iface_t *new_value,
+    const struct st_location_t *location,
+    struct parser_t *parser)
+{
+    return append_initial_elements(values,
+				   NULL,
+				   new_value,
+				   location,
+				   parser);
+}
+
+struct listed_value_t * st_append_initial_elements(
+    struct listed_value_t *values,
+    struct value_iface_t *multiplier,
+    struct value_iface_t *new_value,
+    const struct st_location_t *location,
+    struct parser_t *parser)
+{
+    return append_initial_elements(values,
+				   multiplier,
+				   new_value,
+				   location,
+				   parser);
+}
+
+struct value_iface_t * st_new_array_init_value(
+    struct listed_value_t *values,
+    const struct st_location_t *location,
+    struct parser_t *parser)
+{
+    struct array_init_value_t *av = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	av,
+	struct array_init_value_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    size_t entries = 0;
+    struct listed_value_t *itr = NULL;
+    DL_COUNT(values, itr, entries);
+
+    av->location = loc;
+    av->values = values;
+    av->entries = entries;
+
+    memset(&(av->value), 0, sizeof(struct value_iface_t));
+    av->value.array_init_value = st_array_init_value;
+
+    return &(av->value);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -554,10 +653,66 @@ struct type_iface_t * st_new_array_type(
     struct array_range_t *array_ranges,
     char *arrayed_type_identifier,
     const struct st_location_t *arrayed_type_identifier_location,
-    struct value_iface_t *initial_value,
+    struct value_iface_t *default_value,
     struct parser_t *parser)
 {
-    /* TODO: new array type */
+    struct array_type_t *at = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	at,
+	struct array_type_t,
+	parser->errors,
+	error_free_resources);
+
+    at->ranges = array_ranges;
+    at->default_value = default_value;
+
+    int ref_add_result = parser->pou_type_ref_pool->add_two_step(
+	parser->pou_type_ref_pool,
+	arrayed_type_identifier,
+	at,
+	NULL,
+	arrayed_type_identifier_location,
+	st_array_type_arrayed_type_resolved,
+	st_array_type_arrayed_type_check);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+
+    /* Determine the array size */
+    at->total_elements = 0;
+    struct array_range_t *itr = NULL;
+    DL_FOREACH(at->ranges, itr)
+    {
+	if(at->total_elements == 0)
+	{
+	    at->total_elements = itr->entries;
+	}
+	else
+	{
+	    at->total_elements *= itr->entries;
+	}
+    }
+    
+    memset(&(at->type), 0, sizeof(struct type_iface_t));
+    at->type.location = NULL;
+    at->type.create_value_of = st_array_type_create_value_of;
+    at->type.reset_value_of = st_array_type_reset_value_of;
+    at->type.class = st_array_type_class;
+    at->type.destroy = st_array_type_destroy;
+
+    return &(at->type);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 

@@ -932,6 +932,8 @@ struct value_iface_t * st_derived_type_create_value_of(
 	return NULL;
     }
 
+    /* TODO: Set explicit type */
+    
     if(dt->default_value)
     {
 	int assign_default_result =
@@ -1274,18 +1276,123 @@ void st_subrange_type_destroy(
 /**************************************************************************/
 /* Array type                                                             */
 /**************************************************************************/
-const struct st_location_t * st_array_type_location(
-    const struct type_iface_t *self)
+static int assign_default_value(
+    struct value_iface_t **elements,
+    const struct value_iface_t *default_value,
+    const struct config_iface_t *config)
 {
-    /* TODO: array type location */
-    return NULL;
+    const struct array_init_value_t *iav =
+	default_value->array_init_value(default_value, config);
+
+    int elements_assigned = 0;
+    
+    struct listed_value_t *itr = NULL;
+    DL_FOREACH(iav->values, itr)
+    {
+	if(itr->value->array_init_value)
+	{
+	    int sub_array_elements_assigned =
+		assign_default_value(elements, itr->value, config);
+
+	    if(sub_array_elements_assigned <= 0)
+	    {
+		return ESSTEE_ERROR;
+	    }
+
+	    elements += sub_array_elements_assigned;
+	    elements_assigned += sub_array_elements_assigned;
+	}
+	else
+	{
+	    size_t elements_to_assign = 1;
+	    if(itr->multiplier)
+	    {
+		elements_to_assign = itr->multiplier->integer(itr->multiplier, config);
+	    }
+
+	    for(size_t i = 0; i < elements_to_assign; i++)
+	    {
+		int assign_result =
+		    (*elements)->assign((*elements), itr->value, config);
+
+		if(assign_result != ESSTEE_OK)
+		{
+		    return ESSTEE_ERROR;
+		}
+
+		elements++;
+	    }
+
+	    elements_assigned += elements_to_assign;
+	}
+    }
+
+    return elements_assigned;
 }
 
 struct value_iface_t * st_array_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: array type create value of */
+    const struct array_type_t *at =
+	CONTAINER_OF(self, struct array_type_t, type);
+
+    struct array_value_t *av = NULL;
+    struct value_iface_t **elements = NULL;
+    
+    ALLOC_OR_JUMP(
+	av,
+	struct array_value_t,
+	error_free_resources);
+
+    ALLOC_ARRAY_OR_JUMP(
+	elements,
+	struct value_iface_t *,
+	at->total_elements,
+	error_free_resources);
+
+    memset(elements, 0, sizeof(struct value_iface_t *)*at->total_elements);
+
+    for(size_t i = 0; i < at->total_elements; i++)
+    {
+	elements[i] = 
+	    at->arrayed_type->create_value_of(at->arrayed_type, config);
+
+	if(!elements[i])
+	{
+	    goto error_free_resources;
+	}
+    }
+
+    if(at->default_value)
+    {
+	int elements_assigned =
+	    assign_default_value(elements, at->default_value, config);
+
+	if(elements_assigned <= 0)
+	{
+	    goto error_free_resources;
+	}
+    }
+	
+    av->type = self;
+    av->total_elements = at->total_elements;
+    av->ranges = at->ranges;
+    av->arrayed_type = at->arrayed_type;
+    av->elements = elements;
+
+    memset(&(av->value), 0, sizeof(struct value_iface_t));
+    
+    av->value.display = st_array_value_display;
+    av->value.reset = st_array_value_reset;
+    av->value.explicit_type = st_array_value_explicit_type;
+    av->value.index = st_array_value_index;
+    av->value.destroy = st_array_value_destroy;
+
+    return &(av->value);
+
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -1294,8 +1401,46 @@ int st_array_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: array type reset value of */
-    return ESSTEE_FALSE;
+    const struct array_type_t *at =
+	CONTAINER_OF(self, struct array_type_t, type);
+
+    struct array_value_t *av =
+	CONTAINER_OF(value_of, struct array_value_t, value);
+
+    if(at->default_value)
+    {
+	int elements_assigned =
+	    assign_default_value(av->elements, at->default_value, config);
+
+	if(elements_assigned <= 0)
+	{
+	    return ESSTEE_ERROR;
+	}
+    }
+    else
+    {
+	for(size_t i = 0; i < at->total_elements; i++)
+	{
+	    int element_reset_result =
+		at->arrayed_type->reset_value_of(at->arrayed_type,
+						 av->elements[i],
+						 config);
+	
+	    if(element_reset_result != ESSTEE_OK)
+	    {
+		return element_reset_result;
+	    }
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+st_bitflag_t st_array_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return ARRAY_TYPE;
 }
 
 void st_array_type_destroy(

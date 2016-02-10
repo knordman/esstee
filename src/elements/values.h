@@ -338,8 +338,62 @@ int64_t st_subrange_value_integer(
 /**************************************************************************/
 /* Array value                                                            */
 /**************************************************************************/
+struct listed_value_t {
+    struct value_iface_t *value;
+    struct value_iface_t *multiplier;
+    struct st_location_t *location;
+    struct listed_value_t *prev;
+    struct listed_value_t *next;
+};
 
-/* TODO: Array value */
+struct array_init_value_t {
+    struct value_iface_t value;
+    size_t entries;
+    struct st_location_t *location;
+    struct listed_value_t *values;
+};
+
+const struct array_init_value_t * st_array_init_value(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
+
+struct array_element_t {
+    struct value_iface_t *element;
+    int64_t key;
+    UT_hash_handle hh;
+};
+
+struct array_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *type;
+
+    struct value_iface_t **elements;
+
+    size_t total_elements;
+    const struct array_range_t *ranges;
+    const struct type_iface_t *arrayed_type;
+};
+
+int st_array_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+    
+int st_array_value_reset(
+    struct value_iface_t *self,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_array_value_explicit_type(
+    const struct value_iface_t *self);
+
+struct value_iface_t * st_array_value_index(
+    struct value_iface_t *self,
+    struct array_index_t *array_index,
+    const struct config_iface_t *config);
+
+void st_array_value_destroy(
+    struct value_iface_t *self);
 
 /**************************************************************************/
 /* Structure value                                                        */
@@ -372,9 +426,4 @@ struct struct_init_value_t {
     struct struct_element_init_t *init_table;
 };
 
-/* Array init value */
-struct array_init_value_t {
-    struct value_iface_t value;
-    unsigned entries;
-    struct value_iface_t *values;
-};
+

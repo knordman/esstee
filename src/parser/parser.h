@@ -233,9 +233,6 @@ struct value_iface_t * st_new_double_string_literal(
 /**************************************************************************/
 /* Inline values                                                          */
 /**************************************************************************/
-struct value_iface_t * st_new_array_init_value(
-    struct value_iface_t *values,
-    struct parser_t *parser);
 
 struct value_iface_t * st_new_struct_init_value(
     struct struct_element_init_t *element_group,
@@ -302,20 +299,25 @@ struct type_iface_t * st_new_enum_type(
     const struct st_location_t *initial_value_location,
     struct parser_t *parser);
 
+
+
+
 struct array_range_t * st_add_sub_to_new_array_range(
     struct array_range_t *array_ranges,
     struct subrange_t *subrange,
     struct parser_t *parser);
 
-struct value_iface_t * st_append_initial_element(
-    struct value_iface_t *values,
+struct listed_value_t * st_append_initial_element(
+    struct listed_value_t *values,
     struct value_iface_t *new_value,
+    const struct st_location_t *location,
     struct parser_t *parser);
 
-struct value_iface_t * st_append_initial_elements(
-    struct value_iface_t *values,
+struct listed_value_t * st_append_initial_elements(
+    struct listed_value_t *values,
     struct value_iface_t *multiplier,
     struct value_iface_t *new_value,
+    const struct st_location_t *location,
     struct parser_t *parser);
 
 struct type_iface_t * st_new_array_type(
@@ -323,6 +325,11 @@ struct type_iface_t * st_new_array_type(
     char *arrayed_type_identifier,
     const struct st_location_t *arrayed_type_identifier_location,
     struct value_iface_t *initial_value,
+    struct parser_t *parser);
+
+struct value_iface_t * st_new_array_init_value(
+    struct listed_value_t *values,
+    const struct st_location_t *location,
     struct parser_t *parser);
 
 struct struct_element_t * st_add_new_struct_element(

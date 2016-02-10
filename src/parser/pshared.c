@@ -47,7 +47,7 @@ struct array_index_t * st_append_new_array_index(
 
     DL_APPEND(index_list, ai);
 
-    return ai;
+    return index_list;
     
 error_free_resources:
     free(ai);

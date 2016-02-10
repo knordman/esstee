@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2015 Kristian Nordman
+eCopyright (C) 2015 Kristian Nordman
 
 This file is part of esstee. 
 
@@ -35,7 +35,8 @@ void st_destroy_array_index(
 /**************************************************************************/
 int st_inner_resolve_qualified_identifier(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors)
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
 {
     struct qualified_identifier_t *start_from = qi;
     
@@ -69,7 +70,7 @@ int st_inner_resolve_qualified_identifier(
 
 	    qi->next->variable = found;
 
-	    if(qi->next->next)
+	    if(qi->next->next || qi->next->array_index)
 	    {
 		start_from = qi->next;
 	    }
@@ -106,13 +107,14 @@ int st_inner_resolve_qualified_identifier(
 
 	    struct value_iface_t *array_value = itr->variable->value->index(
 		itr->variable->value,
-		itr->array_index);
+		itr->array_index,
+		config);
 	    
 	    if(array_value == NULL)
 	    {
 		errors->new_issue_at(
 		    errors,
-		    "wrong array index for variable",
+		    "index out of range for array variable",
 		    ISSUE_ERROR_CLASS,
 		    2,
 		    itr->location,

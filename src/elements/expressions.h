@@ -30,6 +30,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iconfig.h>
 #include <esstee/locations.h>
 
+
+
 /**************************************************************************/
 /* Wrapped value expression (e.g. literal)                                */
 /**************************************************************************/
@@ -98,11 +100,19 @@ const struct enum_item_t * st_inline_enum_value_enumeration(
 struct qualified_identifier_term_t {
     struct expression_iface_t expression;
     struct qualified_identifier_t *identifier;
+    int invoke_state;
     struct st_location_t *location;
 };
 
 int st_qualified_identifier_term_verify(
     struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_qualified_identifier_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
     

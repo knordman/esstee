@@ -156,6 +156,7 @@ union YYSTYPE
     struct header_t *header;
 
     struct value_iface_t *value;
+    struct listed_value_t *listed_value;
     struct enum_item_t *enum_item;
     struct array_init_value_t *array_init_value;
     struct struct_init_value_t *struct_init_value;
@@ -178,7 +179,7 @@ union YYSTYPE
     st_bitflag_t bitflag;
     int64_t integer;
 
-#line 182 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 183 "src/parser/bison.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
