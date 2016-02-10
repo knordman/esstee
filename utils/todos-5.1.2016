@@ -1,13 +1,3 @@
-array-type-value
-132 /* TODO: extend array range by subrange */ ../src/parser/ptypes.c
-133 /* TODO: append new initial element to array */ ../src/parser/ptypes.c
-134 /* TODO: append initial elements to array by multiplier */ ../src/parser/ptypes.c
-135 /* TODO: new array type */ ../src/parser/ptypes.c
-41 /*TODO: Array value */ ../src/elements/values.h
-90 /* TODO: array type location */ ../src/elements/types.c
-91 /* TODO: array type create value of */ ../src/elements/types.c
-92 /* TODO: array type reset value of */ ../src/elements/types.c
-
 struct-type-value
 42 /*TODO: Struct value */ ../src/elements/values.h
 94 /* TODO: struct type location */ ../src/elements/types.c
@@ -206,3 +196,12 @@ DONE 86 /* TODO: subrange type reset value of */ ../src/elements/types.c
 DONE 87 /* TODO: subrange type can hold */ ../src/elements/types.c
 DONE 88 /* TODO: subrange type compatible */ ../src/elements/types.c
 DONE 161 /* TODO: return literal as value */ ../src/parser/pliterals.c
+DONE array-type-value
+DONE 132 /* TODO: extend array range by subrange */ ../src/parser/ptypes.c
+DONE 133 /* TODO: append new initial element to array */ ../src/parser/ptypes.c
+DONE 134 /* TODO: append initial elements to array by multiplier */ ../src/parser/ptypes.c
+DONE 135 /* TODO: new array type */ ../src/parser/ptypes.c
+DONE 41 /*TODO: Array value */ ../src/elements/values.h
+DONE 90 /* TODO: array type location */ ../src/elements/types.c
+DONE 91 /* TODO: array type create value of */ ../src/elements/types.c
+DONE 92 /* TODO: array type reset value of */ ../src/elements/types.c

@@ -109,7 +109,7 @@ int st_link_queries(
     DL_FOREACH(queries, itr)
     {
 	/* Verify the qualified identifer that is displayed/altered */
-	if(st_inner_resolve_qualified_identifier(itr->qi, errors) != ESSTEE_OK)
+	if(st_inner_resolve_qualified_identifier(itr->qi, errors, config) != ESSTEE_OK)
 	{
 	    return ESSTEE_ERROR;
 	}

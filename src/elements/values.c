@@ -19,10 +19,25 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/values.h>
 #include <util/macros.h>
+#include <elements/shared.h>
 
+#include <utlist.h>
 #include <stdio.h>
 #include <math.h>
 #include <errno.h>
+
+
+#define CHECK_WRITTEN_BYTES(X)			\
+    do {					\
+	if(X == 0)				\
+	{					\
+	    return ESSTEE_FALSE;		\
+	}					\
+	else if(X < 0)				\
+	{					\
+	    return ESSTEE_ERROR;		\
+	}					\
+    } while(0)
 
 /**************************************************************************/
 /* Integer values                                                         */
@@ -738,6 +753,11 @@ int st_subrange_value_compatible(
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
 {
+    /* Cannot check if type can hold other_value, since other_value
+     * will be 0 when it is a temporary (in verification), which may
+     * fall outside of the subrange, so these errors, even for
+     * constant literals, will take place at runtime */
+    
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
@@ -815,4 +835,154 @@ int64_t st_subrange_value_integer(
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
     return sv->current->integer(sv->current, config);
+}
+
+const struct array_init_value_t * st_array_init_value(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct array_init_value_t *av =
+	CONTAINER_OF(self, struct array_init_value_t, value);
+
+    return av;
+}
+
+int st_array_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct array_value_t *av =
+	CONTAINER_OF(self, struct array_value_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "[");
+
+    size_t buffer_size_start = buffer_size;
+
+    CHECK_WRITTEN_BYTES(written_bytes);
+    buffer += written_bytes;
+    buffer_size -= written_bytes;
+    
+    for(size_t i = 0; i < av->total_elements; i++)
+    {
+	if(i != 0)
+	{
+	    written_bytes = snprintf(buffer,
+				     buffer_size,
+				     ",");
+	    CHECK_WRITTEN_BYTES(written_bytes);
+	    buffer += written_bytes;
+	    buffer_size -= written_bytes;	    
+	}
+
+	int element_displayed_bytes  =
+	    av->elements[i]->display(av->elements[i], buffer, buffer_size, config);
+
+	CHECK_WRITTEN_BYTES(element_displayed_bytes);
+	
+	buffer += element_displayed_bytes;
+	buffer_size -= element_displayed_bytes;  
+    }
+
+    written_bytes = snprintf(buffer,
+			     buffer_size,
+			     "]");
+    CHECK_WRITTEN_BYTES(written_bytes);
+    buffer += written_bytes;
+    buffer_size -= written_bytes;	    
+    
+    return buffer_size_start - buffer_size;
+}
+    
+int st_array_value_reset(
+    struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return ESSTEE_OK;
+}
+
+const struct type_iface_t * st_array_value_explicit_type(
+    const struct value_iface_t *self)
+{
+    const struct array_value_t *av =
+    	CONTAINER_OF(self, struct array_value_t, value);
+
+    return av->type;
+}
+
+struct value_iface_t * st_array_value_index(
+    struct value_iface_t *self,
+    struct array_index_t *array_index,
+    const struct config_iface_t *config)
+{
+    const struct array_value_t *av =
+    	CONTAINER_OF(self, struct array_value_t, value);
+
+    const struct array_range_t *range_itr = av->ranges;
+    const struct array_index_t *index_itr = NULL;
+
+    size_t elements_offset = 0;
+    
+    DL_FOREACH(array_index, index_itr)
+    {
+	const struct value_iface_t *index_value =
+	    index_itr->index_expression->return_value(index_itr->index_expression);
+
+	if(!range_itr)
+	{
+	    return NULL;
+	}
+	
+	if(!index_value->integer)
+	{
+	    return NULL;
+	}
+
+	int index_too_small = range_itr->subrange->min->greater(range_itr->subrange->min,
+							   index_value,
+							   config);
+	if(index_too_small != ESSTEE_FALSE)
+	{
+	    return NULL;
+	}
+
+	int index_too_large = range_itr->subrange->max->lesser(range_itr->subrange->max,
+							       index_value,
+							       config);
+	if(index_too_large != ESSTEE_FALSE)
+	{
+	    return NULL;
+	}
+
+	int64_t index_num = index_value->integer(index_value, config);
+	int64_t min_index_num = range_itr->subrange->min->integer(
+	    range_itr->subrange->min,
+	    config);
+	
+	size_t multiplier = 1;
+	if(range_itr->next)
+	{
+	    multiplier = 0;
+	    const struct array_range_t *ritr = NULL;
+	    DL_FOREACH(range_itr->next, ritr)
+	    {
+		multiplier += ritr->entries;
+	    }
+	}
+	
+	elements_offset += (index_num-min_index_num) * multiplier;
+	
+	range_itr = range_itr->next;
+    }
+
+    return av->elements[elements_offset];
+}    
+
+void st_array_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: array value destructor */
 }

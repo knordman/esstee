@@ -218,7 +218,7 @@ int st_assignment_statement_qualified_verify(
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int identifier_verified = st_inner_resolve_qualified_identifier(qis->lhs, errors);
+    int identifier_verified = st_inner_resolve_qualified_identifier(qis->lhs, errors, config);
 
     int rhs_verified = ESSTEE_OK;
     if(qis->rhs->invoke.verify != NULL)

@@ -148,6 +148,26 @@ struct expression_iface_t * st_new_qualified_identifier_term(
 
     qt->expression.invoke.verify = st_qualified_identifier_term_verify;
     qt->expression.invoke.step = NULL;
+    
+    /* Check if there is an array index expression to resolve, if,
+     * then do runtime resolving of qualified identifier */
+    
+    /* TODO: error */
+    if(qualified_identifier->array_index)
+    {
+	struct array_index_t *itr = NULL;
+	DL_FOREACH(qualified_identifier->array_index, itr)
+	{
+	    if(itr->index_expression->invoke.step)
+	    {
+		qt->expression.invoke.verify = NULL;
+		qt->expression.invoke.step = st_qualified_identifier_term_step;
+		break;
+	    }
+	}
+    }
+
+    qt->invoke_state = 0;
     qt->expression.invoke.location = st_qualified_identifier_term_location;
     qt->expression.return_value = st_qualified_identifier_term_return_value;
     qt->expression.destroy = st_qualified_identifier_term_destroy;
