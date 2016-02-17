@@ -1,11 +1,3 @@
-real-type-value
-173 /* TODO: double literal */ ../src/parser/pliterals.c
-166 /* TODO: real literal */ ../src/parser/pliterals.c
-49 /* TODO: create real type value */ ../src/elements/types.c
-50 /* TODO: real type reset value of */ ../src/elements/types.c
-51 /* TODO: real type can hold evaluation */ ../src/elements/types.c
-32 /*TODO: Real values, determine value interface functions */ ../src/elements/values.h
-
 string-types-value
 172 /* TODO: string literal */ ../src/parser/pliterals.c
 44 /*TODO: structs for string type with defined length */ ../src/elements/types.h
@@ -201,3 +193,10 @@ DONE 114 /* TODO: move to types, change name from value, not really a value */ .
 DONE literals-setup
 DONE 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
 DONE 171 /* TODO: boolean literal */ ../src/parser/pliterals.c
+DONE real-type-value
+DONE 173 /* TODO: double literal */ ../src/parser/pliterals.c
+DONE 166 /* TODO: real literal */ ../src/parser/pliterals.c
+DONE 49 /* TODO: create real type value */ ../src/elements/types.c
+DONE 50 /* TODO: real type reset value of */ ../src/elements/types.c
+DONE 51 /* TODO: real type can hold evaluation */ ../src/elements/types.c
+DONE 32 /*TODO: Real values, determine value interface functions */ ../src/elements/values.h

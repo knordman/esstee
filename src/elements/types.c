@@ -245,7 +245,9 @@ static struct real_type_t real_type_templates[] = {
     {	.type = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_real_type_create_value_of,
-	    .can_hold = NULL,
+	    .reset_value_of = st_real_type_reset_value_of,
+	    .can_hold = st_real_type_can_hold,
+	    .class = st_real_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_real_type_destroy,
 	    .identifier = "REAL",
@@ -257,7 +259,9 @@ static struct real_type_t real_type_templates[] = {
     {	.type = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_real_type_create_value_of,
-	    .can_hold = NULL,
+	    .reset_value_of = st_real_type_reset_value_of,
+	    .can_hold = st_real_type_can_hold,
+	    .class = st_real_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_real_type_destroy,
 	    .identifier = "LREAL",
@@ -707,7 +711,40 @@ struct value_iface_t * st_real_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: create real type value */
+    struct real_value_t *rv = NULL;
+    ALLOC_OR_JUMP(
+	rv,
+	struct real_value_t,
+	error_free_resources);
+
+    rv->type = self;
+    memset(&(rv->value), 0, sizeof(struct value_iface_t));
+
+    rv->value.display = st_real_value_display;
+    rv->value.assign = st_real_value_assign;
+    rv->value.type_of = st_real_value_type_of;
+    rv->value.assignable_from = st_real_value_assignable_from;
+    rv->value.comparable_to = st_real_value_compares_and_operates;
+    rv->value.operates_with = st_real_value_compares_and_operates;
+    rv->value.create_temp_from = st_real_value_create_temp_from;
+    rv->value.destroy = st_real_value_destroy;
+    rv->value.class = st_real_value_class;
+
+    rv->value.greater = st_real_value_greater;
+    rv->value.lesser = st_real_value_lesser;
+    rv->value.equals = st_real_value_equals;
+
+    rv->value.plus = st_real_value_plus;
+    rv->value.minus = st_real_value_minus;
+    rv->value.multiply = st_real_value_multiply;
+    rv->value.divide = st_real_value_divide;
+    rv->value.to_power = st_real_value_to_power;
+    
+    rv->value.real = st_real_value_real;
+
+    return &(rv->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -716,8 +753,15 @@ int st_real_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: real type reset value of */
-    return ESSTEE_FALSE;
+    struct real_type_t *rt =
+	CONTAINER_OF(self, struct real_type_t, type);
+
+    struct real_value_t *rv
+	= CONTAINER_OF(value_of, struct real_value_t, value);
+
+    rv->num = rt->default_value;
+    
+    return ESSTEE_OK;
 }
 
 int st_real_type_can_hold(
@@ -725,8 +769,22 @@ int st_real_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: real type can hold evaluation */
-    return ESSTEE_FALSE;
+    if(!value->real)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_real_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct real_type_t *rt =
+	CONTAINER_OF(self, struct real_type_t, type);
+
+    return rt->class;
 }
 
 void st_real_type_destroy(

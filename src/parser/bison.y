@@ -427,7 +427,7 @@ LITERAL_DECIMAL
 }
 | LITERAL_REAL
 {
-    if(($$ = st_new_real_literal($1, &@1, parser)) == NULL)
+    if(($$ = st_new_real_literal($1, &@1, 1, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | LITERAL_DURATION
@@ -476,6 +476,11 @@ literal_implicit_type_possible_sign_prefix :
 sign_prefix LITERAL_DECIMAL
 {
     if(($$ = st_new_integer_literal($2, &@2, $1, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);
+}
+| sign_prefix LITERAL_REAL
+{
+    if(($$ = st_new_real_literal($2, &@2, $1, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | literal_implicit_type

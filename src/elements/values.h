@@ -175,11 +175,93 @@ int st_integer_literal_override_type(
 /**************************************************************************/
 struct real_value_t {
     struct value_iface_t value;
-    struct type_iface_t *explicit_type;
+    const struct type_iface_t *type;
+    st_bitflag_t class;
     double num;
 };
 
-/* TODO: Real values, determine value interface functions */
+int st_real_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_real_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_real_value_assignable_from(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_compares_and_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_real_value_type_of(
+    const struct value_iface_t *self);
+
+st_bitflag_t st_real_value_class(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
+
+struct value_iface_t * st_real_value_create_temp_from(
+    const struct value_iface_t *self);	
+
+void st_real_value_destroy(
+    struct value_iface_t *self);
+
+int st_real_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_plus(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_minus(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_multiply(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_divide(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_to_power(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+double st_real_value_real(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
+
+int st_real_literal_override_type(
+    const struct value_iface_t *self,
+    const struct type_iface_t *type,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* String values                                                          */

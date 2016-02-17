@@ -1,5 +1,5 @@
 PROGRAM testprgm
-
+(*
 TYPE
 
 myenum : (one, two, three) := two;
@@ -45,9 +45,10 @@ END_STRUCT;
 
 
 END_TYPE
-
+*)
 
 VAR
+(*
 	mytypevar : BOOL;
 
 	myenumone, myenumtwo : myenum;
@@ -56,12 +57,14 @@ VAR
 	mysint : SINT := 1;
 
 	mydint : BOOL := false;
+*)
+	myreal : REAL := -1234.0;
 	
 END_VAR
 
 (* mydint := mytypevar + 1; *)
 
-mydint := false;
+myreal  := REAL#12.9;
 
 (* mytypevar := 21; *)
 
