@@ -411,12 +411,12 @@ const struct st_location_t * st_start(
     struct variable_t *vitr = NULL;
     for(vitr = st->global_variables; vitr != NULL; vitr = vitr->hh.next)
     {
-	vitr->value->reset(vitr->value, st->config);
+	vitr->type->reset_value_of(vitr->type, vitr->value, st->config);
     }
 
     for(vitr = found->header->variables; vitr != NULL; vitr = vitr->hh.next)
     {
-	vitr->value->reset(vitr->value, st->config);
+	vitr->type->reset_value_of(vitr->type, vitr->value, st->config);
     }
     
     st->main = found;

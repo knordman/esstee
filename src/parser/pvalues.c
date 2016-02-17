@@ -24,13 +24,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* Inline values                                                          */
 /**************************************************************************/
 
-struct value_iface_t * st_new_struct_init_value(
-    struct struct_element_init_t *element_group,
-    struct parser_t *parser)
-{
-    /* TODO: move to types, change name from value, not really a value */
-    return NULL;
-}
 
 struct value_iface_t * st_new_enum_inline_value(
     char *identifiepr,

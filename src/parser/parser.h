@@ -1,3 +1,4 @@
+
 /*
 Copyright (C) 2015 Kristian Nordman
 
@@ -234,10 +235,6 @@ struct value_iface_t * st_new_double_string_literal(
 /* Inline values                                                          */
 /**************************************************************************/
 
-struct value_iface_t * st_new_struct_init_value(
-    struct struct_element_init_t *element_group,
-    struct parser_t *parser);
-
 struct value_iface_t * st_new_subrange_case_value(
     struct subrange_t *subrange,
     struct parser_t *parser);
@@ -260,6 +257,7 @@ struct type_iface_t * st_new_derived_type(
     struct type_iface_t *parent_type,
     const struct st_location_t *location,
     struct value_iface_t *initial_value,
+    const struct st_location_t *initial_value_location,
     struct parser_t *parser);
 
 struct type_iface_t * st_new_derived_type_by_name(
@@ -268,6 +266,7 @@ struct type_iface_t * st_new_derived_type_by_name(
     const struct st_location_t *parent_type_name_location,
     const struct st_location_t *location,
     struct value_iface_t *initial_value,
+    const struct st_location_t *initial_value_location,
     struct parser_t *parser);
 
 struct subrange_t * st_new_subrange(
@@ -298,9 +297,6 @@ struct type_iface_t * st_new_enum_type(
     char *initial_value_identifier, 
     const struct st_location_t *initial_value_location,
     struct parser_t *parser);
-
-
-
 
 struct array_range_t * st_add_sub_to_new_array_range(
     struct array_range_t *array_ranges,
@@ -339,6 +335,14 @@ struct struct_element_t * st_add_new_struct_element(
     struct type_iface_t *element_type,
     struct parser_t *parser);
 
+struct struct_element_t * st_add_new_struct_element_by_name(
+    struct struct_element_t *element_group,
+    char *element_identifier,
+    const struct st_location_t *identifier_location,
+    char *element_type_name,
+    const struct st_location_t *element_type_name_location,
+    struct parser_t *parser);
+
 struct type_iface_t * st_new_struct_type(
     struct struct_element_t *elements,
     struct parser_t *parser);
@@ -352,6 +356,10 @@ struct struct_element_init_t * st_new_struct_element_initializer(
     char *element_identifier,
     const struct st_location_t *identifier_location,
     struct value_iface_t *value,
+    struct parser_t *parser);
+
+struct value_iface_t * st_new_struct_init_value(
+    struct struct_element_init_t *element_group,
     struct parser_t *parser);
 
 struct type_iface_t * st_new_string_type(

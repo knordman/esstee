@@ -21,6 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/itype.h>
 #include <util/bitflag.h>
+#include <util/ierrors.h>
 
 /**************************************************************************/
 /* Elementary types                                                       */
@@ -56,6 +57,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define ENUM_TYPE             (1 << 28)
 #define SUBRANGE_TYPE         (1 << 29)
 #define ARRAY_TYPE            (1 << 30)
+#define STRUCT_TYPE           (1 << 31)
 
 const struct st_location_t * st_built_in_type_location_get(
     const struct type_iface_t *self);
@@ -295,6 +297,7 @@ struct derived_type_t {
     struct type_iface_t *parent;
     struct st_location_t *location;
     struct value_iface_t *default_value;
+    struct st_location_t *default_value_location;
 };
 
 const struct st_location_t * st_derived_type_location(
@@ -429,8 +432,25 @@ struct array_type_t {
     struct value_iface_t *default_value;
 };
 
+int st_array_type_check_array_initializer(
+    struct array_range_t *ranges,
+    const struct value_iface_t *default_value,
+    struct type_iface_t *arrayed_type,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_array_type_assign_default_value(
+    struct value_iface_t **elements,
+    const struct value_iface_t *default_value,
+    const struct config_iface_t *config);
+
 struct value_iface_t * st_array_type_create_value_of(
     const struct type_iface_t *self,
+    const struct config_iface_t *config);
+
+int st_array_type_can_hold(
+    const struct type_iface_t *self,
+    const struct value_iface_t *value,
     const struct config_iface_t *config);
 
 int st_array_type_reset_value_of(
@@ -450,6 +470,7 @@ void st_array_type_destroy(
 /**************************************************************************/
 struct struct_element_t {
     char *element_identifier;
+    struct st_location_t *identifier_location;
     struct type_iface_t *element_type;
     UT_hash_handle hh;
 };
@@ -457,6 +478,7 @@ struct struct_element_t {
 struct struct_element_init_t {
     char *element_identifier;
     struct value_iface_t *element_default_value;
+    struct st_location_t *element_identifier_location;
     UT_hash_handle hh;
 };
 
@@ -465,9 +487,6 @@ struct struct_type_t {
     struct struct_element_t *elements;
 };
 
-const struct st_location_t * st_struct_type_location(
-    const struct type_iface_t *self);
-
 struct value_iface_t * st_struct_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config);
@@ -475,6 +494,15 @@ struct value_iface_t * st_struct_type_create_value_of(
 int st_struct_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
+    const struct config_iface_t *config);
+
+int st_struct_type_can_hold(
+    const struct type_iface_t *self,
+    const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_struct_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 void st_struct_type_destroy(

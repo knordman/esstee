@@ -142,13 +142,14 @@ int st_inner_resolve_qualified_identifier(
 	    
 	    struct variable_t *subvar = itr->variable->value->sub_variable(
 		itr->variable->value,
-		itr->next->identifier);
+		itr->next->identifier,
+		config);
 
 	    if(subvar == NULL)
 	    {
 		errors->new_issue_at(
 		    errors,
-		    "undefined variable",
+		    "reference to undefined variable",
 		    ISSUE_ERROR_CLASS,
 		    1,
 		    itr->next->location);
@@ -159,6 +160,10 @@ int st_inner_resolve_qualified_identifier(
 	    {
 		itr->next->variable = subvar;
 	    }
+	}
+	else
+	{
+	    break;
 	}
     }
 

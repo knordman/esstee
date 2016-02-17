@@ -517,12 +517,17 @@ type_declaration
 type_declaration :
 derived_type_name ':' derive_type ';'
 {
-    if(($$ = st_new_derived_type($1, $3, &@$, NULL, parser)) == NULL)
+    if(($$ = st_new_derived_type($1, $3, &@$, NULL, NULL, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | derived_type_name ':' simple_type_name ';'
 {
-    if(($$ = st_new_derived_type_by_name($1, $3, &@3, &@$, NULL, parser)) == NULL)
+    if(($$ = st_new_derived_type_by_name($1, $3, &@3, &@$, NULL, NULL, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| derived_type_name ':' simple_type_name ASSIGN simple_type_initial_value ';'
+{
+    if(($$ = st_new_derived_type_by_name($1, $3, &@3, &@$, $5, &@5, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -531,12 +536,7 @@ basic_type :
 subrange_type
 | enum_type
 | array_type 
-| string_defined_length_type 
-| simple_type_name ASSIGN simple_type_initial_value
-{
-    if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
+| string_defined_length_type
 ;
 
 derive_type :
@@ -546,9 +546,14 @@ basic_type
 
 variable_type :
 basic_type
+| simple_type_name ASSIGN simple_type_initial_value
+{
+    if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, &@3, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
 | simple_type_name ASSIGN structure_initialization
 {
-    if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, parser)) == NULL)
+    if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, &@3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -695,6 +700,16 @@ IDENTIFIER ':' variable_type ';'
 | structure_elements IDENTIFIER ':' variable_type ';'
 {
     if(($$ = st_add_new_struct_element($1, $2, &@2, $4, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);											
+}
+| IDENTIFIER ':' simple_type_name ';'
+{
+    if(($$ = st_add_new_struct_element_by_name(NULL, $1, &@1, $3, &@3, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);
+}
+| structure_elements IDENTIFIER ':' simple_type_name ';'
+{
+    if(($$ = st_add_new_struct_element_by_name($1, $2, &@2, $4, &@4, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);											
 }
 ;

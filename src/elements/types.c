@@ -19,6 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/types.h>
 #include <elements/values.h>
+#include <elements/variables.h>
 #include <util/macros.h>
 #include <util/bitflag.h>
 
@@ -538,7 +539,6 @@ struct value_iface_t * st_integer_type_create_value_of(
     
     iv->value.display = st_integer_value_display;
     iv->value.assign = st_integer_value_assign;
-    iv->value.reset = st_integer_value_reset;
     iv->value.explicit_type = st_integer_value_explicit_type;
     iv->value.compatible = st_integer_value_compatible;
     iv->value.create_temp_from = st_integer_value_create_temp_from;
@@ -640,7 +640,6 @@ struct value_iface_t * st_bool_type_create_value_of(
     
     iv->value.display = st_bool_value_display;
     iv->value.assign = st_bool_value_assign;
-    iv->value.reset = st_integer_value_reset;
     iv->value.explicit_type = st_integer_value_explicit_type;
     iv->value.compatible = st_bool_value_compatible;
     iv->value.create_temp_from = st_bool_value_create_temp_from;
@@ -932,20 +931,6 @@ struct value_iface_t * st_derived_type_create_value_of(
 	return NULL;
     }
 
-    /* TODO: Set explicit type */
-    
-    if(dt->default_value)
-    {
-	int assign_default_result =
-	    new_value->assign(new_value, dt->default_value, config);
-
-	if(assign_default_result != ESSTEE_OK)
-	{
-	    /* TODO: destroy new value */
-	    return NULL;
-	}
-    }
-
     return new_value;
 }
 
@@ -957,17 +942,19 @@ int st_derived_type_reset_value_of(
     struct derived_type_t *dt =
 	CONTAINER_OF(self, struct derived_type_t, type);
 
-    int reset_result = ESSTEE_ERROR;
-    if(!dt->default_value)
-    {
-	reset_result = dt->ancestor->reset_value_of(dt->ancestor,
+    int reset_result = dt->ancestor->reset_value_of(dt->ancestor,
 						    value_of,
 						    config);
-    }
-    else
+    if(reset_result != ESSTEE_OK)
     {
-	reset_result =
-	    value_of->assign(value_of, dt->default_value, config);
+	return ESSTEE_ERROR;
+    }
+
+    if(dt->default_value)
+    {
+	reset_result = value_of->assign(value_of,
+					dt->default_value,
+					config);
     }
 
     if(reset_result != ESSTEE_OK)
@@ -1039,7 +1026,7 @@ struct value_iface_t * st_enum_type_create_value_of(
 	ev,
 	struct enum_value_t,
 	error_free_resources);
-
+    
     struct enum_type_t *et =
 	CONTAINER_OF(self, struct enum_type_t, type);
 
@@ -1050,7 +1037,6 @@ struct value_iface_t * st_enum_type_create_value_of(
 
     ev->value.display = st_enum_value_display;
     ev->value.assign = st_enum_value_assign;
-    ev->value.reset = st_enum_value_reset;
     ev->value.explicit_type = st_enum_value_explicit_type;
     ev->value.compatible = st_enum_value_compatible;
     ev->value.destroy = st_enum_value_destroy;
@@ -1068,8 +1054,15 @@ int st_enum_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: enum type reset value of */
-    return ESSTEE_FALSE;
+    struct enum_type_t *et =
+	CONTAINER_OF(self, struct enum_type_t, type);
+
+    struct enum_value_t *ev =
+	CONTAINER_OF(value_of, struct enum_value_t, value);
+
+    ev->constant = et->default_item;
+
+    return ESSTEE_OK;
 }
 
 int st_enum_type_can_hold(
@@ -1156,7 +1149,6 @@ struct value_iface_t * st_subrange_type_create_value_of(
     
     sv->value.display = st_subrange_value_display;
     sv->value.assign = st_subrange_value_assign;
-    sv->value.reset = st_subrange_value_reset;
     sv->value.explicit_type = st_subrange_value_explicit_type;
     sv->value.compatible = st_subrange_value_compatible;
     sv->value.create_temp_from = st_subrange_value_create_temp_from;
@@ -1276,7 +1268,144 @@ void st_subrange_type_destroy(
 /**************************************************************************/
 /* Array type                                                             */
 /**************************************************************************/
-static int assign_default_value(
+int st_array_type_check_array_initializer(
+    struct array_range_t *ranges,
+    const struct value_iface_t *default_value,
+    struct type_iface_t *arrayed_type,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    const struct array_init_value_t *initializer =
+	default_value->array_init_value(default_value, config);
+    size_t checked_entries = 0;
+    struct array_range_t *current_range = ranges;
+    struct listed_value_t *itr = NULL;
+	
+    for(itr = initializer->values; itr != NULL; itr = itr->next)
+    {
+	if(itr->value->array_init_value)
+	{
+	    if(!current_range->next)
+	    {
+		if(errors)
+		{
+		    errors->new_issue_at(
+			errors,
+			"value addresses a new array level, but that does not match the array specification.", 
+			ISSUE_ERROR_CLASS,
+			1,
+			itr->location);
+		}
+		
+		return ESSTEE_ERROR;
+	    }
+	    else
+	    {
+		if(st_array_type_check_array_initializer(
+		       current_range->next,
+		       itr->value,
+		       arrayed_type,
+		       errors,
+		       config) == ESSTEE_ERROR)
+		{
+		    return ESSTEE_ERROR;
+		}
+	    }
+	}
+	else
+	{
+	    if(!current_range->next)
+	    {
+		if(arrayed_type->can_hold(arrayed_type, itr->value, config) != ESSTEE_OK)
+		{
+		    if(errors)
+		    {
+			errors->new_issue_at(
+			    errors,
+			    "incompatible initialization value.",
+			    ISSUE_ERROR_CLASS,
+			    1,
+			    itr->location);
+		    }
+
+		    return ESSTEE_ERROR;
+		}
+	    }
+	    else
+	    {
+		if(errors)
+		{
+		    errors->new_issue_at(
+			errors,
+			"according to the array specification the value should address a new level.", 
+			ISSUE_ERROR_CLASS,
+			1,
+			itr->location);
+		}
+		
+		return ESSTEE_ERROR;
+	    }
+	}
+
+	if(itr->multiplier)
+	{
+	    if(!itr->multiplier->integer)
+	    {
+		if(errors)
+		{
+		    errors->new_issue_at(
+			errors,
+			"bad multiplier in array initializer.",
+			ISSUE_ERROR_CLASS,
+			1,
+			itr->location);
+		}
+		
+		return ESSTEE_ERROR;
+	    }
+
+	    int64_t multiplier = itr->multiplier->integer(itr->multiplier, config);
+	    checked_entries += multiplier;
+	}
+	else
+	{
+	    checked_entries++;
+	}
+    }
+
+    if(checked_entries < current_range->entries)
+    {
+	if(errors)
+	{
+	    errors->new_issue_at(
+		errors,
+		"too few values in array initializer.",
+		ISSUE_ERROR_CLASS,
+		1,
+		initializer->location);
+	}
+	
+	return ESSTEE_ERROR;
+    }
+    else if(checked_entries > current_range->entries)
+    {
+	if(errors)
+	{
+	    errors->new_issue_at(
+		errors,
+		"too many values in array initializer.", 
+		ISSUE_ERROR_CLASS,
+		1,
+		initializer->location);
+	}
+
+	return ESSTEE_ERROR;
+    }
+	
+    return ESSTEE_OK;
+}
+
+int st_array_type_assign_default_value(
     struct value_iface_t **elements,
     const struct value_iface_t *default_value,
     const struct config_iface_t *config)
@@ -1292,7 +1421,7 @@ static int assign_default_value(
 	if(itr->value->array_init_value)
 	{
 	    int sub_array_elements_assigned =
-		assign_default_value(elements, itr->value, config);
+		st_array_type_assign_default_value(elements, itr->value, config);
 
 	    if(sub_array_elements_assigned <= 0)
 	    {
@@ -1367,7 +1496,7 @@ struct value_iface_t * st_array_type_create_value_of(
     if(at->default_value)
     {
 	int elements_assigned =
-	    assign_default_value(elements, at->default_value, config);
+	    st_array_type_assign_default_value(elements, at->default_value, config);
 
 	if(elements_assigned <= 0)
 	{
@@ -1384,7 +1513,8 @@ struct value_iface_t * st_array_type_create_value_of(
     memset(&(av->value), 0, sizeof(struct value_iface_t));
     
     av->value.display = st_array_value_display;
-    av->value.reset = st_array_value_reset;
+    av->value.compatible = st_array_value_compatible;
+    av->value.assign = st_array_value_assign;
     av->value.explicit_type = st_array_value_explicit_type;
     av->value.index = st_array_value_index;
     av->value.destroy = st_array_value_destroy;
@@ -1410,7 +1540,7 @@ int st_array_type_reset_value_of(
     if(at->default_value)
     {
 	int elements_assigned =
-	    assign_default_value(av->elements, at->default_value, config);
+	    st_array_type_assign_default_value(av->elements, at->default_value, config);
 
 	if(elements_assigned <= 0)
 	{
@@ -1436,6 +1566,21 @@ int st_array_type_reset_value_of(
     return ESSTEE_OK;
 }
 
+int st_array_type_can_hold(
+    const struct type_iface_t *self,
+    const struct value_iface_t *value,
+    const struct config_iface_t *config)
+{
+    const struct array_type_t *at =
+	CONTAINER_OF(self, struct array_type_t, type);
+
+    return st_array_type_check_array_initializer(at->ranges,
+						 value,
+						 at->arrayed_type,
+						 NULL,
+						 config);
+}
+
 st_bitflag_t st_array_type_class(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
@@ -1452,18 +1597,65 @@ void st_array_type_destroy(
 /**************************************************************************/
 /* Structure type                                                         */
 /**************************************************************************/
-const struct st_location_t * st_struct_type_location(
-    const struct type_iface_t *self)
-{
-    /* TODO: struct type location */
-    return NULL;
-}
-
 struct value_iface_t * st_struct_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: struct type create value of */
+    const struct struct_type_t *st =
+	CONTAINER_OF(self, struct struct_type_t, type);
+
+    struct struct_value_t *sv = NULL;
+    ALLOC_OR_JUMP(
+	sv,
+	struct struct_value_t,
+	error_free_resources);
+
+    sv->elements = NULL;
+    struct struct_element_t *itr = NULL;
+    for(itr = st->elements; itr != NULL; itr = itr->hh.next)
+    {
+	struct variable_t *ev = NULL;
+	ALLOC_OR_JUMP(
+	    ev,
+	    struct variable_t,
+	    error_free_resources);
+
+	ev->identifier = itr->element_identifier;
+	ev->identifier_location = NULL;
+
+	ev->next = NULL;
+	ev->prev = NULL;
+	ev->address = NULL;
+	
+	ev->value = itr->element_type->create_value_of(itr->element_type,
+						       config);
+	if(!ev->value)
+	{
+	    goto error_free_resources;
+	}
+
+	ev->type = itr->element_type;
+
+	HASH_ADD_KEYPTR(hh, 
+			sv->elements, 
+			ev->identifier, 
+			strlen(ev->identifier), 
+			ev);
+    }
+
+    sv->explicit_type = self;
+    
+    memset(&(sv->value), 0, sizeof(struct value_iface_t));
+    sv->value.display = st_struct_value_display;
+    sv->value.compatible = st_struct_value_compatible;
+    sv->value.assign = st_struct_value_assign;
+    sv->value.destroy = st_struct_value_destroy;
+    sv->value.sub_variable = st_struct_value_sub_variable;
+
+    return &(sv->value);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -1472,8 +1664,68 @@ int st_struct_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: struct type reset value of */
-    return ESSTEE_FALSE;
+    struct struct_value_t *sv =
+	CONTAINER_OF(value_of, struct struct_value_t, value);
+
+    struct variable_t *itr = NULL;
+    for(itr = sv->elements; itr != NULL; itr = itr->hh.next)
+    {
+	int reset_result = itr->type->reset_value_of(itr->type, itr->value, config);
+
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_struct_type_can_hold(
+    const struct type_iface_t *self,
+    const struct value_iface_t *value,
+    const struct config_iface_t *config)
+{
+    const struct struct_type_t *st =
+	CONTAINER_OF(self, struct struct_type_t, type);
+
+    if(!value->struct_init_value)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    const struct struct_init_value_t *isv =
+	value->struct_init_value(value, config);
+    
+    struct struct_element_init_t *itr = NULL;
+    for(itr = isv->init_table; itr != NULL; itr = itr->hh.next)
+    {
+	/* Check that identifier is one of the members */
+	struct struct_element_t *found = NULL;
+	HASH_FIND_STR(st->elements, itr->element_identifier, found);
+	if(!found)
+	{
+	    return ESSTEE_FALSE;
+	}
+
+	/* Check that the member type can hold the value */
+	int member_type_can_hold = found->element_type->can_hold(found->element_type,
+								 itr->element_default_value,
+								 config);
+	if(member_type_can_hold != ESSTEE_TRUE)
+	{
+	    return member_type_can_hold;
+	}
+    }
+    
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_struct_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return STRUCT_TYPE;
 }
 
 void st_struct_type_destroy(

@@ -42,10 +42,6 @@ int st_integer_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-int st_integer_value_reset(
-    struct value_iface_t *self,
-    const struct config_iface_t *config);
-
 const struct type_iface_t * st_integer_value_explicit_type(
     const struct value_iface_t *self);
 
@@ -254,10 +250,6 @@ int st_enum_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-int st_enum_value_reset(
-    struct value_iface_t *self,
-    const struct config_iface_t *config);
-
 const struct type_iface_t * st_enum_value_explicit_type(
     const struct value_iface_t *self);
 
@@ -296,10 +288,6 @@ int st_subrange_value_display(
 int st_subrange_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config);
-
-int st_subrange_value_reset(
-    struct value_iface_t *self,
     const struct config_iface_t *config);
 
 const struct type_iface_t * st_subrange_value_explicit_type(
@@ -379,9 +367,15 @@ int st_array_value_display(
     char *buffer,
     size_t buffer_size,
     const struct config_iface_t *config);
-    
-int st_array_value_reset(
+
+int st_array_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_array_value_assign(
     struct value_iface_t *self,
+    const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
 const struct type_iface_t * st_array_value_explicit_type(
@@ -395,11 +389,56 @@ struct value_iface_t * st_array_value_index(
 void st_array_value_destroy(
     struct value_iface_t *self);
 
+void st_array_init_value_destroy(
+    struct value_iface_t *self);
+
 /**************************************************************************/
 /* Structure value                                                        */
 /**************************************************************************/
+struct struct_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *explicit_type;
+    struct variable_t *elements;
+};
 
-/* TODO: Struct value */
+struct struct_init_value_t {
+    struct value_iface_t value;
+    struct struct_element_init_t *init_table;
+};
+
+int st_struct_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_struct_value_explicit_type(
+    const struct value_iface_t *self);
+
+int st_struct_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_struct_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+void st_struct_value_destroy(
+    struct value_iface_t *self);
+
+void st_struct_init_value_destroy(
+    struct value_iface_t *self);
+
+struct variable_t * st_struct_value_sub_variable(
+    struct value_iface_t *self,
+    const char *identifier,
+    const struct config_iface_t *config);
+
+const struct struct_init_value_t * st_struct_init_value(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Function block value                                                   */
@@ -413,17 +452,6 @@ void st_array_value_destroy(
 struct subrange_case_value_t {
     struct value_iface_t value;
     struct subrange_t *subrange;
-};
-
-struct enum_inline_value_t {
-    struct value_iface_t value;
-    char *identifier;
-};
-
-/* Struct init value */
-struct struct_init_value_t {
-    struct value_iface_t value;
-    struct struct_element_init_t *init_table;
 };
 
 
