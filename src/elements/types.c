@@ -534,15 +534,18 @@ struct value_iface_t * st_integer_type_create_value_of(
 	struct integer_value_t,
 	error_free_resources);
     
-    iv->explicit_type = self;
+    iv->type = self;
     memset(&(iv->value), 0, sizeof(struct value_iface_t));
     
     iv->value.display = st_integer_value_display;
     iv->value.assign = st_integer_value_assign;
-    iv->value.explicit_type = st_integer_value_explicit_type;
-    iv->value.compatible = st_integer_value_compatible;
+    iv->value.type_of = st_integer_value_type_of;
+    iv->value.assignable_from = st_integer_value_assignable_from;
+    iv->value.comparable_to = st_integer_value_compares_and_operates;
+    iv->value.operates_with = st_integer_value_compares_and_operates;
     iv->value.create_temp_from = st_integer_value_create_temp_from;
     iv->value.destroy = st_integer_value_destroy;
+    iv->value.class = st_integer_value_class;
 
     iv->value.greater = st_integer_value_greater;
     iv->value.lesser = st_integer_value_lesser;
@@ -635,15 +638,18 @@ struct value_iface_t * st_bool_type_create_value_of(
 	struct integer_value_t,
 	error_free_resources);
     
-    iv->explicit_type = self;
+    iv->type = self;
     memset(&(iv->value), 0, sizeof(struct value_iface_t));
     
     iv->value.display = st_bool_value_display;
     iv->value.assign = st_bool_value_assign;
-    iv->value.explicit_type = st_integer_value_explicit_type;
-    iv->value.compatible = st_bool_value_compatible;
+    iv->value.type_of = st_integer_value_type_of;
+    iv->value.assignable_from = st_bool_value_assigns_compares_operates;
+    iv->value.comparable_to = st_bool_value_assigns_compares_operates;
+    iv->value.operates_with = st_bool_value_assigns_compares_operates; 
     iv->value.create_temp_from = st_bool_value_create_temp_from;
     iv->value.destroy = st_integer_value_destroy;
+    iv->value.class = st_integer_value_class;
 
     iv->value.equals = st_bool_value_equals;
 
@@ -991,12 +997,7 @@ st_bitflag_t st_derived_type_class(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    struct derived_type_t *dt =
-	CONTAINER_OF(self, struct derived_type_t, type);
-
-    st_bitflag_t ancestor_class = dt->ancestor->class(dt->ancestor, config);
-
-    return (ancestor_class | DERIVED_TYPE);
+    return DERIVED_TYPE;
 }
 
 void st_derived_type_destroy(
@@ -1030,18 +1031,20 @@ struct value_iface_t * st_enum_type_create_value_of(
     struct enum_type_t *et =
 	CONTAINER_OF(self, struct enum_type_t, type);
 
-    ev->explicit_type = self;
+    ev->type = self;
     ev->constant = et->default_item;
 
     memset(&(ev->value), 0, sizeof(struct value_iface_t));
 
     ev->value.display = st_enum_value_display;
     ev->value.assign = st_enum_value_assign;
-    ev->value.explicit_type = st_enum_value_explicit_type;
-    ev->value.compatible = st_enum_value_compatible;
+    ev->value.type_of = st_enum_value_type_of;
+    ev->value.assignable_from = st_enum_value_assigns_and_compares;
+    ev->value.comparable_to = st_enum_value_assigns_and_compares;
     ev->value.destroy = st_enum_value_destroy;
     ev->value.equals = st_enum_value_equals;
     ev->value.enumeration = st_enum_value_enumeration;
+    ev->value.class = st_general_value_empty_class;
 
     return &(ev->value);
     
@@ -1118,7 +1121,7 @@ struct value_iface_t * st_subrange_type_create_value_of(
     struct subrange_type_t *st =
 	CONTAINER_OF(self, struct subrange_type_t, type);
 
-    sv->explicit_type = self;
+    sv->type = self;
 
     sv->current = st_integer_type_create_value_of(NULL, config);
     if(!sv->current)
@@ -1149,11 +1152,14 @@ struct value_iface_t * st_subrange_type_create_value_of(
     
     sv->value.display = st_subrange_value_display;
     sv->value.assign = st_subrange_value_assign;
-    sv->value.explicit_type = st_subrange_value_explicit_type;
-    sv->value.compatible = st_subrange_value_compatible;
+    sv->value.type_of = st_subrange_value_type_of;
+    sv->value.assignable_from = st_subrange_value_assignable_from;
+    sv->value.comparable_to = st_subrange_value_compares_and_operates;
+    sv->value.operates_with = st_subrange_value_compares_and_operates;
     sv->value.create_temp_from = st_subrange_value_create_temp_from;
     sv->value.destroy = st_subrange_value_destroy;
     sv->value.integer = st_subrange_value_integer;
+    sv->value.class = st_general_value_empty_class;
 
     return &(sv->value);
     
@@ -1513,11 +1519,12 @@ struct value_iface_t * st_array_type_create_value_of(
     memset(&(av->value), 0, sizeof(struct value_iface_t));
     
     av->value.display = st_array_value_display;
-    av->value.compatible = st_array_value_compatible;
     av->value.assign = st_array_value_assign;
-    av->value.explicit_type = st_array_value_explicit_type;
+    av->value.assignable_from = st_array_value_assignable_from;
+    av->value.type_of = st_array_value_type_of;
     av->value.index = st_array_value_index;
     av->value.destroy = st_array_value_destroy;
+    av->value.class = st_general_value_empty_class;
 
     return &(av->value);
 
@@ -1643,14 +1650,15 @@ struct value_iface_t * st_struct_type_create_value_of(
 			ev);
     }
 
-    sv->explicit_type = self;
+    sv->type = self;
     
     memset(&(sv->value), 0, sizeof(struct value_iface_t));
     sv->value.display = st_struct_value_display;
-    sv->value.compatible = st_struct_value_compatible;
     sv->value.assign = st_struct_value_assign;
+    sv->value.assignable_from = st_struct_value_assignable_from;
     sv->value.destroy = st_struct_value_destroy;
     sv->value.sub_variable = st_struct_value_sub_variable;
+    sv->value.class = st_general_value_empty_class;
 
     return &(sv->value);
     

@@ -80,7 +80,7 @@ int st_inline_enum_value_display(
     size_t buffer_size,
     const struct config_iface_t *config);
 
-int st_inline_enum_value_compatible(
+int st_inline_enum_value_comparable_to(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);

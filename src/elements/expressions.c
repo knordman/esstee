@@ -120,7 +120,7 @@ int st_inline_enum_value_display(
     return written_bytes;
 }
 
-int st_inline_enum_value_compatible(
+int st_inline_enum_value_comparable_to(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
@@ -317,7 +317,7 @@ static int be_verify_operands(
     return ESSTEE_OK;
 }
 
-static int be_check_compatibility(
+static int be_create_bool_temporary(
     struct binary_expression_t *be,
     const struct config_iface_t *config,
     struct errors_iface_t *errors)
@@ -327,28 +327,34 @@ static int be_check_compatibility(
     const struct value_iface_t *right_value
 	= be->right_operand->return_value(be->right_operand);
     
-    /* Check that left operand and right operand are compatible */    
-    if(left_value->compatible(left_value, right_value, config) != ESSTEE_TRUE)
+    if(!left_value->comparable_to)
     {
 	errors->new_issue_at(
 	    errors,
-	    "values are not compatible",
+	    "value cannot be compared",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)));
+
+	return ESSTEE_ERROR;
+    }
+
+    int left_comparable_to_right
+	= left_value->comparable_to(left_value, right_value, config);
+
+    if(left_comparable_to_right != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "left value is not comparable to the right value",
 	    ISSUE_ERROR_CLASS,
 	    2,
 	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
 	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
 
-	return ESSTEE_ERROR;
+	return ESSTEE_ERROR;	
     }
-
-    return ESSTEE_OK;
-}
-
-static int be_create_bool_temporary(
-    struct binary_expression_t *be,
-    const struct config_iface_t *config,
-    struct errors_iface_t *errors)
-{
+    
     /* Create a temporary boolean that can hold the result */
     be->temporary = st_bool_type_create_value_of(NULL, config);
     if(!be->temporary)
@@ -375,24 +381,7 @@ static int be_create_cloned_temporary(
     const struct value_iface_t *right_value
 	= be->right_operand->return_value(be->right_operand);
     
-    /* Check that temporary may be created from both left and right
-     * value. Otherwise either value is not assignable, and they
-     * cannot create an assignable tempory. There should be no
-     * expression where a + b is ok, but not b + a simply based on the
-     * types of a and b. */
-    if(!left_value->create_temp_from && !right_value->create_temp_from)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "values cannot be used in an expression",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
-	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
-
-	return ESSTEE_ERROR;
-    }
-    if(!left_value->create_temp_from)
+    if(!left_value->operates_with)
     {
 	errors->new_issue_at(
 	    errors,
@@ -403,16 +392,21 @@ static int be_create_cloned_temporary(
 
 	return ESSTEE_ERROR;
     }
-    else if(!right_value->create_temp_from)
+
+    int left_operates_with_right
+	= left_value->operates_with(left_value, right_value, config);
+
+    if(left_operates_with_right != ESSTEE_TRUE)
     {
 	errors->new_issue_at(
 	    errors,
-	    "value cannot be used in an expression",
+	    "left value does not support the operation using the right value",
 	    ISSUE_ERROR_CLASS,
-	    1,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
 	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
 
-	return ESSTEE_ERROR;
+	return ESSTEE_ERROR;	
     }
     
     /* Create a temporary value for the operation result*/
@@ -453,11 +447,6 @@ static int be_create_cloned_temporary(
 		ISSUE_ERROR_CLASS,					\
 		1,							\
 		be->left_operand->invoke.location(&(be->left_operand->invoke))); \
-	}								\
-									\
-	if(be_check_compatibility(be, config, errors) != ESSTEE_OK)	\
-	{								\
-	    return ESSTEE_ERROR;					\
 	}								\
 									\
 	if(create_temporary(be, config, errors) != ESSTEE_OK)		\
@@ -925,12 +914,7 @@ int st_gequals_expression_verify(
 	    1,							
 	    be->left_operand->invoke.location(&(be->left_operand->invoke))); 
     }								
-									
-    if(be_check_compatibility(be, config, errors) != ESSTEE_OK)    
-    {								
-	return ESSTEE_ERROR;					
-    }								
-									
+
     if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)		
     {								
 	return ESSTEE_ERROR;					
@@ -1034,12 +1018,7 @@ int st_lequals_expression_verify(
 	    1,							
 	    be->left_operand->invoke.location(&(be->left_operand->invoke))); 
     }								
-									
-    if(be_check_compatibility(be, config, errors) != ESSTEE_OK)    
-    {								
-	return ESSTEE_ERROR;					
-    }								
-									
+
     if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)		
     {								
 	return ESSTEE_ERROR;					

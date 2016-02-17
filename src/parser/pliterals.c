@@ -104,8 +104,8 @@ static struct value_iface_t * new_integer_literal(
     }
 
     iv->num = interpreted * sign_prefix;
-    iv->value.explicit_type = NULL;
-    iv->value.assign = NULL;
+    iv->value.type_of = NULL;
+    iv->value.assignable_from = NULL;
     
     free(string);
     return &(iv->value);

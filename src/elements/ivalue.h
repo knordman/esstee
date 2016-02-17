@@ -53,7 +53,26 @@ struct value_iface_t {
 	const struct value_iface_t *new_value,
 	const struct config_iface_t *config);
 
-    const struct type_iface_t * (*explicit_type)(
+    int (*assignable_from)(
+	const struct value_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config);
+
+    int (*comparable_to)(
+	const struct value_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config);
+
+    int (*operates_with)(
+	const struct value_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config);
+
+    st_bitflag_t (*class)(
+	const struct value_iface_t *self,
+	const struct config_iface_t *config);
+
+    const struct type_iface_t * (*type_of)(
 	const struct value_iface_t *self);
 
     struct value_iface_t * (*index)(
@@ -65,11 +84,6 @@ struct value_iface_t {
 	struct value_iface_t *self,
 	const char *identifier,
     	const struct config_iface_t *config);
-
-    int (*compatible)(
-	const struct value_iface_t *self,
-	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
     
     struct value_iface_t * (*create_temp_from)(
 	const struct value_iface_t *self);	

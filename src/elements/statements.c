@@ -76,33 +76,30 @@ int st_assignment_statement_simple_verify(
 
     const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
 
-    int lhs_compatible_with_rhs = ESSTEE_TRUE;
-    if(sa->lhs->value->compatible != NULL)
-    {
-	lhs_compatible_with_rhs = sa->lhs->value->compatible(sa->lhs->value, rhs_value, config);
-    }
-
-    if(lhs_compatible_with_rhs != ESSTEE_TRUE)
+    if(!sa->lhs->value->assignable_from)
     {
 	errors->new_issue_at(
 	    errors,
-	    "values not compatible",
+	    "value is not assignable",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    sa->lhs_location);
+
+	return ESSTEE_ERROR;
+    }
+    
+    int lhs_assignable_from_rhs
+	= sa->lhs->value->assignable_from(sa->lhs->value, rhs_value, config);
+
+    if(lhs_assignable_from_rhs != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "left value cannot be assigned from right value",
 	    ISSUE_ERROR_CLASS,
 	    2,
 	    sa->lhs_location,
 	    sa->rhs->invoke.location(&(sa->rhs->invoke)));
-
-	return ESSTEE_ERROR;
-    }
-
-    if(!sa->lhs->value->assign)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "cannot assign value",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    sa->lhs_location);
 
 	return ESSTEE_ERROR;
     }
@@ -233,33 +230,30 @@ int st_assignment_statement_qualified_verify(
     
     const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
 
-    int lhs_compatible_with_rhs = ESSTEE_TRUE;
-    if(qis->lhs->target->compatible != NULL)
-    {
-	lhs_compatible_with_rhs = qis->lhs->target->compatible(qis->lhs->target, rhs_value, config);
-    }
-
-    if(lhs_compatible_with_rhs != ESSTEE_TRUE)
+    if(!qis->lhs->target->assignable_from)
     {
 	errors->new_issue_at(
 	    errors,
-	    "values not compatible",
+	    "value is not assignable",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    qis->lhs->location);
+
+	return ESSTEE_ERROR;
+    }
+    
+    int lhs_assignable_from_rhs
+	= qis->lhs->target->assignable_from(qis->lhs->target, rhs_value, config);
+
+    if(lhs_assignable_from_rhs != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "left value cannot be assigned from right value",
 	    ISSUE_ERROR_CLASS,
 	    2,
 	    qis->lhs->location,
 	    qis->rhs->invoke.location(&(qis->rhs->invoke)));
-
-	return ESSTEE_ERROR;
-    }
-
-    if(!qis->lhs->target->assign)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "cannot assign value",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    qis->lhs->location);
 
 	return ESSTEE_ERROR;
     }

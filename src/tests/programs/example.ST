@@ -48,16 +48,19 @@ END_TYPE
 
 
 VAR
-	mytypevar : mstr := (one_int:=45, another_int:=11);
+	mytypevar : BOOL;
 
 	myenumone, myenumtwo : myenum;
 
-	mydint : customdint;
+
+	mysint : SINT := 1;
+
+	mydint : mstr;
 END_VAR
 
 (* mydint := mytypevar + 1; *)
 
-;
+mydint := 1;
 
 (* mytypevar := 21; *)
 

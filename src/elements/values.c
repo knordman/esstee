@@ -39,6 +39,13 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 	}					\
     } while(0)
 
+st_bitflag_t st_general_value_empty_class(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return 0;
+}
+
 /**************************************************************************/
 /* Integer values                                                         */
 /**************************************************************************/
@@ -72,16 +79,13 @@ int st_integer_value_assign(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    if(iv->explicit_type)
+    if(!ST_FLAG_IS_SET(iv->class, TEMPORARY_VALUE))
     {
-	int can_hold = iv->explicit_type->can_hold(
-	       iv->explicit_type,
-	       new_value,
-	       config);
-	
-	if(can_hold != ESSTEE_TRUE)
+	int type_can_hold = iv->type->can_hold(iv->type, new_value, config);
+
+	if(type_can_hold != ESSTEE_TRUE)
 	{
-	    return can_hold;
+	    return type_can_hold;
 	}
     }
 
@@ -90,57 +94,102 @@ int st_integer_value_assign(
     return ESSTEE_OK;
 }
 
-const struct type_iface_t * st_integer_value_explicit_type(
+int st_integer_value_assignable_from(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->integer)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    if(ST_FLAG_IS_SET(iv->class, TEMPORARY_VALUE))
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    st_bitflag_t other_value_class =
+	other_value->class(other_value, config);
+    
+    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
+    {
+	int type_can_hold = iv->type->can_hold(iv->type, other_value, config);
+
+	if(type_can_hold != ESSTEE_TRUE)
+	{
+	    return type_can_hold;
+	}
+
+	if(other_value->type_of)
+	{
+	    const struct type_iface_t *other_value_type =
+		other_value->type_of(other_value);
+
+	    int types_compatible =
+		iv->type->compatible(iv->type, other_value_type, config);
+
+	    if(types_compatible != ESSTEE_TRUE)
+	    {
+		return types_compatible;
+	    }
+	}
+    }
+
+    return ESSTEE_TRUE;
+}
+
+int st_integer_value_compares_and_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{ 
+    if(!other_value->integer)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    if(ST_FLAG_IS_SET(iv->class, TEMPORARY_VALUE))
+    {
+	return ESSTEE_TRUE;
+    }
+
+    st_bitflag_t other_value_class =
+	other_value->class(other_value, config);
+    
+    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
+    {
+	if(other_value->type_of)
+	{
+	    const struct type_iface_t *other_value_type =
+		other_value->type_of(other_value);
+
+	    int types_compatible =
+		iv->type->compatible(iv->type, other_value_type, config);
+
+	    if(types_compatible != ESSTEE_TRUE)
+	    {
+		return types_compatible;
+	    }
+	}
+    }
+
+    return ESSTEE_TRUE;
+}
+
+const struct type_iface_t * st_integer_value_type_of(
     const struct value_iface_t *self)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    return iv->explicit_type;
-}
-
-int st_integer_value_compatible(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
-{
-    struct integer_value_t *iv 
-	= CONTAINER_OF(self, struct integer_value_t, value);
-
-    if(!other_value->integer)
-    {
-	return ESSTEE_FALSE;
-    }
-    else if(iv->explicit_type)
-    {
-	if(iv->explicit_type->can_hold(
-	       iv->explicit_type,
-	       other_value,
-	       config) != ESSTEE_TRUE)
-	{
-	    return ESSTEE_FALSE;
-	}
-
-	const struct type_iface_t *other_value_type = NULL;
-	if(other_value->explicit_type)
-	{
-	    other_value_type
-		= other_value->explicit_type(other_value);
-	}
-
-	if(other_value_type)
-	{
-	    if(iv->explicit_type->compatible(
-		   iv->explicit_type,
-		   other_value_type,
-		   config) != ESSTEE_TRUE)
-	    {
-		return ESSTEE_FALSE;
-	    }
-	}
-    }
-    
-    return ESSTEE_TRUE;
+    return iv->type;
 }
 
 struct value_iface_t * st_integer_value_create_temp_from(
@@ -161,10 +210,12 @@ struct value_iface_t * st_integer_value_create_temp_from(
     clone->num = 0;
     
     /* Temporary has no type */
-    clone->value.explicit_type = NULL;
+    clone->type = NULL;
 
-    /* Temporary is assignable */
+    /* Temporary is assignable (might be cloned from literal) */
     clone->value.assign = st_integer_value_assign;
+
+    ST_SET_FLAGS(clone->class, TEMPORARY_VALUE);
     
     return &(clone->value);
 
@@ -226,29 +277,6 @@ int st_integer_value_equals(
     return ESSTEE_FALSE;
 }
 
-static int binary_expression_result_after_type_check(
-    struct integer_value_t *iv,
-    int64_t start_num,
-    const struct config_iface_t *config)
-{
-    if(iv->explicit_type)
-    {
-	int fit_into_type =
-	    iv->explicit_type->can_hold(
-		iv->explicit_type,
-		&(iv->value),
-		config);
-
-	if(fit_into_type != ESSTEE_TRUE)
-	{
-	    iv->num = start_num;
-	    return fit_into_type;
-	}
-    }
-
-    return ESSTEE_OK;
-}
-
 int st_integer_value_plus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
@@ -257,10 +285,9 @@ int st_integer_value_plus(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t start_num = iv->num;
     iv->num += other_value->integer(other_value, config);
 
-    return binary_expression_result_after_type_check(iv, start_num, config);
+    return ESSTEE_OK;
 }
 
 int st_integer_value_minus(
@@ -271,10 +298,9 @@ int st_integer_value_minus(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t start_num = iv->num;
     iv->num -= other_value->integer(other_value, config);
 
-    return binary_expression_result_after_type_check(iv, start_num, config);
+    return ESSTEE_OK;
 }
 
 int st_integer_value_multiply(
@@ -285,10 +311,9 @@ int st_integer_value_multiply(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t start_num = iv->num;
     iv->num *= other_value->integer(other_value, config);
 
-    return binary_expression_result_after_type_check(iv, start_num, config);
+    return ESSTEE_OK;
 }
 
 int st_integer_value_divide(
@@ -299,10 +324,9 @@ int st_integer_value_divide(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t start_num = iv->num;
     iv->num /= other_value->integer(other_value, config);
 
-    return binary_expression_result_after_type_check(iv, start_num, config);
+    return ESSTEE_OK;
 }
 
 int st_integer_value_modulus(
@@ -326,8 +350,6 @@ int st_integer_value_to_power(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t start_num = iv->num;
-
     long double dnum = (long double)iv->num;
     long double exp = (long double)other_value->integer(other_value, config);
 
@@ -340,7 +362,7 @@ int st_integer_value_to_power(
     
     iv->num = (int64_t)result;
 
-    return binary_expression_result_after_type_check(iv, start_num, config);
+    return ESSTEE_OK;
 }
 
 int64_t st_integer_value_integer(
@@ -351,6 +373,16 @@ int64_t st_integer_value_integer(
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     return iv->num;
+}
+
+st_bitflag_t st_integer_value_class(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    return iv->class;
 }
 
 int st_bool_value_display(
@@ -387,6 +419,19 @@ int st_bool_value_display(
     return written_bytes;
 }
 
+int st_bool_value_assigns_compares_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->bool)
+    {
+	return ESSTEE_FALSE;
+    }
+    
+    return ESSTEE_TRUE;
+}
+
 int st_bool_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
@@ -407,19 +452,6 @@ int st_bool_value_assign(
     return ESSTEE_OK;
 }
 
-int st_bool_value_compatible(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
-{
-    if(!other_value->bool)
-    {
-	return ESSTEE_FALSE;
-    }
-
-    return ESSTEE_TRUE;
-}
-
 struct value_iface_t * st_bool_value_create_temp_from(
     const struct value_iface_t *self)
 {
@@ -438,10 +470,12 @@ struct value_iface_t * st_bool_value_create_temp_from(
     clone->num = 0;
     
     /* Temporary has no type */
-    clone->value.explicit_type = NULL;
+    clone->type = NULL;
 
     /* Temporary is assignable */
     clone->value.assign = st_bool_value_assign;
+
+    ST_SET_FLAGS(clone->class, TEMPORARY_VALUE);
     
     return &(clone->value);
 
@@ -558,13 +592,13 @@ int st_enum_value_assign(
     struct enum_value_t *ev =
 	CONTAINER_OF(self, struct enum_value_t, value);
 
-    int can_hold = ev->explicit_type->can_hold(
-	ev->explicit_type,
-	new_value,
-	config);
-    if(can_hold != ESSTEE_TRUE)
+    int type_can_hold = ev->type->can_hold(ev->type,
+					   new_value,
+					   config);
+
+    if(type_can_hold != ESSTEE_TRUE)
     {
-	return can_hold;
+	return type_can_hold;
     }
     
     ev->constant = new_value->enumeration(new_value, config);
@@ -572,37 +606,35 @@ int st_enum_value_assign(
     return ESSTEE_OK;
 }
 
-const struct type_iface_t * st_enum_value_explicit_type(
+const struct type_iface_t * st_enum_value_type_of(
     const struct value_iface_t *self)
 {
     struct enum_value_t *ev =
 	CONTAINER_OF(self, struct enum_value_t, value);
 
-    return ev->explicit_type;
+    return ev->type;
 }
 
-int st_enum_value_compatible(
+int st_enum_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
 {
-    struct enum_value_t *ev =
-	CONTAINER_OF(self, struct enum_value_t, value);
-
     if(!other_value->enumeration)
     {
 	return ESSTEE_FALSE;
     }
 
+    struct enum_value_t *ev =
+	CONTAINER_OF(self, struct enum_value_t, value);
+
     /* Check that the enumeration of the other value is present by the
      * values defined by the type */
-    int can_hold = ev->explicit_type->can_hold(
-	ev->explicit_type,
-	other_value,
-	config);
-    if(can_hold != ESSTEE_TRUE)
+    int type_can_hold = ev->type->can_hold(ev->type, other_value, config);
+
+    if(type_can_hold != ESSTEE_TRUE)
     {
-	return can_hold;
+	return type_can_hold;
     }
 
     /* If the other value has a reference to its values group, check
@@ -682,56 +714,103 @@ int st_subrange_value_assign(
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    int can_hold = sv->explicit_type->can_hold(
-	sv->explicit_type,
-	new_value,
-	config);
+    int type_can_hold = sv->type->can_hold(sv->type,
+					   new_value,
+					   config);
 	
-    if(can_hold != ESSTEE_TRUE)
+    if(type_can_hold != ESSTEE_TRUE)
     {
-	return can_hold;
+	return type_can_hold;
     }
 
     return sv->current->assign(sv->current, new_value, config);
 }
 
-const struct type_iface_t * st_subrange_value_explicit_type(
+const struct type_iface_t * st_subrange_value_type_of(
     const struct value_iface_t *self)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    return sv->explicit_type;
+    return sv->type;
 }
 
-int st_subrange_value_compatible(
+int st_subrange_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
 {
-    /* Cannot check if type can hold other_value, since other_value
-     * will be 0 when it is a temporary (in verification), which may
-     * fall outside of the subrange, so these errors, even for
-     * constant literals, will take place at runtime */
-    
-    struct subrange_value_t *sv =
-	CONTAINER_OF(self, struct subrange_value_t, value);
-
     if(!other_value->integer)
     {
 	return ESSTEE_FALSE;
     }
-
-    if(other_value->explicit_type)
+    
+    st_bitflag_t other_value_class =
+	other_value->class(other_value, config);
+    
+    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
-	const struct type_iface_t *other_value_type =
-	    other_value->explicit_type(other_value);
+	struct subrange_value_t *sv =
+	    CONTAINER_OF(self, struct subrange_value_t, value);
 	
-	return sv->explicit_type->compatible(sv->explicit_type,
-					     other_value_type,
-					     config);
-    }
+	int type_can_hold = sv->type->can_hold(sv->type, other_value, config);
 
+	if(type_can_hold != ESSTEE_TRUE)
+	{
+	    return type_can_hold;
+	}
+
+	if(other_value->type_of)
+	{
+	    const struct type_iface_t *other_value_type =
+		other_value->type_of(other_value);
+
+	    int types_compatible =
+		sv->type->compatible(sv->type, other_value_type, config);
+
+	    if(types_compatible != ESSTEE_TRUE)
+	    {
+		return types_compatible;
+	    }
+	}
+    }
+    
+    return ESSTEE_TRUE;
+}
+
+int st_subrange_value_compares_and_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->integer)
+    {
+	return ESSTEE_FALSE;
+    }
+    
+    st_bitflag_t other_value_class =
+	other_value->class(other_value, config);
+    
+    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
+    {
+	struct subrange_value_t *sv =
+	    CONTAINER_OF(self, struct subrange_value_t, value);
+	
+	if(other_value->type_of)
+	{
+	    const struct type_iface_t *other_value_type =
+		other_value->type_of(other_value);
+
+	    int types_compatible =
+		sv->type->compatible(sv->type, other_value_type, config);
+
+	    if(types_compatible != ESSTEE_TRUE)
+	    {
+		return types_compatible;
+	    }
+	}
+    }
+    
     return ESSTEE_TRUE;
 }
 
@@ -806,7 +885,7 @@ const struct array_init_value_t * st_array_init_value(
 /**************************************************************************/
 /* Array value                                                            */
 /**************************************************************************/
-int st_array_value_compatible(
+int st_array_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
@@ -814,14 +893,13 @@ int st_array_value_compatible(
     const struct array_value_t *av =
 	CONTAINER_OF(self, struct array_value_t, value);
 
-    int type_can_hold_result = av->type->can_hold(av->type,
-						  other_value,
-						  config);
-    if(type_can_hold_result != ESSTEE_TRUE)
+    int type_can_hold = av->type->can_hold(av->type, other_value, config);
+
+    if(type_can_hold != ESSTEE_TRUE)
     {
-	return type_can_hold_result;
+	return type_can_hold;
     }
-    
+
     return ESSTEE_TRUE;
 }
 
@@ -894,7 +972,7 @@ int st_array_value_display(
     return buffer_size_start - buffer_size;
 }
 
-const struct type_iface_t * st_array_value_explicit_type(
+const struct type_iface_t * st_array_value_type_of(
     const struct value_iface_t *self)
 {
     const struct array_value_t *av =
@@ -1055,16 +1133,16 @@ int st_struct_value_display(
     return buffer_size_start - buffer_size;
 }
 
-const struct type_iface_t * st_struct_value_explicit_type(
+const struct type_iface_t * st_struct_value_type_of(
     const struct value_iface_t *self)
 {
     const struct struct_value_t *sv =
 	CONTAINER_OF(self, struct struct_value_t, value);
 
-    return sv->explicit_type;
+    return sv->type;
 }
 
-int st_struct_value_compatible(
+int st_struct_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
@@ -1072,12 +1150,11 @@ int st_struct_value_compatible(
     const struct struct_value_t *sv =
 	CONTAINER_OF(self, struct struct_value_t, value);
 
-    int type_can_hold_result = sv->explicit_type->can_hold(sv->explicit_type,
-							   other_value,
-							   config);
-    if(type_can_hold_result != ESSTEE_TRUE)
+    int type_can_hold = sv->type->can_hold(sv->type, other_value, config);
+
+    if(type_can_hold != ESSTEE_TRUE)
     {
-	return type_can_hold_result;
+	return type_can_hold;
     }
     
     return ESSTEE_TRUE;

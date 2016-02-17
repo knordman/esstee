@@ -144,24 +144,30 @@ int st_link_queries(
 	    {
 		return ESSTEE_ERROR;
 	    }
-
-	    int new_value_compatible = ESSTEE_TRUE;
-	    if(itr->qi->target->compatible)
-	    {
-		const struct value_iface_t *assign_value
-		    = itr->new_value->return_value(itr->new_value);
-
-		new_value_compatible = itr->qi->target->compatible(
-		    itr->qi->target,
-		    assign_value,
-		    config);
-	    }
-
-	    if(new_value_compatible != ESSTEE_TRUE)
+	    
+	    if(!itr->qi->target->assignable_from)
 	    {
 		errors->new_issue_at(
 		    errors,
-		    "values not compatible",
+		    "values cannot be assigned a new value",
+		    1,
+		    ISSUE_ERROR_CLASS,
+		    itr->qi->location);
+
+		return ESSTEE_ERROR;
+	    }
+
+	    const struct value_iface_t *assign_value
+		= itr->new_value->return_value(itr->new_value);
+	    
+	    int assignable_from = itr->qi->target->assignable_from(itr->qi->target,
+								   assign_value,
+								   config);
+	    if(assignable_from != ESSTEE_TRUE)
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "left value cannot be assigned the right value",
 		    2,
 		    ISSUE_ERROR_CLASS,
 		    itr->qi->location,

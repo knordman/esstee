@@ -22,12 +22,19 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/ivalue.h>
 #include <elements/types.h>
 
+#define TEMPORARY_VALUE (1 << 0)
+
+st_bitflag_t st_general_value_empty_class(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
+
 /**************************************************************************/
 /* Integer values                                                         */
 /**************************************************************************/
 struct integer_value_t {
     struct value_iface_t value;
-    const struct type_iface_t *explicit_type;
+    const struct type_iface_t *type;
+    st_bitflag_t class;
     int64_t num;
 };
 
@@ -42,12 +49,21 @@ int st_integer_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-const struct type_iface_t * st_integer_value_explicit_type(
-    const struct value_iface_t *self);
-
-int st_integer_value_compatible(
+int st_integer_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_integer_value_compares_and_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_integer_value_type_of(
+    const struct value_iface_t *self);
+
+st_bitflag_t st_integer_value_class(
+    const struct value_iface_t *self,
     const struct config_iface_t *config);
 
 struct value_iface_t * st_integer_value_create_temp_from(
@@ -117,7 +133,7 @@ int st_bool_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-int st_bool_value_compatible(
+int st_bool_value_assigns_compares_operates(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
@@ -235,7 +251,7 @@ struct date_tod_value_t {
 /**************************************************************************/
 struct enum_value_t {
     struct value_iface_t value;
-    const struct type_iface_t *explicit_type;
+    const struct type_iface_t *type;
     const struct enum_item_t *constant;
 };
 
@@ -250,13 +266,13 @@ int st_enum_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-const struct type_iface_t * st_enum_value_explicit_type(
-    const struct value_iface_t *self);
-
-int st_enum_value_compatible(
+int st_enum_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
+
+const struct type_iface_t * st_enum_value_type_of(
+    const struct value_iface_t *self);
 
 void st_enum_value_destroy(
     struct value_iface_t *self);
@@ -275,7 +291,7 @@ const struct enum_item_t * st_enum_value_enumeration(
 /**************************************************************************/
 struct subrange_value_t {
     struct value_iface_t value;
-    const struct type_iface_t *explicit_type;
+    const struct type_iface_t *type;
     struct value_iface_t *current;
 };
 
@@ -290,13 +306,18 @@ int st_subrange_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-const struct type_iface_t * st_subrange_value_explicit_type(
-    const struct value_iface_t *self);
-
-int st_subrange_value_compatible(
+int st_subrange_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
+
+int st_subrange_value_compares_and_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_subrange_value_type_of(
+    const struct value_iface_t *self);
 
 struct value_iface_t * st_subrange_value_create_temp_from(
     const struct value_iface_t *self);	
@@ -354,9 +375,7 @@ struct array_element_t {
 struct array_value_t {
     struct value_iface_t value;
     const struct type_iface_t *type;
-
     struct value_iface_t **elements;
-
     size_t total_elements;
     const struct array_range_t *ranges;
     const struct type_iface_t *arrayed_type;
@@ -368,7 +387,7 @@ int st_array_value_display(
     size_t buffer_size,
     const struct config_iface_t *config);
 
-int st_array_value_compatible(
+int st_array_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
@@ -378,7 +397,7 @@ int st_array_value_assign(
     const struct value_iface_t *new_value,
     const struct config_iface_t *config);
 
-const struct type_iface_t * st_array_value_explicit_type(
+const struct type_iface_t * st_array_value_type_of(
     const struct value_iface_t *self);
 
 struct value_iface_t * st_array_value_index(
@@ -397,7 +416,7 @@ void st_array_init_value_destroy(
 /**************************************************************************/
 struct struct_value_t {
     struct value_iface_t value;
-    const struct type_iface_t *explicit_type;
+    const struct type_iface_t *type;
     struct variable_t *elements;
 };
 
@@ -412,10 +431,10 @@ int st_struct_value_display(
     size_t buffer_size,
     const struct config_iface_t *config);
 
-const struct type_iface_t * st_struct_value_explicit_type(
+const struct type_iface_t * st_struct_value_type_of(
     const struct value_iface_t *self);
 
-int st_struct_value_compatible(
+int st_struct_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
