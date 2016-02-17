@@ -20,6 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <parser/parser.h>
 #include <elements/values.h>
 #include <util/macros.h>
+#include <linker/linker.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -60,7 +61,30 @@ struct value_iface_t * st_new_explicit_literal(
     struct value_iface_t *implicit_literal,
     struct parser_t *parser)
 {
-    /* TODO: explicit type to literal */
+    int ref_add_result = parser->pou_type_ref_pool->add_two_step(
+	parser->pou_type_ref_pool,
+	type_identifier,
+	implicit_literal,
+	NULL,
+	type_identifier_location,
+	NULL,
+	st_explicit_literal_type_resolved);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+
+    return implicit_literal;
+    
+error_free_resources:
+    /* TODO: clear references */
     return NULL;
 }
 
@@ -77,6 +101,11 @@ static struct value_iface_t * new_integer_literal(
     struct value_iface_t *v =
 	st_integer_type_create_value_of(NULL, parser->config);
 
+    if(!v)
+    {
+	goto error_free_resources;
+    }
+    
     struct integer_value_t *iv =
 	CONTAINER_OF(v, struct integer_value_t, value);
     
@@ -106,6 +135,7 @@ static struct value_iface_t * new_integer_literal(
     iv->num = interpreted * sign_prefix;
     iv->value.type_of = NULL;
     iv->value.assignable_from = NULL;
+    iv->value.override_type = st_integer_literal_override_type;
     
     free(string);
     return &(iv->value);
@@ -567,38 +597,34 @@ struct value_iface_t * st_new_boolean_literal(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: boolean literal */
+    struct value_iface_t *v =
+	st_bool_type_create_value_of(NULL, parser->config);
+
+    if(!v)
+    {
+	goto error_free_resources;
+    }
+    
+    struct integer_value_t *iv =
+	CONTAINER_OF(v, struct integer_value_t, value);
+
+    if(integer == 0)
+    {
+	iv->num = 0;
+    }
+    else
+    {
+	iv->num = 1;
+    }
+    
+    iv->value.type_of = NULL;
+    iv->value.assignable_from = NULL;
+    iv->value.override_type = st_integer_literal_override_type;
+    
+    return &(iv->value);
+
+error_free_resources:
     return NULL;
-/* struct literal_t * st_new_boolean_literal( */
-/*     int64_t integer, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     struct integer_literal_t *bl = NULL; */
-
-/*     if(integer != 0 && integer != 1) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	return NULL; */
-/*     } */
-
-/*     bl = (struct integer_literal_t *)malloc(sizeof(struct integer_literal_t)); */
-/*     if(!bl)  */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	return NULL; */
-/*     } */
-/*     else */
-/*     { */
-/* 	bl->value = integer; */
-/*     } */
-
-/*     bl->literal.literal_class = BOOLEAN_LITERAL; */
-
-/*     return &(bl->literal); */
-/* } */    
 }
 
 struct value_iface_t * st_new_single_string_literal(

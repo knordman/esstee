@@ -26,21 +26,21 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <stddef.h>
 #include <stdint.h>
 
-#define VALUE_TEMP_CLASS (1 << 0)
-
 struct array_index_t;
 struct variable_t;
 struct enum_item_t;
+struct type_iface_t;
 
 struct value_iface_t {
 
     /**
      * Writes the value into the buffer.
-     * @param self the "this" pointer
-     * @param buffer start of buffer to write to
-     * @param buffer_size maximum number of characters to write
-     * @param config configuration to take into consideration
-     * @return number of bytes written, if write succeeded, otherwise ESSTEE_ERROR
+     * @param self the "this" pointer.
+     * @param buffer start of buffer to write to.
+     * @param buffer_size maximum number of characters to write.
+     * @param config configuration to take into consideration.
+     * @return number of bytes written, if write succeeded.
+     * @return ESSTEE_ERROR on failure.
      */
     int (*display)(
 	const struct value_iface_t *self,
@@ -53,16 +53,46 @@ struct value_iface_t {
 	const struct value_iface_t *new_value,
 	const struct config_iface_t *config);
 
+    /* The functions assignable_from, comparable_to and operates_with,
+     * may point to the same function, if that is the behaviour of the
+     * value */
+    
+    /**
+     * Determines whether a value can be assigned another value.
+     * @param self the "this" pointer.
+     * @param other_value the value to which assignment is evaluated.
+     * @param config configuration to take into consideration.
+     * @return ESSTEE_TRUE if assignment is possible. 
+     * @return ESSTEE_FALSE if assignment is impossible. 
+     */
     int (*assignable_from)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
 	const struct config_iface_t *config);
 
+    /**
+     * Determines whether a value can be compared to another value.
+     * @param self the "this" pointer.
+     * @param other_value the value to which comparison is evaluated.
+     * @param config configuration to take into consideration.
+     * @return ESSTEE_TRUE if comparison is possible. 
+     * @return ESSTEE_FALSE if comparison is impossible. 
+     */
     int (*comparable_to)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
 	const struct config_iface_t *config);
 
+    /**
+     * Determines whether a value can be used in a binary expression
+     * together with another value.
+     *
+     * @param self the "this" pointer.
+     * @param other_value the value to which operation is evaluated.
+     * @param config configuration to take into consideration.
+     * @return ESSTEE_TRUE if binary expressions are possible. 
+     * @return ESSTEE_FALSE if binary expression are impossible. 
+     */
     int (*operates_with)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
@@ -71,7 +101,12 @@ struct value_iface_t {
     st_bitflag_t (*class)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *config);
-
+    
+    int (*override_type)(
+	const struct value_iface_t *self,
+	const struct type_iface_t *type,
+	const struct config_iface_t *config);
+    
     const struct type_iface_t * (*type_of)(
 	const struct value_iface_t *self);
 
@@ -122,101 +157,12 @@ struct value_iface_t {
      *
      * If the value does not support one operation that function
      * pointer should be set to NULL.
-     *
      */
 
     /**
      * Modifies self by xor:ing with the other_value.
      * @return ESSTEE_OK if operation succeeded
      */
-
-    /*
-      TODO: finish documentation
-      -> compatible
-
-      bin op
-
-      var op (literal op temp)
-
-      COMPILE TIME
-      
-      left compatible temp
-      - temp->integer
-      (- temp->integer = 0, cannot be used to check comp with type)
-
-      left compatible literal
-      - literal->integer
-      - left.type can hold literal->integer
-
-      left compatbile typed literal
-      - literal->integer
-      (- left.type can hold literal->integer)
-      - left.type = literal.type
-
-      left compatible var backed
-      - var->integer
-      (- left.type can hold var->integer)
-      - left.type = var.type
-       
-      comparable
-      
-      left comparable temp
-      - temp->integer
-      
-      left comparable literal
-      - literal->integer
-      - left.can_hold literal->integer (possibly)
-
-      left comparable type literal
-      - literal->integer
-      (- left.type can hold literal->integer)
-      - left.type = literal.type
-
-      left comparable var backed
-      - var->integer
-      (- left.type can hold var->integer)
-      - left.type = var.type
-
-
-
-      RUNTIME
-
-      assign may fail at runtime
-
-      left.assign :
-
-      left assign temp
-      * left.type.can_hold temp
-
-      left assign literal
-      * 
-
-      left assign typed literal
-      * 
-
-      left assign var backed
-      * 
-
-      
-      self is temp, other is literal
-      -> other->integer
-
-      self is temp, other is typed literal
-      -> other->integer
-
-      self is temp, other is temp
-      -> temp->integer
-      
-      self is temp, other is variable backed
-      -> 
-
-      bin comp
-
-      self is variable backed, other literal
-      self is variable backed, other temp
-      self is variable backed, other variable backed
-    */
-	
     int (*xor)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,

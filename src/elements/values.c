@@ -556,6 +556,20 @@ int st_bool_value_or(
     return ESSTEE_OK;
 }
 
+int st_integer_literal_override_type(
+    const struct value_iface_t *self,
+    const struct type_iface_t *type,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    iv->type = type;
+    iv->value.type_of = st_integer_value_type_of;
+
+    return ESSTEE_OK;
+}
+
 /**************************************************************************/
 /* Enumerated value                                                       */
 /**************************************************************************/

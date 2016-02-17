@@ -1,23 +1,13 @@
-literals
-first:
-162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
-then:
-166 /* TODO: real literal */ ../src/parser/pliterals.c
-167 /* TODO: duration literal */ ../src/parser/pliterals.c
-168 /* TODO: date literal */ ../src/parser/pliterals.c
-169 /* TODO: tod literal */ ../src/parser/pliterals.c
-170 /* TODO: date tod literal */ ../src/parser/pliterals.c
-171 /* TODO: boolean literal */ ../src/parser/pliterals.c
-172 /* TODO: string literal */ ../src/parser/pliterals.c
-173 /* TODO: double literal */ ../src/parser/pliterals.c
-
 real-type-value
+173 /* TODO: double literal */ ../src/parser/pliterals.c
+166 /* TODO: real literal */ ../src/parser/pliterals.c
 49 /* TODO: create real type value */ ../src/elements/types.c
 50 /* TODO: real type reset value of */ ../src/elements/types.c
 51 /* TODO: real type can hold evaluation */ ../src/elements/types.c
 32 /*TODO: Real values, determine value interface functions */ ../src/elements/values.h
 
 string-types-value
+172 /* TODO: string literal */ ../src/parser/pliterals.c
 44 /*TODO: structs for string type with defined length */ ../src/elements/types.h
 140 /* TODO: new string type with defined value */ ../src/parser/ptypes.c
 33 /*TODO: String values, determine value interface function */ ../src/elements/values.h
@@ -26,24 +16,28 @@ string-types-value
 55 /* TODO: string type can hold */ ../src/elements/types.c
 
 duration-type-value
+167 /* TODO: duration literal */ ../src/parser/pliterals.c
 34 /*TODO: Duration value, determine value interface function */ ../src/elements/values.h
 57 /* TODO: duration type create value of */ ../src/elements/types.c
 58 /* TODO: duration type reset value of */ ../src/elements/types.c
 59 /* TODO: duration type can hold */ ../src/elements/types.c
 
 date-type-value
+168 /* TODO: date literal */ ../src/parser/pliterals.c
 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
 61 /* TODO: date type create value of */ ../src/elements/types.c
 62 /* TODO: date type reset value of */ ../src/elements/types.c
 63 /* TODO: date type can hold */ ../src/elements/types.c
 
 tod-type-value
+169 /* TODO: tod literal */ ../src/parser/pliterals.c
 36 /*TODO: Tod value, determine value interface function */ ../src/elements/values.h
 65 /* TODO: tod type create value of */ ../src/elements/types.c
 66 /* TODO: tod type reset value of */ ../src/elements/types.c
 67 /* TODO: tod type can hold */ ../src/elements/types.c
 
 datetod-type-value
+170 /* TODO: date tod literal */ ../src/parser/pliterals.c
 37 /*TODO: Date tod value, determine value interface function */ ../src/elements/values.h
 69 /* TODO: date tod type create value */ ../src/elements/types.c
 70 /* TODO: date tod type reset value of */ ../src/elements/types.c
@@ -204,3 +198,6 @@ DONE 137 /* TODO: new struct type */ ../src/parser/ptypes.c
 DONE 138 /* TODO: add new struct element initializer to initializer group */ ../src/parser/ptypes.c
 DONE 139 /* TODO: new struct element initializer from value */ ../src/parser/ptypes.c
 DONE 114 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
+DONE literals-setup
+DONE 162 /* TODO: explicit type to literal */ ../src/parser/pliterals.c
+DONE 171 /* TODO: boolean literal */ ../src/parser/pliterals.c
