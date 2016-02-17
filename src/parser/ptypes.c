@@ -42,10 +42,12 @@ struct type_iface_t * st_new_derived_type(
     struct type_iface_t *parent_type,
     const struct st_location_t *location,
     struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser)
 {
     struct derived_type_t *dt = NULL;
     struct st_location_t *loc = NULL;
+    struct st_location_t *loc2 = NULL;
 	
     ALLOC_OR_ERROR_JUMP(
 	dt,
@@ -59,10 +61,20 @@ struct type_iface_t * st_new_derived_type(
 	parser->errors,
 	error_free_resources);
 
+    if(default_value_location)
+    {
+	LOCDUP_OR_ERROR_JUMP(
+	    loc2,
+	    default_value_location,
+	    parser->errors,
+	    error_free_resources);
+    }
+
     dt->ancestor = parent_type;
     dt->parent = parent_type;
     dt->location = loc;
     dt->default_value = default_value;
+    dt->default_value_location = loc2;
 
     dt->type.identifier = type_name;
     dt->type.location = st_derived_type_location;
@@ -70,12 +82,14 @@ struct type_iface_t * st_new_derived_type(
     dt->type.reset_value_of = st_derived_type_reset_value_of;
     dt->type.can_hold = st_derived_type_can_hold;
     dt->type.compatible = st_derived_type_compatible;
+    dt->type.class = st_derived_type_class;
     dt->type.destroy = st_derived_type_destroy;
 
     return &(dt->type);
 
 error_free_resources:
     free(loc);
+    free(loc2);
     return NULL;
 }
 
@@ -85,11 +99,13 @@ struct type_iface_t * st_new_derived_type_by_name(
     const struct st_location_t *parent_type_name_location,
     const struct st_location_t *location,
     struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,    
     struct parser_t *parser)
 {
     struct derived_type_t *dt = NULL;
     struct st_location_t *loc = NULL;
-	
+    struct st_location_t *loc2 = NULL;
+    
     ALLOC_OR_ERROR_JUMP(
 	dt,
 	struct derived_type_t,
@@ -102,6 +118,15 @@ struct type_iface_t * st_new_derived_type_by_name(
 	parser->errors,
 	error_free_resources);
 
+    if(default_value_location)
+    {
+	LOCDUP_OR_ERROR_JUMP(
+	    loc2,
+	    default_value_location,
+	    parser->errors,
+	    error_free_resources);
+    }
+    
     int ref_add_result = parser->pou_type_ref_pool->add_two_step(
 	parser->pou_type_ref_pool,
 	parent_type_name,
@@ -126,19 +151,22 @@ struct type_iface_t * st_new_derived_type_by_name(
     dt->parent = NULL;
     dt->location = loc;
     dt->default_value = default_value;
-
+    dt->default_value_location = loc2;
+    
     dt->type.identifier = type_name;
     dt->type.location = st_derived_type_location;
     dt->type.create_value_of = st_derived_type_create_value_of;
     dt->type.reset_value_of = st_derived_type_reset_value_of;
     dt->type.can_hold = st_derived_type_can_hold;
     dt->type.compatible = st_derived_type_compatible;
+    dt->type.class = st_derived_type_class;
     dt->type.destroy = st_derived_type_destroy;
     
     return &(dt->type);
 
 error_free_resources:
     free(loc);
+    free(loc2);
     return NULL;
 }
 
@@ -510,6 +538,7 @@ struct type_iface_t * st_new_enum_type(
     et->type.reset_value_of = st_enum_type_reset_value_of;
     et->type.can_hold = st_enum_type_can_hold;
     et->type.compatible = st_type_general_compatible;
+    et->type.class = st_enum_type_class;
     et->type.destroy = st_enum_type_destroy;
 
     return &(et->type);
@@ -641,7 +670,8 @@ struct value_iface_t * st_new_array_init_value(
 
     memset(&(av->value), 0, sizeof(struct value_iface_t));
     av->value.array_init_value = st_array_init_value;
-
+    av->value.destroy = st_array_init_value_destroy;
+    
     return &(av->value);
     
 error_free_resources:
@@ -706,8 +736,10 @@ struct type_iface_t * st_new_array_type(
     at->type.location = NULL;
     at->type.create_value_of = st_array_type_create_value_of;
     at->type.reset_value_of = st_array_type_reset_value_of;
+    at->type.can_hold = st_array_type_can_hold;
     at->type.class = st_array_type_class;
     at->type.destroy = st_array_type_destroy;
+    
 
     return &(at->type);
     
@@ -726,7 +758,126 @@ struct struct_element_t * st_add_new_struct_element(
     struct type_iface_t *element_type,
     struct parser_t *parser)
 {
-    /* TODO: add new struct element to struct element group */
+    struct struct_element_t *se = NULL;
+    struct st_location_t *loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	se,
+	struct struct_element_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	identifier_location,
+	parser->errors,
+	error_free_resources);
+
+    se->element_type = element_type;
+    se->element_identifier = element_identifier;
+    se->identifier_location = loc;
+
+    struct struct_element_t *found = NULL;
+    HASH_FIND_STR(element_group, se->element_identifier, found);
+    if(found)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "non unique element",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    identifier_location,
+	    found->identifier_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+    
+    HASH_ADD_KEYPTR(hh, 
+		    element_group, 
+		    se->element_identifier, 
+		    strlen(se->element_identifier), 
+		    se);
+
+    return element_group;
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
+struct struct_element_t * st_add_new_struct_element_by_name(
+    struct struct_element_t *element_group,
+    char *element_identifier,
+    const struct st_location_t *identifier_location,
+    char *element_type_name,
+    const struct st_location_t *element_type_name_location,
+    struct parser_t *parser)
+{
+    struct struct_element_t *se = NULL;
+    struct st_location_t *loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	se,
+	struct struct_element_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	identifier_location,
+	parser->errors,
+	error_free_resources);
+
+    struct struct_element_t *found = NULL;
+    HASH_FIND_STR(element_group, element_identifier, found);
+    if(found)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "non unique element",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    identifier_location,
+	    found->identifier_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    int ref_add_result = parser->pou_type_ref_pool->add(
+	parser->pou_type_ref_pool,
+	element_type_name,
+	se,
+	NULL,
+	element_type_name_location,
+	st_struct_element_type_name_resolved);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+    
+    se->element_type = NULL;
+    se->element_identifier = element_identifier;
+    se->identifier_location = loc;
+    
+    HASH_ADD_KEYPTR(hh, 
+		    element_group, 
+		    se->element_identifier, 
+		    strlen(se->element_identifier), 
+		    se);
+
+    return element_group;
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -734,7 +885,27 @@ struct type_iface_t * st_new_struct_type(
     struct struct_element_t *elements,
     struct parser_t *parser)
 {
-    /* TODO: new struct type */
+    struct struct_type_t *st = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	st,
+	struct struct_type_t,
+	parser->errors,
+	error_free_resources);
+
+    st->elements = elements;
+
+    memset(&(st->type), 0, sizeof(struct type_iface_t));
+
+    st->type.create_value_of = st_struct_type_create_value_of;
+    st->type.destroy = st_struct_type_destroy;
+    st->type.can_hold = st_struct_type_can_hold;
+    st->type.reset_value_of = st_struct_type_reset_value_of;
+    st->type.class = st_struct_type_class;
+
+    return &(st->type);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -743,7 +914,32 @@ struct struct_element_init_t * st_add_initial_struct_element(
     struct struct_element_init_t *new_element,
     struct parser_t *parser)
 {
-    /* TODO: add new struct element initializer to initializer group */
+    struct struct_element_init_t *found = NULL;
+    HASH_FIND_STR(element_group, new_element->element_identifier, found);
+    if(found)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "more than one initializer for same member",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    new_element->element_identifier_location,
+	    found->element_identifier_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    HASH_ADD_KEYPTR(hh, 
+		    element_group,
+		    new_element->element_identifier,
+		    strlen(new_element->element_identifier), 
+		    new_element);
+
+    return element_group;
+
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -753,7 +949,53 @@ struct struct_element_init_t * st_new_struct_element_initializer(
     struct value_iface_t *value,
     struct parser_t *parser)
 {
-    /* TODO: new struct element initializer from value */
+    struct struct_element_init_t *se = NULL;
+    struct st_location_t *loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	se,
+	struct struct_element_init_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	identifier_location,
+	parser->errors,
+	error_free_resources);
+
+    se->element_identifier = element_identifier;
+    se->element_identifier_location = loc;
+    se->element_default_value = value;
+    
+    return se;
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
+struct value_iface_t * st_new_struct_init_value(
+    struct struct_element_init_t *element_group,
+    struct parser_t *parser)
+{
+    struct struct_init_value_t *isv = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	isv,
+	struct struct_init_value_t,
+	parser->errors,
+	error_free_resources);
+
+    isv->init_table = element_group;
+
+    memset(&(isv->value), 0, sizeof(struct value_iface_t));
+    isv->value.struct_init_value = st_struct_init_value;
+    isv->value.destroy = st_struct_init_value_destroy;
+
+    return &(isv->value);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 

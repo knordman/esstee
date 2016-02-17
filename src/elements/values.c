@@ -90,26 +90,6 @@ int st_integer_value_assign(
     return ESSTEE_OK;
 }
 
-int st_integer_value_reset(
-    struct value_iface_t *self,
-    const struct config_iface_t *config)
-{
-    struct integer_value_t *iv =
-	CONTAINER_OF(self, struct integer_value_t, value);
-
-    int reset_result = iv->explicit_type->reset_value_of(
-	iv->explicit_type,
-	self,
-	config);
-    
-    if(reset_result != ESSTEE_OK)
-    {
-	return reset_result;
-    }
-
-    return ESSTEE_OK;
-}
-
 const struct type_iface_t * st_integer_value_explicit_type(
     const struct value_iface_t *self)
 {
@@ -592,18 +572,6 @@ int st_enum_value_assign(
     return ESSTEE_OK;
 }
 
-int st_enum_value_reset(
-    struct value_iface_t *self,
-    const struct config_iface_t *config)
-{
-    struct enum_value_t *ev =
-	CONTAINER_OF(self, struct enum_value_t, value);
-
-    return ev->explicit_type->reset_value_of(ev->explicit_type,
-					     self,
-					     config);
-}
-
 const struct type_iface_t * st_enum_value_explicit_type(
     const struct value_iface_t *self)
 {
@@ -727,18 +695,6 @@ int st_subrange_value_assign(
     return sv->current->assign(sv->current, new_value, config);
 }
 
-int st_subrange_value_reset(
-    struct value_iface_t *self,
-    const struct config_iface_t *config)
-{
-    struct subrange_value_t *sv =
-	CONTAINER_OF(self, struct subrange_value_t, value);
-
-    return sv->explicit_type->reset_value_of(sv->explicit_type,
-					     self,
-					     config);
-}
-
 const struct type_iface_t * st_subrange_value_explicit_type(
     const struct value_iface_t *self)
 {
@@ -847,6 +803,47 @@ const struct array_init_value_t * st_array_init_value(
     return av;
 }
 
+/**************************************************************************/
+/* Array value                                                            */
+/**************************************************************************/
+int st_array_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    const struct array_value_t *av =
+	CONTAINER_OF(self, struct array_value_t, value);
+
+    int type_can_hold_result = av->type->can_hold(av->type,
+						  other_value,
+						  config);
+    if(type_can_hold_result != ESSTEE_TRUE)
+    {
+	return type_can_hold_result;
+    }
+    
+    return ESSTEE_TRUE;
+}
+
+int st_array_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    const struct array_value_t *av =
+	CONTAINER_OF(self, struct array_value_t, value);
+
+    int elements_assigned =
+	st_array_type_assign_default_value(av->elements, new_value, config);
+
+    if(elements_assigned <= 0)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}
+
 int st_array_value_display(
     const struct value_iface_t *self,
     char *buffer,
@@ -896,13 +893,6 @@ int st_array_value_display(
     
     return buffer_size_start - buffer_size;
 }
-    
-int st_array_value_reset(
-    struct value_iface_t *self,
-    const struct config_iface_t *config)
-{
-    return ESSTEE_OK;
-}
 
 const struct type_iface_t * st_array_value_explicit_type(
     const struct value_iface_t *self)
@@ -941,7 +931,8 @@ struct value_iface_t * st_array_value_index(
 	    return NULL;
 	}
 
-	int index_too_small = range_itr->subrange->min->greater(range_itr->subrange->min,
+	int index_too_small =
+	    range_itr->subrange->min->greater(range_itr->subrange->min,
 							   index_value,
 							   config);
 	if(index_too_small != ESSTEE_FALSE)
@@ -949,7 +940,8 @@ struct value_iface_t * st_array_value_index(
 	    return NULL;
 	}
 
-	int index_too_large = range_itr->subrange->max->lesser(range_itr->subrange->max,
+	int index_too_large =
+	    range_itr->subrange->max->lesser(range_itr->subrange->max,
 							       index_value,
 							       config);
 	if(index_too_large != ESSTEE_FALSE)
@@ -985,4 +977,175 @@ void st_array_value_destroy(
     struct value_iface_t *self)
 {
     /* TODO: array value destructor */
+}
+
+void st_array_init_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: array init value destructor */
+}
+
+/**************************************************************************/
+/* Structure value                                                        */
+/**************************************************************************/
+int st_struct_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct struct_value_t *sv =
+	CONTAINER_OF(self, struct struct_value_t, value);
+
+    size_t buffer_size_start = buffer_size;
+
+    int start_written_bytes = snprintf(buffer,
+				       buffer_size,
+				       "(");
+    CHECK_WRITTEN_BYTES(start_written_bytes);
+    buffer += start_written_bytes;
+    buffer_size -= start_written_bytes;
+
+    struct variable_t *itr = NULL;
+    int first_element = 1;
+    for(itr = sv->elements; itr != NULL; itr = itr->hh.next)
+    {
+	int written_bytes = 0;
+	
+	if(first_element)
+	{
+	    first_element = 0;
+	}
+	else
+	{
+	    written_bytes = snprintf(buffer,
+				     buffer_size,
+				     ",");
+
+	    CHECK_WRITTEN_BYTES(written_bytes);
+	    buffer += written_bytes;
+	    buffer_size -= written_bytes;
+	}
+	
+	written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%s:",
+				 itr->identifier);
+
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+
+	written_bytes = itr->value->display(itr->value,
+					    buffer,
+					    buffer_size,
+					    config);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+    }
+    
+    int end_written_bytes = snprintf(buffer,
+				     buffer_size,
+				     ")");
+    CHECK_WRITTEN_BYTES(end_written_bytes);
+    buffer += end_written_bytes;
+    buffer_size -= end_written_bytes;
+
+    return buffer_size_start - buffer_size;
+}
+
+const struct type_iface_t * st_struct_value_explicit_type(
+    const struct value_iface_t *self)
+{
+    const struct struct_value_t *sv =
+	CONTAINER_OF(self, struct struct_value_t, value);
+
+    return sv->explicit_type;
+}
+
+int st_struct_value_compatible(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    const struct struct_value_t *sv =
+	CONTAINER_OF(self, struct struct_value_t, value);
+
+    int type_can_hold_result = sv->explicit_type->can_hold(sv->explicit_type,
+							   other_value,
+							   config);
+    if(type_can_hold_result != ESSTEE_TRUE)
+    {
+	return type_can_hold_result;
+    }
+    
+    return ESSTEE_TRUE;
+}
+
+int st_struct_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    const struct struct_value_t *sv =
+	CONTAINER_OF(self, struct struct_value_t, value);
+
+    const struct struct_init_value_t *isv =
+	new_value->struct_init_value(new_value, config);
+
+    struct struct_element_init_t *itr = NULL;
+    for(itr = isv->init_table; itr != NULL; itr = itr->hh.next)
+    {
+	struct variable_t *found = NULL;
+	HASH_FIND_STR(sv->elements, itr->element_identifier, found);
+	if(!found)
+	{
+	    return ESSTEE_ERROR;
+	}
+
+	int assign_result = found->value->assign(found->value, itr->element_default_value, config);
+	if(assign_result != ESSTEE_OK)
+	{
+	    return assign_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+void st_struct_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: struct value destructor */
+}
+
+void st_struct_init_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: struct init value destructor */
+}
+
+struct variable_t * st_struct_value_sub_variable(
+    struct value_iface_t *self,
+    const char *identifier,
+    const struct config_iface_t *config)
+{
+    const struct struct_value_t *sv =
+	CONTAINER_OF(self, struct struct_value_t, value);
+
+    struct variable_t *found = NULL;
+    HASH_FIND_STR(sv->elements, identifier, found);
+
+    return found;
+}
+
+const struct struct_init_value_t * st_struct_init_value(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    const struct struct_init_value_t *isv =
+	CONTAINER_OF(self, struct struct_init_value_t, value);
+
+    return isv;
 }

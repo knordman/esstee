@@ -4,7 +4,8 @@ TYPE
 
 myenum : (one, two, three) := two;
 
-customdint : DINT;
+customdint : DINT := 5;
+
 
 mysubrange : USINT ( 10 .. 20 ) := 15;
 
@@ -22,10 +23,32 @@ myarray : ARRAY [1..3,1..2,1..2] OF SINT :=
 ];
 
 
+mstr :
+STRUCT
+	one_int : INT;
+	another_int : INT := 200;
+END_STRUCT;
+
+myotherstruct :	
+STRUCT
+	container : mystruct;
+	myvar : INT;
+END_STRUCT;
+
+
+
+mystruct :
+STRUCT
+	firstmember : customdint;
+	secondmember : mstr;
+END_STRUCT;
+
+
 END_TYPE
 
+
 VAR
-	mytypevar : myarray;
+	mytypevar : mstr := (one_int:=45, another_int:=11);
 
 	myenumone, myenumtwo : myenum;
 

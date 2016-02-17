@@ -53,10 +53,6 @@ struct value_iface_t {
 	const struct value_iface_t *new_value,
 	const struct config_iface_t *config);
 
-    int (*reset)(
-	struct value_iface_t *self,
-	const struct config_iface_t *config);
-
     const struct type_iface_t * (*explicit_type)(
 	const struct value_iface_t *self);
 
@@ -67,7 +63,8 @@ struct value_iface_t {
 
     struct variable_t * (*sub_variable)(
 	struct value_iface_t *self,
-	char *identifier);
+	const char *identifier,
+    	const struct config_iface_t *config);
 
     int (*compatible)(
 	const struct value_iface_t *self,

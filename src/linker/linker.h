@@ -198,6 +198,13 @@ int st_array_type_arrayed_type_check(
     struct errors_iface_t *errors,
     const struct config_iface_t *config);
 
-
+int st_struct_element_type_name_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
 	
 
