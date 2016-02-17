@@ -213,45 +213,58 @@ struct value_iface_t * st_new_integer_literal_hex(
 struct value_iface_t * st_new_real_literal(
     char *string,
     const struct st_location_t *string_location,
+    int64_t sign_prefix,
     struct parser_t *parser)
 {
-    /* TODO: real literal */
+    struct value_iface_t *v = NULL;
+    double sp = (double)sign_prefix;
+    
+    strip_underscores(string);
+    if(strlen(string) < 1)
+     {
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    v = st_real_type_create_value_of(NULL, parser->config);
+
+    if(!v)
+    {
+	goto error_free_resources;
+    }
+        
+    errno = 0;
+    double interpreted = strtod(string, NULL);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret real literal",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    struct real_value_t *rv =
+	CONTAINER_OF(v, struct real_value_t, value);
+    
+    rv->num = interpreted * sp;
+    rv->value.type_of = NULL;
+    rv->value.assignable_from = NULL;
+    rv->value.override_type = st_real_literal_override_type;
+    
+    free(string);
+    return &(rv->value);
+
+error_free_resources:
+    if(v)
+    {
+	v->destroy(v);
+    }
+    free(string);
     return NULL;
-
-/* struct literal_t * st_new_real_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     struct real_literal_t *rl = NULL; */
-
-/*     rl = (struct real_literal_t *)malloc(sizeof(struct real_literal_t)); */
-/*     if(!rl) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources;		 */
-/*     } */
-
-/*     errno = 0; */
-/*     rl->value = strtod(string, NULL); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret real number.", parser->errors, string_location); */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     rl->literal.literal_class = REAL_LITERAL; */
-
-/*     free(string); */
-/*     return &(rl->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(rl); */
-/*     return NULL; */
-/* } */
 }
 
 struct value_iface_t * st_new_duration_literal(

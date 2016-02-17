@@ -59,14 +59,7 @@ int st_integer_value_display(
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     int written_bytes = snprintf(buffer, buffer_size, "%" PRId64, iv->num);
-    if(written_bytes == 0)
-    {
-	return ESSTEE_FALSE;
-    }
-    else if(written_bytes < 0)
-    {
-	return ESSTEE_ERROR;
-    }
+    CHECK_WRITTEN_BYTES(written_bytes);
 
     return written_bytes;
 }
@@ -324,7 +317,14 @@ int st_integer_value_divide(
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    iv->num /= other_value->integer(other_value, config);
+    int64_t other_value_num = other_value->integer(other_value, config);
+
+    if(other_value_num == 0)
+    {
+	return ESSTEE_RT_DIVISION_BY_ZERO;
+    }
+    
+    iv->num /= other_value_num;
 
     return ESSTEE_OK;
 }
@@ -566,6 +566,333 @@ int st_integer_literal_override_type(
 
     iv->type = type;
     iv->value.type_of = st_integer_value_type_of;
+
+    return ESSTEE_OK;
+}
+
+/**************************************************************************/
+/* Real values                                                            */
+/**************************************************************************/
+int st_real_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    int written_bytes = snprintf(buffer, buffer_size, "%.2f", rv->num);
+    CHECK_WRITTEN_BYTES(written_bytes);
+
+    return written_bytes;
+}
+
+int st_real_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    if(!ST_FLAG_IS_SET(rv->class, TEMPORARY_VALUE))
+    {
+	int type_can_hold = rv->type->can_hold(rv->type, new_value, config);
+
+	if(type_can_hold != ESSTEE_TRUE)
+	{
+	    return type_can_hold;
+	}
+    }
+
+    rv->num = new_value->real(new_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_real_value_assignable_from(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->real)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    if(ST_FLAG_IS_SET(rv->class, TEMPORARY_VALUE))
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    st_bitflag_t other_value_class =
+	other_value->class(other_value, config);
+    
+    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
+    {
+	int type_can_hold = rv->type->can_hold(rv->type, other_value, config);
+
+	if(type_can_hold != ESSTEE_TRUE)
+	{
+	    return type_can_hold;
+	}
+
+	if(other_value->type_of)
+	{
+	    const struct type_iface_t *other_value_type =
+		other_value->type_of(other_value);
+
+	    int types_compatible =
+		rv->type->compatible(rv->type, other_value_type, config);
+
+	    if(types_compatible != ESSTEE_TRUE)
+	    {
+		return types_compatible;
+	    }
+	}
+    }
+
+    return ESSTEE_TRUE;
+}
+
+int st_real_value_compares_and_operates(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{ 
+    if(!other_value->real)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    if(ST_FLAG_IS_SET(rv->class, TEMPORARY_VALUE))
+    {
+	return ESSTEE_TRUE;
+    }
+
+    st_bitflag_t other_value_class =
+	other_value->class(other_value, config);
+    
+    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
+    {
+	if(other_value->type_of)
+	{
+	    const struct type_iface_t *other_value_type =
+		other_value->type_of(other_value);
+
+	    int types_compatible =
+		rv->type->compatible(rv->type, other_value_type, config);
+
+	    if(types_compatible != ESSTEE_TRUE)
+	    {
+		return types_compatible;
+	    }
+	}
+    }
+
+    return ESSTEE_TRUE;
+}
+
+const struct type_iface_t * st_real_value_type_of(
+    const struct value_iface_t *self)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    return rv->type;
+}
+
+struct value_iface_t * st_real_value_create_temp_from(
+    const struct value_iface_t *self)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    struct real_value_t *clone = NULL;
+    ALLOC_OR_JUMP(
+	clone,
+	struct real_value_t,
+	error_free_resources);
+
+    memcpy(clone, rv, sizeof(struct real_value_t));
+
+    clone->num = 0;
+    clone->type = NULL;
+    clone->value.assign = st_real_value_assign;
+    ST_SET_FLAGS(clone->class, TEMPORARY_VALUE);
+    
+    return &(clone->value);
+
+error_free_resources:
+    return NULL;
+}
+
+void st_real_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: real value destroy */
+}
+
+int st_real_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    if(rv->num > other_value->real(other_value, config))
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+int st_real_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    if(rv->num < other_value->real(other_value, config))
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+int st_real_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    if(rv->num == other_value->real(other_value, config))
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+int st_real_value_plus(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    rv->num += other_value->real(other_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_real_value_minus(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    rv->num -= other_value->real(other_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_real_value_multiply(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    rv->num *= other_value->real(other_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_real_value_divide(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    rv->num /= other_value->real(other_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_real_value_to_power(
+    struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    double dnum = rv->num;
+    double exp = other_value->real(other_value, config);
+
+    errno = 0;
+    double result = pow(dnum, exp);
+    if(errno != 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    rv->num = result;
+
+    return ESSTEE_OK;
+}
+
+double st_real_value_real(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    return rv->num;
+}
+
+st_bitflag_t st_real_value_class(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    return rv->class;
+}
+
+int st_real_literal_override_type(
+    const struct value_iface_t *self,
+    const struct type_iface_t *type,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    rv->type = type;
+    rv->value.type_of = st_real_value_type_of;
 
     return ESSTEE_OK;
 }
@@ -1240,3 +1567,4 @@ const struct struct_init_value_t * st_struct_init_value(
 
     return isv;
 }
+

@@ -92,7 +92,7 @@ struct value_iface_t {
      * @param config configuration to take into consideration.
      * @return ESSTEE_TRUE if binary expressions are possible. 
      * @return ESSTEE_FALSE if binary expression are impossible. 
-     */
+     */    
     int (*operates_with)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,

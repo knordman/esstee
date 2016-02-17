@@ -194,6 +194,7 @@ struct value_iface_t * st_new_integer_literal_hex(
 struct value_iface_t * st_new_real_literal(
     char *string,
     const struct st_location_t *string_location,
+    int64_t sign_prefix,
     struct parser_t *parser);
 
 struct value_iface_t * st_new_duration_literal(
