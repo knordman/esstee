@@ -165,6 +165,11 @@ int st_bool_value_or(
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
 
+int st_integer_literal_override_type(
+    const struct value_iface_t *self,
+    const struct type_iface_t *type,
+    const struct config_iface_t *config);
+
 /**************************************************************************/
 /* Real values                                                            */
 /**************************************************************************/

@@ -55,12 +55,13 @@ VAR
 
 	mysint : SINT := 1;
 
-	mydint : mstr;
+	mydint : BOOL := false;
+	
 END_VAR
 
 (* mydint := mytypevar + 1; *)
 
-mydint := 1;
+mydint := false;
 
 (* mytypevar := 21; *)
 

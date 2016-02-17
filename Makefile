@@ -44,6 +44,7 @@ OBJECTS := 		build/util/errorcontext.o \
 			build/linker/lexpressions.o \
 			build/linker/linker.o \
 			build/linker/lshared.o \
+			build/linker/lliterals.o \
 			build/rt/systime.o \
 			build/rt/runtime.o \
 			build/parser/bison.tab.o \
