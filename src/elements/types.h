@@ -49,7 +49,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define LREAL_TYPE            (1 << 20)
 #define STRING_TYPE           (1 << 21)
 #define WSTRING_TYPE          (1 << 22)
-#define TIME_TYPE             (1 << 23)
+#define DURATION_TYPE         (1 << 23)
 #define DATE_TYPE             (1 << 24)
 #define TOD_TYPE              (1 << 25)
 #define DATE_TOD_TYPE         (1 << 26)
@@ -203,6 +203,10 @@ int st_duration_type_reset_value_of(
 int st_duration_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_duration_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 void st_duration_type_destroy(

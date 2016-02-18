@@ -59,12 +59,14 @@ VAR
 	mydint : BOOL := false;
 *)
 	myreal : REAL := -1234.0;
+
+	mytime : BOOL;
 	
 END_VAR
 
 (* mydint := mytypevar + 1; *)
 
-myreal  := REAL#12.9;
+mytime := TIME#4s1000ms > T#4s1ms;
 
 (* mytypevar := 21; *)
 

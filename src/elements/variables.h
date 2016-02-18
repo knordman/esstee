@@ -37,7 +37,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct variable_t {
 
     struct type_iface_t *type;
-    struct value_iface_t *value;    
+    struct value_iface_t *value;
     struct direct_address_t *address;
 
     struct st_location_t *identifier_location;

@@ -229,6 +229,10 @@ struct value_iface_t {
     const struct enum_item_t * (*enumeration)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
+
+    const struct duration_value_t * (*duration)(
+	const struct value_iface_t *self,
+	const struct config_iface_t *conf);
     
     const struct date_value_t * (*date)(
 	const struct value_iface_t *self,

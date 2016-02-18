@@ -7,13 +7,6 @@ string-types-value
 54 /* TODO: string type reset value of */ ../src/elements/types.c
 55 /* TODO: string type can hold */ ../src/elements/types.c
 
-duration-type-value
-167 /* TODO: duration literal */ ../src/parser/pliterals.c
-34 /*TODO: Duration value, determine value interface function */ ../src/elements/values.h
-57 /* TODO: duration type create value of */ ../src/elements/types.c
-58 /* TODO: duration type reset value of */ ../src/elements/types.c
-59 /* TODO: duration type can hold */ ../src/elements/types.c
-
 date-type-value
 168 /* TODO: date literal */ ../src/parser/pliterals.c
 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
@@ -38,7 +31,7 @@ datetod-type-value
 fb-type-value
 120 /* TODO: new function block */ ../src/parser/ppous.c
 43 /*TODO: Function block value */ ../src/elements/values.h
-p98 /* TODO: function block type location */ ../src/elements/types.c
+98 /* TODO: function block type location */ ../src/elements/types.c
 99 /* TODO: function block type create value of */ ../src/elements/types.c
 100 /* TODO: function block type reset value of */ ../src/elements/types.c
 102 /*TODO: functions for string type with defined length */ ../src/elements/types.c
@@ -200,3 +193,9 @@ DONE 49 /* TODO: create real type value */ ../src/elements/types.c
 DONE 50 /* TODO: real type reset value of */ ../src/elements/types.c
 DONE 51 /* TODO: real type can hold evaluation */ ../src/elements/types.c
 DONE 32 /*TODO: Real values, determine value interface functions */ ../src/elements/values.h
+DONE duration-type-value
+DONE 167 /* TODO: duration literal */ ../src/parser/pliterals.c
+DONE 34 /*TODO: Duration value, determine value interface function */ ../src/elements/values.h
+DONE 57 /* TODO: duration type create value of */ ../src/elements/types.c
+DONE 58 /* TODO: duration type reset value of */ ../src/elements/types.c
+DONE 59 /* TODO: duration type can hold */ ../src/elements/types.c

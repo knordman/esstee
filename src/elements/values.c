@@ -780,7 +780,9 @@ int st_real_value_equals(
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    if(rv->num == other_value->real(other_value, config))
+    double other_value_num = other_value->real(other_value, config);
+
+    if(!(rv->num > other_value_num + 1e-4) && !(rv->num < other_value_num - 1e-4))
     {
 	return ESSTEE_TRUE;
     }
@@ -1568,3 +1570,244 @@ const struct struct_init_value_t * st_struct_init_value(
     return isv;
 }
 
+/**************************************************************************/
+/* Duration value                                                         */
+/**************************************************************************/
+int st_duration_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    int total_written_bytes = 0;
+    if(dv->d > 0.0)
+    {
+	int written_bytes = snprintf(buffer,
+				     buffer_size,
+				     "%.2fd",
+				     dv->d);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+	total_written_bytes += written_bytes;
+    }
+    
+    if(dv->h > 0.0)
+    {
+	int written_bytes = snprintf(buffer,
+				     buffer_size,
+				     "%.2fh",
+				     dv->h);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+	total_written_bytes += written_bytes;
+    }
+
+    if(dv->m > 0.0)
+    {
+	int written_bytes = snprintf(buffer,
+				     buffer_size,
+				     "%.2fm",
+				     dv->m);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+	total_written_bytes += written_bytes;
+    }
+
+    if(dv->s > 0.0)
+    {
+	int written_bytes = snprintf(buffer,
+				     buffer_size,
+				     "%.2fs",
+				     dv->s);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+	total_written_bytes += written_bytes;
+    }
+
+    if(dv->ms > 0.0)
+    {
+	int written_bytes = snprintf(buffer,
+				     buffer_size,
+				     "%.2fms",
+				     dv->ms);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	buffer += written_bytes;
+	buffer_size -= written_bytes;
+	total_written_bytes += written_bytes;
+    }
+
+    if(total_written_bytes == 0)
+    {
+	int written_bytes = snprintf(buffer,
+				     buffer_size,
+				     "%.2fms",
+				     0.0);
+	CHECK_WRITTEN_BYTES(written_bytes);
+	total_written_bytes += written_bytes;
+    }
+
+    return total_written_bytes;
+}
+
+int st_duration_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    const struct duration_value_t *ov =
+	new_value->duration(new_value, config);
+
+    dv->d = ov->d;
+    dv->h = ov->h;
+    dv->m = ov->m;
+    dv->s = ov->s;
+    dv->ms = ov->ms;
+
+    return ESSTEE_OK;
+}
+
+int st_duration_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->duration)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+const struct type_iface_t * st_duration_value_type_of(
+    const struct value_iface_t *self)
+{
+    struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    return dv->type;
+}
+
+void st_duration_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: duration value destructor */
+}
+
+int st_duration_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    const struct duration_value_t *ov =
+	other_value->duration(other_value, config);
+
+    if(dv->d > ov->d)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->h > ov->h)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->m > ov->m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->s > ov->s)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->ms > ov->ms)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    return ESSTEE_FALSE;
+}
+
+int st_duration_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    const struct duration_value_t *ov =
+	other_value->duration(other_value, config);
+
+    if(dv->d < ov->d)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->h < ov->h)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->m < ov->m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->s < ov->s)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->ms < ov->ms)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    return ESSTEE_FALSE;
+}
+
+int st_duration_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    int greater = st_duration_value_greater(self, other_value, config);
+    if(greater == ESSTEE_TRUE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    int lesser = st_duration_value_lesser(self, other_value, config);
+    if(lesser == ESSTEE_TRUE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+const struct duration_value_t * st_duration_value_duration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    return dv;
+}

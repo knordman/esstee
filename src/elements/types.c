@@ -301,7 +301,8 @@ static struct duration_type_t duration_type_template = {
     .type = {
 	.location = st_built_in_type_location_get,
 	.create_value_of = st_duration_type_create_value_of,
-	.can_hold = NULL,
+	.reset_value_of = st_duration_type_reset_value_of,
+	.can_hold = st_duration_type_can_hold,
 	.compatible = st_type_general_compatible,
 	.destroy = st_duration_type_destroy,
 	.identifier = "TIME",
@@ -835,7 +836,29 @@ struct value_iface_t * st_duration_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: duration type create value of */
+    struct duration_value_t *dt = NULL;
+    ALLOC_OR_JUMP(
+	dt,
+	struct duration_value_t,
+	error_free_resources);
+
+    dt->type = self;
+    
+    memset(&(dt->value), 0, sizeof(struct value_iface_t));
+    dt->value.display = st_duration_value_display;
+    dt->value.assignable_from = st_duration_value_assigns_and_compares;
+    dt->value.comparable_to = st_duration_value_assigns_and_compares;
+    dt->value.assign = st_duration_value_assign;
+    dt->value.destroy = st_duration_value_destroy;
+
+    dt->value.greater = st_duration_value_greater;
+    dt->value.lesser = st_duration_value_lesser;
+    dt->value.equals = st_duration_value_equals;
+    dt->value.duration = st_duration_value_duration;
+
+    return &(dt->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -844,8 +867,19 @@ int st_duration_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: duration type reset value of */
-    return ESSTEE_FALSE;
+    const struct duration_type_t *dt =
+	CONTAINER_OF(self, struct duration_type_t, type);
+
+    struct duration_value_t *dv =
+	CONTAINER_OF(value_of, struct duration_value_t, value);
+
+    dv->d = dt->default_d;
+    dv->h = dt->default_h;
+    dv->m = dt->default_m;
+    dv->s = dt->default_s;
+    dv->ms = dt->default_ms;
+
+    return ESSTEE_OK;
 }
 
 int st_duration_type_can_hold(
@@ -853,8 +887,19 @@ int st_duration_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: duration type can hold */
-    return ESSTEE_FALSE;
+    if(!value->duration)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_duration_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return DURATION_TYPE;
 }
 
 void st_duration_type_destroy(

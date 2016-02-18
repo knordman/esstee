@@ -267,123 +267,240 @@ error_free_resources:
     return NULL;
 }
 
+enum duration_part_t {
+	PLITERALS_D, 
+	PLITERALS_H, 
+	PLITERALS_M, 
+	PLITERALS_S, 
+	PLITERALS_MS,
+	PLITERALS_NOTHING,
+	PLITERALS_ERROR
+};
+
+static int find_start(char *string, char **start)
+{
+    /* Iterate to # */
+    size_t string_length = strlen(string);
+    size_t i, chars_left;
+    for(i = 0, chars_left = string_length-1; i < string_length; i++, chars_left--)
+    {
+	if(string[i] == '#' && chars_left > 1)
+	{
+	    *start = string + i + 1;
+	    return ESSTEE_OK;
+	}
+    }
+
+    return ESSTEE_ERROR;	
+}
+
+static char is_fraction(double value, unsigned indicator_bit)
+{
+    if(fabsf(roundf(value) - value) >= 1e-4) 
+    {
+	return (1 << indicator_bit);
+    } 
+    else 
+    {
+	return 0x00;
+    }
+}
+
+static enum duration_part_t next_duration_part(
+    char **work_start,
+    double *part_content,
+    const struct st_location_t *string_location,
+    struct parser_t *parser)
+{
+    char *work_end;
+    if(*(*work_start) == '\0')
+    {
+	return PLITERALS_NOTHING;
+    }
+
+    errno = 0;
+    *part_content = strtod(*work_start, &(work_end));
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "too large or small number in duration",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return PLITERALS_ERROR;
+    }
+    else if(work_end == *work_start)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "failed to interpret all duration parts",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return PLITERALS_ERROR;		
+    }
+
+    switch(*work_end)
+    {
+    case '\0':
+	return PLITERALS_ERROR;
+
+    case 'd':
+    case 'D':
+	*work_start = work_end+1;
+	return PLITERALS_D;
+
+    case 'h':
+    case 'H':
+	*work_start = work_end+1;
+	return PLITERALS_H;
+			
+    case 'm':
+    case 'M':
+	if(work_end[1] == 's') 
+	{
+	    *work_start = work_end+2;
+	    return PLITERALS_MS;	
+	}
+	else
+	{
+	    *work_start = work_end+1;
+	    return PLITERALS_M;
+	}
+			
+    case 's':
+    case 'S':
+	*work_start = work_end+1;
+	return PLITERALS_S;
+    }
+
+    return PLITERALS_ERROR;
+}
+
 struct value_iface_t * st_new_duration_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: duration literal */
-    return NULL;
+    char *work_buffer;
+    enum duration_part_t part_type;
+    double part_content;
+    char defined = 0x00;
+    char fractions = 0x00;
+    unsigned parts_defined = 0;
 
-/* struct literal_t * st_new_duration_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     char *work_buffer; */
-/*     enum duration_part_t part_type; */
-/*     double part_content; */
-/*     struct duration_literal_t *dl = NULL; */
-/*     char defined = 0x00; */
-/*     char fractions = 0x00; */
-/*     unsigned parts_defined = 0; */
+    struct value_iface_t *v = st_duration_type_create_value_of(NULL, parser->config);
 
-/*     dl = (struct duration_literal_t *)malloc(sizeof(struct duration_literal_t)); */
-/*     if(!dl) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-/*     else */
-/*     { */
-/* 	dl->d = 0.0; */
-/* 	dl->h = 0.0; */
-/* 	dl->m = 0.0; */
-/* 	dl->s = 0.0; */
-/* 	dl->ms = 0.0; */
-/*     } */
+    if(!v)
+    {
+	goto error_free_resources;
+    }
+    
+    struct duration_value_t *dv =
+	CONTAINER_OF(v, struct duration_value_t, value);
 
-/*     strip_underscores(string); */
-/*     if(find_start(string, &(work_buffer)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
+    strip_underscores(string);
+    if(find_start(string, &(work_buffer)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error( /* Flex returning wrong type of string */
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+	    
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
 	
-/*     while((part_type = next_duration_part(&(work_buffer), &(part_content), string_location, parser)) != PLITERALS_NOTHING) */
-/*     { */
-/* 	switch(part_type) */
-/* 	{ */
-/* 	case PLITERALS_ERROR: */
-/* 	    goto error_free_resources; */
+    while((part_type = next_duration_part(&(work_buffer), &(part_content), string_location, parser)) != PLITERALS_NOTHING)
+    {
+	switch(part_type)
+	{
+	case PLITERALS_ERROR:
+	    goto error_free_resources;
 			
-/* 	case PLITERALS_D: */
-/* 	    dl->d = part_content; */
-/* 	    defined |= (1 << 0); */
-/* 	    fractions |= is_fraction(part_content, 0); */
-/* 	    parts_defined++; */
-/* 	    break; */
+	case PLITERALS_D:
+	    dv->d = part_content;
+	    defined |= (1 << 0);
+	    fractions |= is_fraction(part_content, 0);
+	    parts_defined++;
+	    break;
 
-/* 	case PLITERALS_H: */
-/* 	    dl->h = part_content; */
-/* 	    defined |= (1 << 1); */
-/* 	    fractions |= is_fraction(part_content, 1); */
-/* 	    parts_defined++; */
-/* 	    break; */
+	case PLITERALS_H:
+	    dv->h = part_content;
+	    defined |= (1 << 1);
+	    fractions |= is_fraction(part_content, 1);
+	    parts_defined++;
+	    break;
 
-/* 	case PLITERALS_M: */
-/* 	    dl->m = part_content; */
-/* 	    defined |= (1 << 2); */
-/* 	    fractions |= is_fraction(part_content, 2); */
-/* 	    parts_defined++; */
-/* 	    break; */
+	case PLITERALS_M:
+	    dv->m = part_content;
+	    defined |= (1 << 2);
+	    fractions |= is_fraction(part_content, 2);
+	    parts_defined++;
+	    break;
 
-/* 	case PLITERALS_S: */
-/* 	    dl->s = part_content; */
-/* 	    defined |= (1 << 3); */
-/* 	    fractions |= is_fraction(part_content, 3); */
-/* 	    parts_defined++; */
-/* 	    break; */
+	case PLITERALS_S:
+	    dv->s = part_content;
+	    defined |= (1 << 3);
+	    fractions |= is_fraction(part_content, 3);
+	    parts_defined++;
+	    break;
 
-/* 	case PLITERALS_MS: */
-/* 	    dl->ms = part_content; */
-/* 	    defined |= (1 << 4); */
-/* 	    fractions |= is_fraction(part_content, 4); */
-/* 	    parts_defined++; */
-/* 	    break; */
+	case PLITERALS_MS:
+	    dv->ms = part_content;
+	    defined |= (1 << 4);
+	    fractions |= is_fraction(part_content, 4);
+	    parts_defined++;
+	    break;
 
-/* 	default: */
-/* 	    INTERNAL_ERROR(parser->errors); */
-/* 	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	    goto error_free_resources; */
-/* 	} */
-/*     } */
+	default:
+	    parser->errors->internal_error(
+		parser->errors,
+		__FILE__,
+		__FUNCTION__,
+		__LINE__);
 
-/*     if(defined == 0) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex allowed empty literal, which it shouldn't */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-/*     else if(fractions > defined || (parts_defined > 1 && fractions == defined)) */
-/*     { */
-/* 	NEW_ERROR_AT("only the last duration part may contain a fraction.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
+	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	    goto error_free_resources;
+	}
+    }
 
-/*     dl->literal.literal_class = DURATION_LITERAL; */
+    if(defined == 0)
+    {
+	parser->errors->internal_error( /* Flex returning wrong type of string (empty) */
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
 
-/*     free(string);	 */
-/*     return &(dl->literal); */
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+    else if(fractions > defined || (parts_defined > 1 && fractions == defined))
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "only the last duration part may contain a fraction.",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	    
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
 
-/* error_free_resources: */
-/*     free(string); */
-/*     free(dl); */
-/*     return NULL; */
-/* } */
+    free(string);
+    return v;
+
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
 }
 
 struct value_iface_t * st_new_date_literal(

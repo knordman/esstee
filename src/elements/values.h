@@ -279,7 +279,7 @@ struct string_value_t {
 /**************************************************************************/
 struct duration_value_t {
     struct value_iface_t value;
-    struct type_iface_t *explicit_type;
+    const struct type_iface_t *type;
     double d;
     double h;
     double m;
@@ -287,7 +287,46 @@ struct duration_value_t {
     double ms;
 };
 
-/* TODO: Duration value, determine value interface function */
+int st_duration_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_duration_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_duration_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_duration_value_type_of(
+    const struct value_iface_t *self);
+
+void st_duration_value_destroy(
+    struct value_iface_t *self);
+
+int st_duration_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_duration_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_duration_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct duration_value_t * st_duration_value_duration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Date value                                                             */
