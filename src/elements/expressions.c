@@ -447,6 +447,8 @@ static int be_create_cloned_temporary(
 		ISSUE_ERROR_CLASS,					\
 		1,							\
 		be->left_operand->invoke.location(&(be->left_operand->invoke))); \
+									\
+	    return ESSTEE_ERROR;					\
 	}								\
 									\
 	if(create_temporary(be, config, errors) != ESSTEE_OK)		\
@@ -912,7 +914,9 @@ int st_gequals_expression_verify(
 	    "value cannot be compared by >=",
 	    ISSUE_ERROR_CLASS,			
 	    1,							
-	    be->left_operand->invoke.location(&(be->left_operand->invoke))); 
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)));
+
+	return ESSTEE_ERROR;
     }								
 
     if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)		
@@ -1016,7 +1020,9 @@ int st_lequals_expression_verify(
 	    "value cannot be compared by <=",
 	    ISSUE_ERROR_CLASS,					
 	    1,							
-	    be->left_operand->invoke.location(&(be->left_operand->invoke))); 
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)));
+
+	return ESSTEE_ERROR;
     }								
 
     if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)		

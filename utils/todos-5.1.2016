@@ -1,12 +1,3 @@
-string-types-value
-172 /* TODO: string literal */ ../src/parser/pliterals.c
-44 /*TODO: structs for string type with defined length */ ../src/elements/types.h
-140 /* TODO: new string type with defined value */ ../src/parser/ptypes.c
-33 /*TODO: String values, determine value interface function */ ../src/elements/values.h
-53 /* TODO: string type create value of */ ../src/elements/types.c
-54 /* TODO: string type reset value of */ ../src/elements/types.c
-55 /* TODO: string type can hold */ ../src/elements/types.c
-
 date-type-value
 168 /* TODO: date literal */ ../src/parser/pliterals.c
 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
@@ -199,3 +190,11 @@ DONE 34 /*TODO: Duration value, determine value interface function */ ../src/ele
 DONE 57 /* TODO: duration type create value of */ ../src/elements/types.c
 DONE 58 /* TODO: duration type reset value of */ ../src/elements/types.c
 DONE 59 /* TODO: duration type can hold */ ../src/elements/types.c
+DONE string-types-value
+DONE 172 /* TODO: string literal */ ../src/parser/pliterals.c
+DONE 44 /*TODO: structs for string type with defined length */ ../src/elements/types.h
+DONE 140 /* TODO: new string type with defined value */ ../src/parser/ptypes.c
+DONE 33 /*TODO: String values, determine value interface function */ ../src/elements/values.h
+DONE 53 /* TODO: string type create value of */ ../src/elements/types.c
+DONE 54 /* TODO: string type reset value of */ ../src/elements/types.c
+DONE 55 /* TODO: string type can hold */ ../src/elements/types.c

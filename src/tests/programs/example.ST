@@ -60,13 +60,13 @@ VAR
 *)
 	myreal : REAL := -1234.0;
 
-	mytime : BOOL;
+	mytime : STRING;
 	
 END_VAR
 
 (* mydint := mytypevar + 1; *)
 
-mytime := TIME#4s1000ms > T#4s1ms;
+mytime := 'hello';
 
 (* mytypevar := 21; *)
 

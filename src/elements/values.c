@@ -1811,3 +1811,96 @@ const struct duration_value_t * st_duration_value_duration(
 
     return dv;
 }
+
+/**************************************************************************/
+/* String values                                                          */
+/**************************************************************************/
+int st_string_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct string_value_t *sv =
+	CONTAINER_OF(self, struct string_value_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%s",
+				 sv->str);
+    CHECK_WRITTEN_BYTES(written_bytes);
+    return written_bytes;
+}
+
+int st_string_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct string_value_t *sv =
+	CONTAINER_OF(self, struct string_value_t, value);
+
+    sv->str = new_value->string(new_value, config);
+
+    return ESSTEE_OK;
+}
+
+int st_string_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct string_value_t *sv =
+	CONTAINER_OF(self, struct string_value_t, value);
+
+    return sv->type->can_hold(sv->type, other_value, config);
+}
+
+const struct type_iface_t * st_string_value_type_of(
+    const struct value_iface_t *self)
+{
+    struct string_value_t *sv =
+	CONTAINER_OF(self, struct string_value_t, value);
+
+    return sv->type;
+}
+
+void st_string_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: string value destroy */
+}
+
+void st_string_literal_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: string literal value destructor */
+}
+
+int st_string_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct string_value_t *sv =
+	CONTAINER_OF(self, struct string_value_t, value);
+
+    const char *other_string = other_value->string(other_value, config);
+
+    if(strcmp(sv->str, other_string) == 0)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+const char * st_string_value_string(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct string_value_t *sv =
+	CONTAINER_OF(self, struct string_value_t, value);
+
+    return sv->str;
+}

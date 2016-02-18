@@ -223,7 +223,6 @@ struct value_iface_t {
 
     const char * (*string)(
 	const struct value_iface_t *self,
-	st_bitflag_t string_type,
 	const struct config_iface_t *conf);
 
     const struct enum_item_t * (*enumeration)(

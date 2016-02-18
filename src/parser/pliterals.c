@@ -495,6 +495,10 @@ struct value_iface_t * st_new_duration_literal(
 	goto error_free_resources;
     }
 
+    v->type_of = NULL;
+    v->assignable_from = NULL;
+    v->assign = NULL;
+    
     free(string);
     return v;
 
@@ -749,6 +753,7 @@ struct value_iface_t * st_new_boolean_literal(
     
     iv->value.type_of = NULL;
     iv->value.assignable_from = NULL;
+    iv->value.assign = NULL;
     iv->value.override_type = st_integer_literal_override_type;
     
     return &(iv->value);
@@ -757,77 +762,59 @@ error_free_resources:
     return NULL;
 }
 
+static struct value_iface_t * new_string_literal(
+    char *string,
+    const struct st_location_t *string_location,
+    const char *string_type,
+    struct parser_t *parser)
+{
+    struct value_iface_t *v =
+	st_string_type_create_value_of(NULL, parser->config);
+
+    if(!v)
+    {
+	goto error_free_resources;
+    }
+
+    struct string_value_t *sv =
+	CONTAINER_OF(v, struct string_value_t, value);
+
+    int ref_add_result = parser->global_type_ref_pool->add(
+	parser->global_type_ref_pool,
+	string_type,
+	sv,
+	NULL,
+	string_location,
+	st_string_literal_type_resolved);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+
+    sv->str = string;
+    sv->value.assignable_from = NULL;
+    sv->value.destroy = st_string_literal_value_destroy;
+    
+    return &(sv->value);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}    
+
 struct value_iface_t * st_new_single_string_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: string literal */
-    return NULL;
-
-/* struct literal_t * st_new_single_string_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     return string_literal( */
-/* 	string, */
-/* 	SINGLE_BYTE_STRING_LITERAL, */
-/* 	'\'', */
-/* 	string_location, */
-/* 	parser); */
-/* } */
-    
-/* static struct literal_t * string_literal( */
-/*     char *string, */
-/*     bitflag_t attr, */
-/*     char expected_start, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     struct string_literal_t *sl = NULL; */
-/*     int i; */
-/*     size_t string_length = strlen(string); */
-
-/*     if(string_length < 2) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;		 */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     sl = (struct string_literal_t *)malloc(sizeof(struct string_literal_t));	 */
-/*     if(!sl) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(string[0] == expected_start) */
-/*     { */
-/* 	sl->literal.literal_class = attr; */
-/* 	for(i = 0; i < string_length-2; i++) */
-/* 	{ */
-/* 	    string[i] = string[i+1]; */
-/* 	} */
-/* 	string[i] = '\0'; */
-/* 	sl->value = string; */
-/*     } */
-/*     else */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;		 */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     return &(sl->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(sl); */
-/*     return NULL; */
-/* } */
+    return new_string_literal(string, string_location, "STRING", parser);
 }
 
 struct value_iface_t * st_new_double_string_literal(
@@ -835,116 +822,10 @@ struct value_iface_t * st_new_double_string_literal(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: double literal */
-    return NULL;
-
-/* struct literal_t * st_new_double_string_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     return string_literal( */
-/* 	string, */
-/* 	DOUBLE_BYTE_STRING_LITERAL, */
-/* 	'\"', */
-/* 	string_location, */
-/* 	parser); */
-/* } */
+    return new_string_literal(string, string_location, "WSTRING", parser);
 }
 
-/* static int find_start(char *string, char **start) */
-/* { */
-/*     /\* Iterate to # *\/ */
-/*     size_t string_length = strlen(string); */
-/*     size_t i, chars_left; */
-/*     for(i = 0, chars_left = string_length-1; i < string_length; i++, chars_left--) */
-/*     { */
-/* 	if(string[i] == '#' && chars_left > 1) */
-/* 	{ */
-/* 	    *start = string + i + 1; */
-/* 	    return ESSTEE_OK; */
-/* 	} */
-/*     } */
 
-/*     return ESSTEE_ERROR;	 */
-/* } */
-
-/* static char is_fraction(double value, unsigned indicator_bit) */
-/* { */
-/*     if(fabsf(roundf(value) - value) >= 1e-4)  */
-/*     { */
-/* 	return (1 << indicator_bit); */
-/*     }  */
-/*     else  */
-/*     { */
-/* 	return 0x00; */
-/*     } */
-/* } */
-
-/* static enum duration_part_t next_duration_part( */
-/*     char **work_start, */
-/*     double *part_content, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     char *work_end; */
-/*     if(*(*work_start) == '\0') */
-/*     { */
-/* 	return PLITERALS_NOTHING; */
-/*     } */
-
-/*     errno = 0; */
-/*     *part_content = strtod(*work_start, &(work_end)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("too large or small number in duration.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return PLITERALS_ERROR; */
-/*     } */
-/*     else if(work_end == *work_start) */
-/*     { */
-/* 	NEW_ERROR_AT("failed to interpret all duration parts.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return PLITERALS_ERROR;		 */
-/*     } */
-
-/*     switch(*work_end) */
-/*     { */
-/*     case '\0': */
-/* 	INTERNAL_ERROR(parser->errors); */
-/* 	return PLITERALS_ERROR; */
-
-/*     case 'd': */
-/*     case 'D': */
-/* 	*work_start = work_end+1; */
-/* 	return PLITERALS_D; */
-
-/*     case 'h': */
-/*     case 'H': */
-/* 	*work_start = work_end+1; */
-/* 	return PLITERALS_H; */
-			
-/*     case 'm': */
-/*     case 'M': */
-/* 	if(work_end[1] == 's')  */
-/* 	{ */
-/* 	    *work_start = work_end+2; */
-/* 	    return PLITERALS_MS;	 */
-/* 	} */
-/* 	else */
-/* 	{ */
-/* 	    *work_start = work_end+1; */
-/* 	    return PLITERALS_M; */
-/* 	} */
-			
-/*     case 's': */
-/*     case 'S': */
-/* 	*work_start = work_end+1; */
-/* 	return PLITERALS_S; */
-/*     } */
-
-/*     return PLITERALS_ERROR; */
-/* } */
 
 
 /* static int find_year_month_day( */

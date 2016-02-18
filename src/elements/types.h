@@ -176,6 +176,10 @@ int st_string_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config);
 
+st_bitflag_t st_string_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config);
+
 void st_string_type_destroy(
     struct type_iface_t *self);
 

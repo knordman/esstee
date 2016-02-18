@@ -268,11 +268,43 @@ int st_real_literal_override_type(
 /**************************************************************************/
 struct string_value_t {
     struct value_iface_t value;
-    struct type_iface_t *explicit_type;
-    char *str;
+    const struct type_iface_t *type;
+    const char *str;
 };
 
-/* TODO: String values, determine value interface function */
+int st_string_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_string_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_string_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_string_value_type_of(
+    const struct value_iface_t *self);
+
+void st_string_value_destroy(
+    struct value_iface_t *self);
+
+void st_string_literal_value_destroy(
+    struct value_iface_t *self);
+
+int st_string_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const char * st_string_value_string(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
 
 /**************************************************************************/
 /* Duration value                                                         */

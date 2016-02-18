@@ -276,24 +276,28 @@ static struct string_type_t string_type_templates[] = {
     {	.type = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_string_type_create_value_of,
-	    .can_hold = NULL,
+	    .reset_value_of = st_string_type_reset_value_of,
+	    .can_hold = st_string_type_can_hold,
+	    .class = st_string_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_string_type_destroy,
 	    .identifier = "STRING",
 	},
 	.class = STRING_TYPE,
-	.default_value = "",
+	.default_value = "''",
     },
     {	.type = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_string_type_create_value_of,
-	    .can_hold = NULL,
+	    .reset_value_of = st_string_type_reset_value_of,
+	    .can_hold = st_string_type_can_hold,
+	    .class = st_string_type_class,
 	    .compatible = st_type_general_compatible,
 	    .destroy = st_string_type_destroy,
 	    .identifier = "WSTRING",
 	},
 	.class = WSTRING_TYPE,
-	.default_value = "",
+	.default_value = "\"\"",
     },
 };
 
@@ -801,7 +805,30 @@ struct value_iface_t * st_string_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: string type create value of */
+    struct string_value_t *sv = NULL;
+    ALLOC_OR_JUMP(
+	sv,
+	struct string_value_t,
+	error_free_resources);
+
+    sv->type = self;
+
+    memset(&(sv->value), 0, sizeof(struct value_iface_t));
+
+    sv->value.display = st_string_value_display;
+    sv->value.assign = st_string_value_assign;
+    sv->value.assignable_from = st_string_value_assigns_and_compares;
+    sv->value.comparable_to = st_string_value_assigns_and_compares;
+    sv->value.class = st_general_value_empty_class;
+    sv->value.type_of = st_string_value_type_of;
+    sv->value.destroy = st_string_value_destroy;
+
+    sv->value.equals = st_string_value_equals;
+    sv->value.string = st_string_value_string;
+	
+    return &(sv->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -810,8 +837,15 @@ int st_string_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: string type reset value of */
-    return ESSTEE_FALSE;
+    const struct string_type_t *st =
+	CONTAINER_OF(self, struct string_type_t, type);
+
+    struct string_value_t *sv =
+	CONTAINER_OF(value_of, struct string_value_t, value);
+
+    sv->str = st->default_value;
+
+    return ESSTEE_OK;
 }
 
 int st_string_type_can_hold(
@@ -819,8 +853,29 @@ int st_string_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: string type can hold */
-    return ESSTEE_FALSE;
+    if(!value->string)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    if(!value->type_of)
+    {
+	return ESSTEE_FALSE;
+    }
+    
+    const struct type_iface_t *value_type = value->type_of(value);
+
+    return self->compatible(self, value_type, config);
+}
+
+st_bitflag_t st_string_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    const struct string_type_t *st =
+	CONTAINER_OF(self, struct string_type_t, type);
+
+    return st->class;
 }
 
 void st_string_type_destroy(
@@ -855,6 +910,7 @@ struct value_iface_t * st_duration_type_create_value_of(
     dt->value.lesser = st_duration_value_lesser;
     dt->value.equals = st_duration_value_equals;
     dt->value.duration = st_duration_value_duration;
+    dt->value.class = st_general_value_empty_class;
 
     return &(dt->value);
     

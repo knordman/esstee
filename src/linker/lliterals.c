@@ -69,3 +69,31 @@ int st_explicit_literal_type_resolved(
 
     return ESSTEE_OK;
 }
+
+int st_string_literal_type_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    if(!target)
+    {
+	errors->internal_error(
+	    errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	return ESSTEE_ERROR;
+    }
+
+    struct string_value_t *sv =
+	(struct string_value_t *)referrer;
+
+    sv->type = (struct type_iface_t *)target;
+
+    return ESSTEE_OK;
+}
