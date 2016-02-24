@@ -1,5 +1,18 @@
+FUNCTION_BLOCK myfb
+
+VAR
+	a : INT;
+	b : INT;
+END_VAR
+
+;
+
+END_FUNCTION_BLOCK
+
+
+
 PROGRAM testprgm
-(*
+
 TYPE
 
 myenum : (one, two, three) := two;
@@ -45,7 +58,7 @@ END_STRUCT;
 
 
 END_TYPE
-*)
+
 
 VAR
 (*
@@ -61,12 +74,16 @@ VAR
 	myreal : REAL := -1234.0;
 
 	mytime : STRING;
+
+	myvar : myfb;
+	myvar2 : myfb;
 	
 END_VAR
 
 (* mydint := mytypevar + 1; *)
 
-mytime := 'hello';
+myvar.a := 2;
+myvar2.a := 100;
 
 (* mytypevar := 21; *)
 

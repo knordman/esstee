@@ -23,6 +23,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/ivalue.h>
 #include <elements/variables.h>
 #include <elements/pous.h>
+#include <rt/cursor.h>
 
 /**************************************************************************/
 /* Array index                                                            */
@@ -43,18 +44,45 @@ void st_destroy_array_index(
 struct qualified_identifier_t {
     char *identifier;
     struct array_index_t *array_index;
+    int runtime_constant_reference;
+    
     struct variable_t *variable;
+
     struct value_iface_t *target;
+
+    int invoke_state;
     struct program_t *program;
+
     struct st_location_t *location;
+
+    struct qualified_identifier_t *last;
     struct qualified_identifier_t *prev;
     struct qualified_identifier_t *next;
 };
 
-int st_inner_resolve_qualified_identifier(
+int st_qualified_identifier_resolve_chain(
     struct qualified_identifier_t *qi,
     struct errors_iface_t *errors,
     const struct config_iface_t *config);
+
+int st_qualified_identifier_resolve_array_index(
+    struct qualified_identifier_t *qi,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_qualified_identifier_verify(
+    struct qualified_identifier_t *qi,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_qualified_identifier_step(
+    struct qualified_identifier_t *qi,
+    struct cursor_t *cursor,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_qualified_identifier_reset(
+    struct qualified_identifier_t *qi);
 
 void st_destroy_qualified_identifier(
     struct qualified_identifier_t *qi);

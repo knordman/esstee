@@ -21,6 +21,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/shared.h>
 #include <util/macros.h>
 
+#include <utlist.h>
+
 /**************************************************************************/
 /* Empty statement                                                        */
 /**************************************************************************/
@@ -43,6 +45,33 @@ int st_empty_statement_step(
     return INVOKE_RESULT_FINISHED;
 }
 
+int st_empty_statement_reset(
+    struct invoke_iface_t *self)
+{
+    return ESSTEE_OK;
+}
+
+struct invoke_iface_t * st_empty_statement_clone(
+    struct invoke_iface_t *self)
+{
+    struct empty_statement_t *es =
+	CONTAINER_OF(self, struct empty_statement_t, invoke);
+
+    struct empty_statement_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct empty_statement_t,
+	error_free_resources);
+
+    memcpy(copy, es, sizeof(struct empty_statement_t));
+    copy->invoke.destroy = st_empty_statement_clone_destroy;
+
+    return &(copy->invoke);
+    
+error_free_resources:
+    return NULL;
+}
+
 const struct st_location_t * st_empty_statement_location(
     const struct invoke_iface_t *self)
 {
@@ -50,6 +79,18 @@ const struct st_location_t * st_empty_statement_location(
 	CONTAINER_OF(self, struct empty_statement_t, invoke);
 
     return es->location;
+}
+
+void st_empty_statement_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+void st_empty_statement_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: destructor */
 }
 
 /**************************************************************************/
@@ -64,7 +105,7 @@ int st_assignment_statement_simple_verify(
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
 
     int rhs_verified = ESSTEE_OK;
-    if(sa->rhs->invoke.verify != NULL)
+    if(sa->rhs->invoke.verify)
     {
 	rhs_verified = sa->rhs->invoke.verify(&(sa->rhs->invoke), config, errors);
     }
@@ -117,45 +158,19 @@ int st_assignment_statement_simple_step(
     struct simple_assignment_statement_t *sa =
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
 
-    if(sa->invoke_state == 0)
+    if(sa->invoke_state == 0 && sa->rhs->invoke.step)
     {
-	int rhs_invoke_status = INVOKE_RESULT_FINISHED;
-	if(sa->rhs->invoke.step)
-	{
-	    rhs_invoke_status = sa->rhs->invoke.step(
-		&(sa->rhs->invoke),
-		cursor,
-		time,
-		config,
-		errors);
-	}
-
-	switch(rhs_invoke_status)
-	{
-	case INVOKE_RESULT_FINISHED:
-	    break;
-
-	case INVOKE_RESULT_IN_PROGRESS:
-	    sa->invoke_state = 1;
-	    return INVOKE_RESULT_IN_PROGRESS;
-
-	case INVOKE_RESULT_ERROR:
-	default:
-	    sa->invoke_state = 0;
-	    return INVOKE_RESULT_ERROR;
-	}
-    }
-    else
-    {
-	sa->invoke_state = 0;
+	sa->invoke_state = 1;
+	DL_APPEND(cursor->call_stack, &(sa->rhs->invoke));
+	cursor->current = &(sa->rhs->invoke);
+	return INVOKE_RESULT_IN_PROGRESS;
     }
 
     const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
 
-    int assignment_status = sa->lhs->value->assign(
-	sa->lhs->value,
-	rhs_value,
-	config);
+    int assignment_status = sa->lhs->value->assign(sa->lhs->value,
+						   rhs_value,
+						   config);
     
     if(assignment_status == ESSTEE_RT_TYPE_UNDERFLOW)
     {
@@ -204,6 +219,61 @@ const struct st_location_t * st_assignment_statement_simple_location(
     return sa->location;
 }
 
+struct invoke_iface_t * st_assignment_statement_simple_clone(
+    struct invoke_iface_t *self)
+{
+    struct simple_assignment_statement_t *sa =
+	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
+
+    struct simple_assignment_statement_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct simple_assignment_statement_t,
+	error_free_resources);
+
+    memcpy(copy, sa, sizeof(struct simple_assignment_statement_t));
+    
+    copy->invoke.destroy = st_assignment_statement_simple_clone_destroy;
+
+    return &(copy->invoke);
+
+error_free_resources:
+    return NULL;
+}
+
+int st_assignment_statement_simple_reset(
+    struct invoke_iface_t *self)
+{
+    struct simple_assignment_statement_t *sa =
+	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
+
+    sa->invoke_state = 0;
+
+    if(sa->rhs->invoke.reset)
+    {
+	int rhs_reset = sa->rhs->invoke.reset(&(sa->rhs->invoke));
+
+	if(rhs_reset != ESSTEE_OK)
+	{
+	    return rhs_reset;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+void st_assignment_statement_simple_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+void st_assignment_statement_simple_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
 /**************************************************************************/
 /* Qualified identifier assignment                                        */
 /**************************************************************************/
@@ -215,49 +285,59 @@ int st_assignment_statement_qualified_verify(
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int identifier_verified = st_inner_resolve_qualified_identifier(qis->lhs, errors, config);
+    int identifier_verified = st_qualified_identifier_verify(qis->lhs,
+							     errors,
+							     config);
 
+    if(identifier_verified != ESSTEE_OK)
+    {
+	return identifier_verified;
+    }
+    
     int rhs_verified = ESSTEE_OK;
-    if(qis->rhs->invoke.verify != NULL)
+    if(qis->rhs->invoke.verify)
     {
 	rhs_verified = qis->rhs->invoke.verify(&(qis->rhs->invoke), config, errors);
     }
 
-    if(identifier_verified != ESSTEE_OK || rhs_verified != ESSTEE_OK)
+    if(rhs_verified != ESSTEE_OK)
     {
-	return ESSTEE_ERROR;
+	return rhs_verified;
     }
-    
-    const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
 
-    if(!qis->lhs->target->assignable_from)
+    if(qis->lhs->runtime_constant_reference)
     {
-	errors->new_issue_at(
-	    errors,
-	    "value is not assignable",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    qis->lhs->location);
+	const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
 
-	return ESSTEE_ERROR;
-    }
+	if(!qis->lhs->target->assignable_from)
+	{
+	    errors->new_issue_at(
+		errors,
+		"value is not assignable",
+		ISSUE_ERROR_CLASS,
+		1,
+		qis->lhs->location);
+
+	    return ESSTEE_ERROR;
+	}
     
-    int lhs_assignable_from_rhs
-	= qis->lhs->target->assignable_from(qis->lhs->target, rhs_value, config);
+	int lhs_assignable_from_rhs
+	    = qis->lhs->target->assignable_from(qis->lhs->target, rhs_value, config);
 
-    if(lhs_assignable_from_rhs != ESSTEE_TRUE)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "left value cannot be assigned from right value",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    qis->lhs->location,
-	    qis->rhs->invoke.location(&(qis->rhs->invoke)));
+	if(lhs_assignable_from_rhs != ESSTEE_TRUE)
+	{
+	    errors->new_issue_at(
+		errors,
+		"left value cannot be assigned from right value",
+		ISSUE_ERROR_CLASS,
+		2,
+		qis->lhs->location,
+		qis->rhs->invoke.location(&(qis->rhs->invoke)));
 
-	return ESSTEE_ERROR;
+	    return ESSTEE_ERROR;
+	}
     }
-    
+
     return ESSTEE_OK;
 }
 
@@ -271,45 +351,51 @@ int st_assignment_statement_qualified_step(
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    if(qis->invoke_state == 0)
+    if(qis->lhs_invoke_state != INVOKE_RESULT_FINISHED)
     {
-	int rhs_invoke_status = INVOKE_RESULT_FINISHED;
-	if(qis->rhs->invoke.step)
+	qis->lhs_invoke_state = st_qualified_identifier_step(qis->lhs,
+							     cursor,
+							     errors,
+							     config);
+    }
+
+    if(qis->lhs_invoke_state != INVOKE_RESULT_FINISHED)
+    {
+	return qis->lhs_invoke_state;
+    }
+
+    if(qis->rhs_invoke_state == 0 && qis->rhs->invoke.step)
+    {
+	qis->rhs_invoke_state = 1;
+	DL_APPEND(cursor->call_stack, &(qis->rhs->invoke));
+	cursor->current = &(qis->rhs->invoke);
+	return INVOKE_RESULT_IN_PROGRESS;
+    }
+    	
+    const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
+
+    if(!qis->lhs->runtime_constant_reference)
+    {
+	int lhs_assignable_from_rhs
+	    = qis->lhs->target->assignable_from(qis->lhs->target, rhs_value, config);
+
+	if(lhs_assignable_from_rhs != ESSTEE_TRUE)
 	{
-	    rhs_invoke_status = qis->rhs->invoke.step(
-		&(qis->rhs->invoke),
-		cursor,
-		time,
-		config,
-		errors);
-	}
+	    errors->new_issue_at(
+		errors,
+		"left value cannot be assigned from right value",
+		ISSUE_ERROR_CLASS,
+		2,
+		qis->lhs->location,
+		qis->rhs->invoke.location(&(qis->rhs->invoke)));
 
-	switch(rhs_invoke_status)
-	{
-	case INVOKE_RESULT_FINISHED:
-	    break;
-
-	case INVOKE_RESULT_IN_PROGRESS:
-	    qis->invoke_state = 1;
-	    return INVOKE_RESULT_IN_PROGRESS;
-
-	case INVOKE_RESULT_ERROR:
-	default:
-	    qis->invoke_state = 0;	    
 	    return INVOKE_RESULT_ERROR;
 	}
     }
-    else
-    {
-	qis->invoke_state = 0;
-    }
-	
-    const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
-
-    int assignment_status = qis->lhs->target->assign(
-	qis->lhs->target,
-	rhs_value,
-	config);
+    
+    int assignment_status = qis->lhs->target->assign(qis->lhs->target,
+						     rhs_value,
+						     config);
 
     if(assignment_status != ESSTEE_OK)
     {
@@ -334,4 +420,63 @@ const struct st_location_t * st_assignment_statement_qualified_location(
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
     return qis->location;
+}
+
+struct invoke_iface_t * st_assignment_statement_qualified_clone(
+    struct invoke_iface_t *self)
+{
+    struct qualified_assignment_statement_t *qis =
+	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+
+    struct qualified_assignment_statement_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct qualified_assignment_statement_t,
+	error_free_resources);
+
+    memcpy(copy, qis, sizeof(struct qualified_assignment_statement_t));
+    
+    copy->invoke.destroy = st_assignment_statement_qualified_clone_destroy;
+
+    return &(copy->invoke);
+
+error_free_resources:
+    return NULL;
+}
+
+int st_assignment_statement_qualified_reset(
+    struct invoke_iface_t *self)
+{
+    struct qualified_assignment_statement_t *qis =
+	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+
+    int lhs_reset = st_qualified_identifier_reset(qis->lhs);
+    if(lhs_reset != ESSTEE_OK)
+    {
+	return lhs_reset;
+    }
+    
+    if(qis->rhs->invoke.reset)
+    {
+	int rhs_reset = qis->rhs->invoke.reset(&(qis->rhs->invoke));
+
+	if(rhs_reset != ESSTEE_OK)
+	{
+	    return rhs_reset;
+	}
+    }
+    
+    return ESSTEE_OK;
+}
+
+void st_assignment_statement_qualified_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+void st_assignment_statement_qualified_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: destructor */
 }

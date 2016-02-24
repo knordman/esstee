@@ -19,14 +19,6 @@ datetod-type-value
 70 /* TODO: date tod type reset value of */ ../src/elements/types.c
 71 /* TODO: date tod type can hold */ ../src/elements/types.c
 
-fb-type-value
-120 /* TODO: new function block */ ../src/parser/ppous.c
-43 /*TODO: Function block value */ ../src/elements/values.h
-98 /* TODO: function block type location */ ../src/elements/types.c
-99 /* TODO: function block type create value of */ ../src/elements/types.c
-100 /* TODO: function block type reset value of */ ../src/elements/types.c
-102 /*TODO: functions for string type with defined length */ ../src/elements/types.c
-
 config
 103 /* TODO: implement set config */ ../src/esstee/esstee.c
 104 /* TODO: implement get config */ ../src/esstee/esstee.c
@@ -198,3 +190,10 @@ DONE 33 /*TODO: String values, determine value interface function */ ../src/elem
 DONE 53 /* TODO: string type create value of */ ../src/elements/types.c
 DONE 54 /* TODO: string type reset value of */ ../src/elements/types.c
 DONE 55 /* TODO: string type can hold */ ../src/elements/types.c
+DONE fb-type-value
+DONE 120 /* TODO: new function block */ ../src/parser/ppous.c
+DONE 43 /*TODO: Function block value */ ../src/elements/values.h
+DONE 98 /* TODO: function block type location */ ../src/elements/types.c
+DONE 99 /* TODO: function block type create value of */ ../src/elements/types.c
+DONE 100 /* TODO: function block type reset value of */ ../src/elements/types.c
+DONE 102 /*TODO: functions for string type with defined length */ ../src/elements/types.c

@@ -58,7 +58,7 @@ struct program_t {
 
     struct invoke_iface_t *statements;
 
-    struct st_location_t location;
+    struct st_location_t *location;
 
     struct namedreference_iface_t *type_ref_pool;
     struct namedreference_iface_t *var_ref_pool;
@@ -78,7 +78,7 @@ struct function_block_t {
 
     struct invoke_iface_t *statements;
 
-    struct st_location_t location;
+    struct st_location_t *location;
 
     struct namedreference_iface_t *type_ref_pool;
     struct namedreference_iface_t *var_ref_pool;

@@ -71,18 +71,20 @@ int st_new_program_pou(
     struct parser_t *parser)
 {
     struct program_t *p = NULL;
+    struct st_location_t *loc = NULL;
     ALLOC_OR_ERROR_JUMP(
 	p,
 	struct program_t,
 	parser->errors,
 	error_free_resources);
 
-    STRDUP_OR_ERROR_JUMP(
-	p->identifier,
-	identifier,
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
 	parser->errors,
 	error_free_resources);
-    
+
+    p->identifier = identifier;
     p->type_ref_pool = parser->pou_type_ref_pool;
     p->var_ref_pool = parser->pou_var_ref_pool;
     parser->pou_type_ref_pool = NULL;
@@ -91,7 +93,7 @@ int st_new_program_pou(
     p->header = header;
     p->statements = statements;
     
-    memcpy(&(p->location), location, sizeof(struct st_location_t));
+    p->location = loc;
     
     DL_APPEND(parser->programs, p);
     return ESSTEE_OK;
@@ -109,8 +111,43 @@ int st_new_function_block_pou(
     struct invoke_iface_t *statements,
     struct parser_t *parser)
 {
-    /* TODO: new function block */
-    return ESSTEE_ERROR;;
+    struct function_block_t *fb = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	fb,
+	struct function_block_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    memset(&(fb->type), 0, sizeof(struct type_iface_t));
+    fb->type.identifier = identifier;
+    fb->type.location = st_function_block_type_location;
+    fb->type.create_value_of = st_function_block_type_create_value_of;
+    fb->type.reset_value_of = st_function_block_type_reset_value_of;
+    fb->type.class = st_function_block_type_class;
+    
+    fb->header = header;
+    fb->statements = statements;
+    fb->location = loc;
+    fb->type_ref_pool = parser->pou_type_ref_pool;
+    fb->var_ref_pool = parser->pou_var_ref_pool;
+    parser->pou_type_ref_pool = NULL;
+    parser->pou_var_ref_pool = NULL;
+
+    DL_APPEND(parser->function_blocks, fb);
+    DL_APPEND(parser->global_types, &(fb->type));
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return ESSTEE_ERROR;
 }
 
 int st_new_type_block_pou(

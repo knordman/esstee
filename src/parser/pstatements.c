@@ -60,6 +60,9 @@ struct invoke_iface_t * st_new_empty_statement(
     es->invoke.verify = st_empty_statement_verify;
     es->invoke.step = st_empty_statement_step;
     es->invoke.location = st_empty_statement_location;
+    es->invoke.clone = st_empty_statement_clone;
+    es->invoke.reset = st_empty_statement_reset;
+    es->invoke.destroy = st_empty_statement_destroy;
 
     DL_APPEND(statement_list, &(es->invoke));
     return statement_list;
@@ -118,6 +121,8 @@ struct invoke_iface_t * st_new_assignment_statement_simple(
     sa->invoke.location = st_assignment_statement_simple_location;
     sa->invoke.step = st_assignment_statement_simple_step;
     sa->invoke.verify = st_assignment_statement_simple_verify;
+    sa->invoke.clone = st_assignment_statement_simple_clone;
+    sa->invoke.reset = st_assignment_statement_simple_reset;
     
     sa->rhs = assignment;
 
@@ -159,6 +164,8 @@ struct invoke_iface_t * st_new_assignment_statement_qualified(
     qis->invoke.location = st_assignment_statement_qualified_location;
     qis->invoke.step = st_assignment_statement_qualified_step;
     qis->invoke.verify = st_assignment_statement_qualified_verify;
+    qis->invoke.clone = st_assignment_statement_qualified_clone;
+    qis->invoke.reset = st_assignment_statement_qualified_reset;
 
     qis->lhs = qualified_identifier;
     qis->rhs = assignment;

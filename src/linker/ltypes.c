@@ -158,6 +158,18 @@ int st_derived_type_resolve_ancestor(
 
     if(dt->default_value)
     {
+	if(!ancestor->can_hold)
+	{
+	    errors->new_issue_at(
+		errors,
+		"type cannot be assigned a new default value",
+		ISSUE_ERROR_CLASS,
+		1,
+		dt->default_value_location);
+
+	    return ESSTEE_ERROR;
+	}
+	
 	int ancestor_can_hold_default_value =
 	    ancestor->can_hold(ancestor, dt->default_value, config);
 

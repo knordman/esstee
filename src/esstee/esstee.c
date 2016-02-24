@@ -418,6 +418,12 @@ const struct st_location_t * st_start(
     {
 	vitr->type->reset_value_of(vitr->type, vitr->value, st->config);
     }
+
+    struct invoke_iface_t *sitr = NULL;
+    DL_FOREACH(found->statements, sitr)
+    {
+	sitr->reset(sitr);
+    }
     
     st->main = found;
 

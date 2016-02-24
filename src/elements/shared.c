@@ -33,7 +33,7 @@ void st_destroy_array_index(
 /**************************************************************************/
 /* Qualified identifier                                                   */
 /**************************************************************************/
-int st_inner_resolve_qualified_identifier(
+int st_qualified_identifier_resolve_chain(
     struct qualified_identifier_t *qi,
     struct errors_iface_t *errors,
     const struct config_iface_t *config)
@@ -93,37 +93,6 @@ int st_inner_resolve_qualified_identifier(
     {
 	if(itr->array_index != NULL)
 	{
-	    if(!itr->variable->value->index)
-	    {
-		errors->new_issue_at(
-		    errors,
-		    "variable is not indexable",
-		    ISSUE_ERROR_CLASS,
-		    1,
-		    itr->location);
-		
-		return ESSTEE_ERROR;
-	    }
-
-	    struct value_iface_t *array_value = itr->variable->value->index(
-		itr->variable->value,
-		itr->array_index,
-		config);
-	    
-	    if(array_value == NULL)
-	    {
-		errors->new_issue_at(
-		    errors,
-		    "index out of range for array variable",
-		    ISSUE_ERROR_CLASS,
-		    2,
-		    itr->location,
-		    itr->array_index->location);
-		
-		return ESSTEE_ERROR;
-	    }
-
-	    qi->target = array_value;
 	    return ESSTEE_OK;
 	}
 	else if(itr->next != NULL)
@@ -168,6 +137,159 @@ int st_inner_resolve_qualified_identifier(
     }
 
     qi->target = itr->variable->value;
+    return ESSTEE_OK;
+}
+
+int st_qualified_identifier_resolve_array_index(
+    struct qualified_identifier_t *qi,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct qualified_identifier_t *last = qi->last;
+    
+    if(last->array_index != NULL)
+    {
+	if(!last->variable->value->index)
+	{
+	    errors->new_issue_at(
+		errors,
+		"variable is not indexable",
+		ISSUE_ERROR_CLASS,
+		1,
+		last->location);
+		
+	    return ESSTEE_ERROR;
+	}
+
+	struct value_iface_t *array_value = last->variable->value->index(
+	    last->variable->value,
+	    last->array_index,
+	    config);
+	    
+	if(array_value == NULL)
+	{
+	    errors->new_issue_at(
+		errors,
+		"index out of range for array variable",
+		ISSUE_ERROR_CLASS,
+		2,
+		last->location,
+		last->array_index->location);
+		
+	    return ESSTEE_ERROR;
+	}
+
+	qi->target = array_value;
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_qualified_identifier_verify(
+    struct qualified_identifier_t *qi,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    int chain_resolve = st_qualified_identifier_resolve_chain(qi,
+							      errors,
+							      config);
+    if(chain_resolve != ESSTEE_OK)
+    {
+	return chain_resolve;
+    }
+
+    if(qi->runtime_constant_reference)
+    {
+	int array_index_resolve = st_qualified_identifier_resolve_array_index(
+	    qi,
+	    errors,
+	    config);
+
+	if(array_index_resolve != ESSTEE_OK)
+	{
+	    return array_index_resolve;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_qualified_identifier_step(
+    struct qualified_identifier_t *qi,
+    struct cursor_t *cursor,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    if(!qi->runtime_constant_reference)
+    {
+	/* Skip already stepped indices */
+	struct array_index_t *itr = NULL;
+	int skipped = 0;
+	DL_FOREACH(qi->last->array_index, itr)
+	{
+	    if(skipped >= qi->invoke_state)
+	    {
+		break;
+	    }
+
+	    skipped++;
+	}
+
+	/* Check if the ones left need to be stepped */
+	for(; itr != NULL; itr = itr->next)
+	{
+	    if(itr->index_expression->invoke.step)
+	    {
+		/* Push to call stack (to be stepped), when stepping is
+		 * complete, index has been evaluated (=increase state) */
+		qi->invoke_state++;
+
+		DL_APPEND(cursor->call_stack, &(itr->index_expression->invoke));
+		cursor->current = &(itr->index_expression->invoke);
+
+		return INVOKE_RESULT_IN_PROGRESS;
+	    }
+	    else
+	    {
+		qi->invoke_state++;
+	    }
+	}
+
+	int array_index_resolve = st_qualified_identifier_resolve_array_index(
+	    qi,
+	    errors,
+	    config);
+
+	if(array_index_resolve != ESSTEE_OK)
+	{
+	    return INVOKE_RESULT_ERROR;
+	}
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+
+int st_qualified_identifier_reset(
+    struct qualified_identifier_t *qi)
+{
+    qi->invoke_state = 0;
+
+    struct array_index_t *itr = NULL;
+    DL_FOREACH(qi->last->array_index, itr)
+    {
+	if(itr->index_expression->invoke.step)
+	{
+	    int reset = itr->index_expression->invoke.reset(
+		&(itr->index_expression->invoke));
+
+	    if(reset != ESSTEE_OK)
+	    {
+		return reset;
+	    }
+	}
+    }
+
     return ESSTEE_OK;
 }
 

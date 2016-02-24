@@ -48,6 +48,18 @@ int st_empty_statement_step(
 const struct st_location_t * st_empty_statement_location(
     const struct invoke_iface_t *self);
 
+struct invoke_iface_t * st_empty_statement_clone(
+    struct invoke_iface_t *self);
+
+int st_empty_statement_reset(
+    struct invoke_iface_t *self);
+
+void st_empty_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_empty_statement_clone_destroy(
+    struct invoke_iface_t *self);
+
 /**************************************************************************/
 /* Simple assignment                                                      */
 /**************************************************************************/
@@ -75,6 +87,18 @@ int st_assignment_statement_simple_step(
 const struct st_location_t * st_assignment_statement_simple_location(
     const struct invoke_iface_t *self);
 
+struct invoke_iface_t * st_assignment_statement_simple_clone(
+    struct invoke_iface_t *self);
+
+int st_assignment_statement_simple_reset(
+    struct invoke_iface_t *self);
+
+void st_assignment_statement_simple_destroy(
+    struct invoke_iface_t *self);
+
+void st_assignment_statement_simple_clone_destroy(
+    struct invoke_iface_t *self);
+
 /**************************************************************************/
 /* Qualified identifier assignment                                        */
 /**************************************************************************/
@@ -83,7 +107,8 @@ struct qualified_assignment_statement_t {
     struct st_location_t *location;
     struct qualified_identifier_t *lhs;
     struct expression_iface_t *rhs;
-    int invoke_state;
+    int lhs_invoke_state;
+    int rhs_invoke_state;
 };
 
 int st_assignment_statement_qualified_verify(
@@ -100,6 +125,18 @@ int st_assignment_statement_qualified_step(
 
 const struct st_location_t * st_assignment_statement_qualified_location(
     const struct invoke_iface_t *self);
+
+struct invoke_iface_t * st_assignment_statement_qualified_clone(
+    struct invoke_iface_t *self);
+
+int st_assignment_statement_qualified_reset(
+    struct invoke_iface_t *self);
+
+void st_assignment_statement_qualified_destroy(
+    struct invoke_iface_t *self);
+
+void st_assignment_statement_qualified_clone_destroy(
+    struct invoke_iface_t *self);
 
 /**************************************************************************/
 /* Invoke statement                                                       */

@@ -30,6 +30,9 @@ struct array_index_t;
 struct variable_t;
 struct enum_item_t;
 struct type_iface_t;
+struct errors_iface_t;
+struct cursor_t;
+struct systime_iface_t *time;
 
 struct value_iface_t {
 
@@ -125,7 +128,14 @@ struct value_iface_t {
     
     void (*destroy)(
 	struct value_iface_t *self);
-    
+
+    int (*invoke)(
+	struct value_iface_t *self,
+	struct cursor_t *cursor,
+	const struct systime_iface_t *time,
+	const struct config_iface_t *config,
+	struct errors_iface_t *errors);
+
     /* Binary comparision operations */
     int (*greater)(
 	const struct value_iface_t *self,

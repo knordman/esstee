@@ -54,6 +54,7 @@ struct expression_iface_t * st_new_expression_value(
     ve->expression.invoke.location = st_value_expression_location;
     ve->expression.invoke.step = NULL;
     ve->expression.invoke.verify = NULL;
+    ve->expression.runtime_constant = st_value_expression_runtime_constant;
     
     ve->expression.return_value = st_value_expression_return_value;
     ve->expression.destroy = st_value_expression_destroy;
@@ -111,6 +112,7 @@ struct expression_iface_t * st_new_single_identifier_term(
 
     sit->expression.return_value = NULL;
     sit->expression.destroy = st_single_identifier_term_destroy;
+    sit->expression.clone = st_single_identifier_term_clone;
 
     return &(sit->expression);
     
@@ -145,32 +147,17 @@ struct expression_iface_t * st_new_qualified_identifier_term(
 	error_free_resources);
 
     qt->location = loc;
+    qt->identifier = qualified_identifier;
 
     qt->expression.invoke.verify = st_qualified_identifier_term_verify;
-    qt->expression.invoke.step = NULL;
-    
-    /* Check if there is an array index expression to resolve, if,
-     * then do runtime resolving of qualified identifier */
-    
-    /* TODO: error */
-    if(qualified_identifier->array_index)
-    {
-	struct array_index_t *itr = NULL;
-	DL_FOREACH(qualified_identifier->array_index, itr)
-	{
-	    if(itr->index_expression->invoke.step)
-	    {
-		qt->expression.invoke.verify = NULL;
-		qt->expression.invoke.step = st_qualified_identifier_term_step;
-		break;
-	    }
-	}
-    }
+    qt->expression.invoke.step = st_qualified_identifier_term_step;
+    qt->expression.invoke.reset = st_qualified_identifier_term_reset;
 
     qt->invoke_state = 0;
     qt->expression.invoke.location = st_qualified_identifier_term_location;
     qt->expression.return_value = st_qualified_identifier_term_return_value;
     qt->expression.destroy = st_qualified_identifier_term_destroy;
+    qt->expression.clone = st_qualified_identifier_term_clone;
 
     return &(qt->expression);
     
@@ -267,6 +254,8 @@ static struct expression_iface_t * new_binary_expression(
     be->expression.invoke.verify = verify_function;
     be->expression.invoke.location = st_binary_expression_location;
     be->expression.return_value = st_binary_expression_return_value;
+    be->expression.runtime_constant = st_binary_expression_runtime_constant;
+    be->expression.clone = st_binary_expression_clone;
     
     be->temporary = NULL;
     

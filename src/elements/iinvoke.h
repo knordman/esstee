@@ -40,13 +40,22 @@ struct invoke_iface_t {
 	struct cursor_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
-	struct errors_iface_t *err);
+	struct errors_iface_t *errors);
 
     int (*verify)(
 	struct invoke_iface_t *self,
 	const struct config_iface_t *config,
 	struct errors_iface_t *errors);
 
+    int (*reset)(
+	struct invoke_iface_t *self);
+
+    struct invoke_iface_t * (*clone)(
+    	struct invoke_iface_t *self);
+
+    void (*destroy)(
+	struct invoke_iface_t *self);
+    
     /* Lists of invokes */
     struct invoke_iface_t *call_stack_prev;
     struct invoke_iface_t *call_stack_next;

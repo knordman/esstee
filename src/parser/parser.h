@@ -94,7 +94,11 @@ int st_parser_init(
     struct dmem_iface_t *direct_memory,
     struct config_iface_t *config);
 
-int st_parser_reset(struct parser_t *parser);
+int st_parser_reset(
+    struct parser_t *parser);
+
+int st_reset_parser_pou_refs(
+    struct parser_t *parser);
 
 struct compilation_unit_t * st_parse_file(
     const char *path,

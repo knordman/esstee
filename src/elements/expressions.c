@@ -50,6 +50,12 @@ const struct value_iface_t * st_value_expression_return_value(
     return ve->value;
 }
 
+int st_value_expression_runtime_constant(
+    struct expression_iface_t *self)
+{
+    return ESSTEE_TRUE;
+}
+
 void st_value_expression_destroy(
     struct expression_iface_t *self)
 {
@@ -87,6 +93,35 @@ const struct st_location_t * st_single_identifier_term_location(
 	= CONTAINER_OF(e, struct single_identifier_term_t, expression);
 
     return sit->location;
+}
+
+int st_single_identifier_term_runtime_constant(
+    struct expression_iface_t *self)
+{
+    return ESSTEE_FALSE;	/* Inline enum is constant, but
+				 * whether the identifier is an enum
+				 * or not, can only be known after
+				 * linking */
+}
+
+struct expression_iface_t * st_single_identifier_term_clone(
+    struct expression_iface_t *self)
+{
+    struct single_identifier_term_t *sit
+	= CONTAINER_OF(self, struct single_identifier_term_t, expression);
+
+    struct single_identifier_term_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct single_identifier_term_t,
+	error_free_resources);
+
+    memcpy(copy, sit, sizeof(struct single_identifier_term_t));
+
+    return &(copy->expression);
+
+error_free_resources:
+    return NULL;
 }
 
 void st_single_identifier_term_destroy(
@@ -175,7 +210,9 @@ int st_qualified_identifier_term_verify(
     struct qualified_identifier_term_t *qit
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
 
-    return st_inner_resolve_qualified_identifier(qit->identifier, errors, config);
+    return st_qualified_identifier_verify(qit->identifier,
+					  errors,
+					  config);
 }
 
 int st_qualified_identifier_term_step(
@@ -185,69 +222,16 @@ int st_qualified_identifier_term_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors)
 {
-    /* Step or verified used, if step, means array indices'
-     * expressions need to be stepped */
-
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
     
     struct qualified_identifier_term_t *qit
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
-    
-    /* qit->identifier->array_index */
 
-    /* Skip already stepped indices */
-    struct array_index_t *itr = NULL;
-    int skipped = 0;
-    DL_FOREACH(qit->identifier->array_index, itr)
-    {
-	if(skipped >= qit->invoke_state)
-	{
-	    break;
-	}
-
-	skipped++;
-    }
-
-    int index_step_result = INVOKE_RESULT_FINISHED;
-    if(itr->index_expression->invoke.step)
-    {
-	struct invoke_iface_t *invokee = &(itr->index_expression->invoke);
-	
-	index_step_result = invokee->step(invokee,
-					  cursor,
-					  time,
-					  config,
-					  errors);
-
-	    if(index_step_result == INVOKE_RESULT_ERROR)
-	    {
-		qit->invoke_state = 0;
-		return INVOKE_RESULT_ERROR;
-	    }
-	    else if(index_step_result == INVOKE_RESULT_IN_PROGRESS)
-	    {
-		return INVOKE_RESULT_IN_PROGRESS;
-	    }
-    }
-
-    if(itr->next)
-    {
-	qit->invoke_state++;
-	return INVOKE_RESULT_IN_PROGRESS;
-    }
-
-    /* All indices stepped */
-    qit->invoke_state = 0;
-
-    int resolve_result = st_inner_resolve_qualified_identifier(qit->identifier, errors, config);
-
-    if(resolve_result != ESSTEE_OK)
-    {
-	return INVOKE_RESULT_ERROR;
-    }
-
-    return INVOKE_RESULT_FINISHED;
+    return st_qualified_identifier_step(qit->identifier,
+					cursor,
+					errors,
+					config);
 }
 
 const struct value_iface_t * st_qualified_identifier_term_return_value(
@@ -269,6 +253,59 @@ const struct st_location_t * st_qualified_identifier_term_location(
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
 
     return qit->location;
+}
+
+int st_qualified_identifier_term_reset(
+    struct invoke_iface_t *self)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct qualified_identifier_term_t *qit
+	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
+
+    int reset = st_qualified_identifier_reset(qit->identifier);
+    if(reset != ESSTEE_OK)
+    {
+	return reset;
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_qualified_identifier_term_runtime_constant(
+    struct expression_iface_t *self)
+{
+    return ESSTEE_FALSE;
+}
+
+struct expression_iface_t * st_qualified_identifier_term_clone(
+    struct expression_iface_t *self)
+{
+    struct qualified_identifier_term_t *sit
+	= CONTAINER_OF(self, struct qualified_identifier_term_t, expression);
+
+    struct qualified_identifier_term_t *copy = NULL;
+    struct qualified_identifier_t *identifier_copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct qualified_identifier_term_t,
+	error_free_resources);
+    ALLOC_OR_JUMP(
+	identifier_copy,
+	struct qualified_identifier_t,
+	error_free_resources);
+
+    memcpy(copy, sit, sizeof(struct qualified_identifier_term_t));
+    memcpy(identifier_copy, sit->identifier, sizeof(struct qualified_identifier_t));
+
+    copy->identifier = identifier_copy;
+    
+    return &(copy->expression);
+
+error_free_resources:
+    free(copy);
+    return NULL;
 }
 
 void st_qualified_identifier_term_destroy(
@@ -464,58 +501,20 @@ static int be_step_operands(
     const struct config_iface_t *config,
     struct errors_iface_t *errors)
 {
-    switch(be->invoke_state)
+    if(be->invoke_state == 0 && be->left_operand->invoke.step)
     {
-    case 0:
-	if(be->left_operand->invoke.step)
-	{
-	    int left_result = be->left_operand->invoke.step(
-		&(be->left_operand->invoke),
-		cursor,
-		time,
-		config,
-		errors);
-
-	    if(left_result == INVOKE_RESULT_ERROR)
-	    {
-		be->invoke_state = 0;
-		return INVOKE_RESULT_ERROR;
-	    }
-	    else if(left_result == INVOKE_RESULT_IN_PROGRESS)
-	    {
-		be->invoke_state = 1;
-		return INVOKE_RESULT_IN_PROGRESS;
-	    }
-	}
-
-    case 1:
-	if(be->right_operand->invoke.step)
-	{
-	    int right_result = be->right_operand->invoke.step(
-		&(be->right_operand->invoke),
-		cursor,
-		time,
-		config,
-		errors);
-
-	    if(right_result == INVOKE_RESULT_ERROR)
-	    {
-		be->invoke_state = 0;
-		return INVOKE_RESULT_ERROR;
-	    }
-	    else if(right_result == INVOKE_RESULT_IN_PROGRESS)
-	    {
-		be->invoke_state = 2;
-		return INVOKE_RESULT_IN_PROGRESS;
-	    }
-	}
-
-    case 2:
-    default:
-	/* Both operands stepped */
-	be->invoke_state = 0;
-	break;
+	DL_APPEND(cursor->call_stack, &(be->left_operand->invoke));
+	cursor->current = &(be->left_operand->invoke);
+	be->invoke_state = 1;
+	return INVOKE_RESULT_IN_PROGRESS;
     }
+    else if(be->invoke_state == 1 && be->right_operand->invoke.step)
+    {
+	DL_APPEND(cursor->call_stack, &(be->right_operand->invoke));
+	cursor->current = &(be->right_operand->invoke);
+	be->invoke_state = 1;
+	return INVOKE_RESULT_IN_PROGRESS;
+    }    
     
     return INVOKE_RESULT_FINISHED;
 }
@@ -598,6 +597,42 @@ static int be_step_operands(
 	}								\
     } while(0)
 
+int st_binary_expression_reset(
+	struct invoke_iface_t *self)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    be->invoke_state = 0;
+
+    if(be->left_operand->invoke.reset)
+    {
+	int left_reset = be->left_operand->invoke.reset(
+	    &(be->left_operand->invoke));
+
+	if(left_reset != ESSTEE_OK)
+	{
+	    return left_reset;
+	}
+    }
+
+    if(be->right_operand->invoke.reset)
+    {
+	int right_reset = be->right_operand->invoke.reset(
+	    &(be->right_operand->invoke));
+
+	if(right_reset != ESSTEE_OK)
+	{
+	    return right_reset;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
 const struct st_location_t * st_binary_expression_location(
     const struct invoke_iface_t *self)
 {
@@ -617,6 +652,84 @@ const struct value_iface_t * st_binary_expression_return_value(
 	CONTAINER_OF(self, struct binary_expression_t, expression);
 
     return be->temporary;
+}
+
+int st_binary_expression_runtime_constant(
+    struct expression_iface_t *self)
+{
+    /* struct binary_expression_t *be = */
+    /* 	CONTAINER_OF(self, struct binary_expression_t, expression); */
+
+    /* int left_constant = be->left_operand->runtime_constant(be->left_operand); */
+    
+    /* if(left_constant != ESSTEE_TRUE) */
+    /* { */
+    /* 	return ESSTEE_FALSE; */
+    /* } */
+
+    /* int right_constant = be->right_operand->runtime_constant(be->right_operand); */
+    
+    /* if(right_constant != ESSTEE_TRUE) */
+    /* { */
+    /* 	return ESSTEE_FALSE; */
+    /* } */
+
+    /* return ESSTEE_TRUE; */
+    return ESSTEE_FALSE;
+}
+
+struct expression_iface_t * st_binary_expression_clone(
+    struct expression_iface_t *self)
+{
+    struct binary_expression_t *be =
+	CONTAINER_OF(self, struct binary_expression_t, expression);
+
+    struct binary_expression_t *copy = NULL;
+    struct expression_iface_t *left_copy = NULL;
+    struct expression_iface_t *right_copy = NULL;
+    
+    ALLOC_OR_JUMP(
+	copy,
+	struct binary_expression_t,
+	error_free_resources);
+
+    memcpy(copy, be, sizeof(struct binary_expression_t));
+
+    if(be->left_operand->clone)
+    {
+	left_copy = be->left_operand->clone(be->left_operand);
+	if(!left_copy)
+	{
+	    goto error_free_resources;
+	}
+    }
+
+    if(be->right_operand->clone)
+    {
+	right_copy = be->right_operand->clone(be->right_operand);
+	if(!right_copy)
+	{
+	    goto error_free_resources;
+	}
+    }
+
+    if(left_copy)
+    {
+	copy->left_operand = left_copy;
+    }
+    
+    if(right_copy)
+    {
+	copy->right_operand = right_copy;
+    }
+
+    return &(copy->expression);
+    
+error_free_resources:
+    free(copy);
+    free(left_copy);
+    free(right_copy);
+    return NULL;
 }
 
 int st_xor_expression_verify(
