@@ -328,6 +328,21 @@ int st_link(struct st_t *st)
 	goto error_free_resources;
     }
 
+    /* Check function block type references */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
+	struct function_block_t *fbitr = NULL;
+	DL_FOREACH(cuitr->function_blocks, fbitr)
+	{
+	    st_check_function_block_type_refs(fbitr, st->config, st->errors);
+	}
+    }
+    
+    if(st->errors->new_error_occured(st->errors) != ESSTEE_FALSE)
+    {
+	goto error_free_resources;
+    }
+    
     /* Create variable values */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
@@ -422,6 +437,7 @@ const struct st_location_t * st_start(
     st->main = found;
 
     st->cursor.current = st->main->statements;
+    st->cursor.current->reset(st->cursor.current, st->config);
     st->cursor.call_stack = NULL;
     
     return st->cursor.current->location(st->cursor.current);
@@ -731,11 +747,10 @@ const struct st_location_t * st_step(
     struct st_t *st)
 {
     struct invoke_iface_t *start = st->cursor.current;
-    
-    int invoke_result = INVOKE_RESULT_IN_PROGRESS;
+
     do
     {
-	invoke_result = st->cursor.current->step(
+	int invoke_result = st->cursor.current->step(
 	    st->cursor.current,
 	    &(st->cursor),
 	    st->systime,
@@ -746,11 +761,13 @@ const struct st_location_t * st_step(
 	{
 	    return NULL;
 	}
+	else if(invoke_result == INVOKE_RESULT_FINISHED)
+	{
+	    set_cursor_to_next(st->cursor.current, st);
+	}
     }
-    while(invoke_result != INVOKE_RESULT_FINISHED);
+    while(st->cursor.current->prev != start);
     
-    set_cursor_to_next(start, st);
-
     return st->cursor.current->location(st->cursor.current);
 }
 

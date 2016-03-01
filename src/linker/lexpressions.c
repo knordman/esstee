@@ -42,6 +42,8 @@ int st_single_identifier_variable_resolved(
     else
     {
 	/* Interpret as enum */
+	sit->variable = NULL;
+	
 	sit->expression.return_value = st_single_identifier_term_enum_return_value;
 
 	sit->inline_enum.group = NULL;

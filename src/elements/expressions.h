@@ -30,10 +30,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iconfig.h>
 #include <esstee/locations.h>
 
-
-
 /**************************************************************************/
-/* Wrapped value expression (e.g. literal)                                */
+/* Wrapped inline value expression (e.g. literal)                         */
 /**************************************************************************/
 struct value_expression_t {
     struct expression_iface_t expression;
@@ -45,6 +43,9 @@ const struct st_location_t * st_value_expression_location(
     const struct invoke_iface_t *self);
     
 const struct value_iface_t * st_value_expression_return_value(
+    struct expression_iface_t *self);
+
+int st_value_expression_runtime_constant(
     struct expression_iface_t *self);
 
 void st_value_expression_destroy(
@@ -70,6 +71,12 @@ const struct value_iface_t * st_single_identifier_term_enum_return_value(
 
 const struct st_location_t * st_single_identifier_term_location(
     const struct invoke_iface_t *self);
+
+int st_single_identifier_term_runtime_constant(
+    struct expression_iface_t *self);
+
+struct expression_iface_t * st_single_identifier_term_clone(
+    struct expression_iface_t *self);
 
 void st_single_identifier_term_destroy(
     struct expression_iface_t *self);
@@ -115,12 +122,22 @@ int st_qualified_identifier_term_step(
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
-    
+
+int st_qualified_identifier_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
 const struct value_iface_t * st_qualified_identifier_term_return_value(
     struct expression_iface_t *self);
     
 const struct st_location_t * st_qualified_identifier_term_location(
     const struct invoke_iface_t *self);
+
+int st_qualified_identifier_term_runtime_constant(
+    struct expression_iface_t *self);
+
+struct expression_iface_t * st_qualified_identifier_term_clone(
+    struct expression_iface_t *self);
 
 void st_qualified_identifier_term_destroy(
     struct expression_iface_t *self);
@@ -181,20 +198,20 @@ struct binary_expression_t {
     struct value_iface_t *temporary;
 };
 
-int st_binary_compare_expression_verify(
+int st_binary_expression_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct errors_iface_t *errors);
-
-int st_binary_expression_verify(
-    struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    const struct config_iface_t *config);
 
 const struct st_location_t * st_binary_expression_location(
     const struct invoke_iface_t *self);
 
 const struct value_iface_t * st_binary_expression_return_value(
+    struct expression_iface_t *self);
+
+int st_binary_expression_runtime_constant(
+    struct expression_iface_t *self);
+
+struct expression_iface_t * st_binary_expression_clone(
     struct expression_iface_t *self);
 
 int st_xor_expression_verify(

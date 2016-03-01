@@ -48,6 +48,19 @@ int st_empty_statement_step(
 const struct st_location_t * st_empty_statement_location(
     const struct invoke_iface_t *self);
 
+struct invoke_iface_t * st_empty_statement_clone(
+    struct invoke_iface_t *self);
+
+int st_empty_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+void st_empty_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_empty_statement_clone_destroy(
+    struct invoke_iface_t *self);
+
 /**************************************************************************/
 /* Simple assignment                                                      */
 /**************************************************************************/
@@ -75,6 +88,19 @@ int st_assignment_statement_simple_step(
 const struct st_location_t * st_assignment_statement_simple_location(
     const struct invoke_iface_t *self);
 
+struct invoke_iface_t * st_assignment_statement_simple_clone(
+    struct invoke_iface_t *self);
+
+int st_assignment_statement_simple_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+void st_assignment_statement_simple_destroy(
+    struct invoke_iface_t *self);
+
+void st_assignment_statement_simple_clone_destroy(
+    struct invoke_iface_t *self);
+
 /**************************************************************************/
 /* Qualified identifier assignment                                        */
 /**************************************************************************/
@@ -83,7 +109,8 @@ struct qualified_assignment_statement_t {
     struct st_location_t *location;
     struct qualified_identifier_t *lhs;
     struct expression_iface_t *rhs;
-    int invoke_state;
+    int lhs_invoke_state;
+    int rhs_invoke_state;
 };
 
 int st_assignment_statement_qualified_verify(
@@ -101,17 +128,59 @@ int st_assignment_statement_qualified_step(
 const struct st_location_t * st_assignment_statement_qualified_location(
     const struct invoke_iface_t *self);
 
+struct invoke_iface_t * st_assignment_statement_qualified_clone(
+    struct invoke_iface_t *self);
+
+int st_assignment_statement_qualified_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+   
+void st_assignment_statement_qualified_destroy(
+    struct invoke_iface_t *self);
+
+void st_assignment_statement_qualified_clone_destroy(
+    struct invoke_iface_t *self);
+
 /**************************************************************************/
 /* Invoke statement                                                       */
 /**************************************************************************/
 struct invoke_statement_t {
     struct invoke_iface_t invoke;
-
-    struct variable_t *var;
+    struct st_location_t *location;
+    struct variable_t *variable;
     struct function_t *function;
+    struct invoke_parameter_t *parameters;
+    
+    int invoke_state;
 };
 
-/* TODO: invoke statement invoke functions */
+const struct st_location_t * st_invoke_statement_location(
+    const struct invoke_iface_t *self);
+    
+int st_invoke_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_invoke_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_invoke_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+struct invoke_iface_t * st_invoke_statement_clone(
+    struct invoke_iface_t *self);
+
+void st_invoke_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_invoke_statement_clone_destroy(
+    struct invoke_iface_t *self);
 
 /**************************************************************************/
 /* If statements                                                          */
@@ -165,3 +234,4 @@ struct repeat_statement_t {
 /**************************************************************************/
 
 /* TODO: return statement, struct and invoke functions */
+

@@ -56,7 +56,7 @@ int st_qualified_identifier_base_resolved(
 	{
 	    errors->new_issue_at(
 		errors,
-		"undefined variable",
+		"reference to undefined variable",
 		ISSUE_ERROR_CLASS,
 		1,
 		location);

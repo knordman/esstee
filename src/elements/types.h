@@ -29,35 +29,35 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define INTEGER_NUMERIC_CLASS (1 << 0)
 #define INTEGER_BITDATA_CLASS (1 << 1)
 #define REAL_NUMERIC_CLASS    (1 << 2)
-#define STRING_CLASS          (1 << 3)
-#define INTEGER_SIGNED        (1 << 4)
-#define INTEGER_UNSIGNED      (1 << 5)
-#define INTEGER_BOOL_TYPE     (1 << 6)
-#define INTEGER_SINT_TYPE     (1 << 7)
-#define INTEGER_INT_TYPE      (1 << 8)
-#define INTEGER_DINT_TYPE     (1 << 9)
-#define INTEGER_LINT_TYPE     (1 << 10)
-#define INTEGER_USINT_TYPE    (1 << 11)
-#define INTEGER_UINT_TYPE     (1 << 12)
-#define INTEGER_UDINT_TYPE    (1 << 13)
-#define INTEGER_ULINT_TYPE    (1 << 14)
-#define INTEGER_BYTE_TYPE     (1 << 15)
-#define INTEGER_WORD_TYPE     (1 << 16)
-#define INTEGER_DWORD_TYPE    (1 << 17)
-#define INTEGER_LWORD_TYPE    (1 << 18)
-#define REAL_TYPE             (1 << 19)
-#define LREAL_TYPE            (1 << 20)
-#define STRING_TYPE           (1 << 21)
-#define WSTRING_TYPE          (1 << 22)
-#define DURATION_TYPE         (1 << 23)
-#define DATE_TYPE             (1 << 24)
-#define TOD_TYPE              (1 << 25)
-#define DATE_TOD_TYPE         (1 << 26)
-#define DERIVED_TYPE          (1 << 27)
-#define ENUM_TYPE             (1 << 28)
-#define SUBRANGE_TYPE         (1 << 29)
-#define ARRAY_TYPE            (1 << 30)
-#define STRUCT_TYPE           (1 << 31)
+#define INTEGER_SIGNED        (1 << 3)
+#define INTEGER_UNSIGNED      (1 << 4)
+#define INTEGER_BOOL_TYPE     (1 << 5)
+#define INTEGER_SINT_TYPE     (1 << 6)
+#define INTEGER_INT_TYPE      (1 << 7)
+#define INTEGER_DINT_TYPE     (1 << 8)
+#define INTEGER_LINT_TYPE     (1 << 9)
+#define INTEGER_USINT_TYPE    (1 << 10)
+#define INTEGER_UINT_TYPE     (1 << 11)
+#define INTEGER_UDINT_TYPE    (1 << 12)
+#define INTEGER_ULINT_TYPE    (1 << 13)
+#define INTEGER_BYTE_TYPE     (1 << 14)
+#define INTEGER_WORD_TYPE     (1 << 15)
+#define INTEGER_DWORD_TYPE    (1 << 16)
+#define INTEGER_LWORD_TYPE    (1 << 17)
+#define REAL_TYPE             (1 << 18)
+#define LREAL_TYPE            (1 << 19)
+#define STRING_TYPE           (1 << 20)
+#define WSTRING_TYPE          (1 << 21)
+#define DURATION_TYPE         (1 << 22)
+#define DATE_TYPE             (1 << 23)
+#define TOD_TYPE              (1 << 24)
+#define DATE_TOD_TYPE         (1 << 25)
+#define DERIVED_TYPE          (1 << 26)
+#define ENUM_TYPE             (1 << 27)
+#define SUBRANGE_TYPE         (1 << 28)
+#define ARRAY_TYPE            (1 << 29)
+#define STRUCT_TYPE           (1 << 30)
+#define FB_TYPE               (1 << 31)
 
 const struct st_location_t * st_built_in_type_location_get(
     const struct type_iface_t *self);
@@ -533,6 +533,10 @@ struct value_iface_t * st_function_block_type_create_value_of(
 int st_function_block_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_function_block_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 void st_function_block_type_destroy(

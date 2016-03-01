@@ -47,6 +47,7 @@ OBJECTS := 		build/util/errorcontext.o \
 			build/linker/lliterals.o \
 			build/rt/systime.o \
 			build/rt/runtime.o \
+			build/rt/cursor.o \
 			build/parser/bison.tab.o \
 			build/parser/flex.o
 

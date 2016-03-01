@@ -18,6 +18,9 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <linker/linker.h>
+#include <elements/pous.h>
+#include <elements/types.h>
+#include <util/macros.h>
 
 #include <utlist.h>
 #include <stdio.h>
@@ -35,7 +38,7 @@ int st_variable_type_resolved(
     {
 	errors->new_issue_at(
 	    errors,
-	    "undefined type",
+	    "reference to undefined type",
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    location);
@@ -44,6 +47,6 @@ int st_variable_type_resolved(
 
     struct variable_t *var = (struct variable_t *)referrer;
     var->type = (struct type_iface_t *)target;
-
+    
     return ESSTEE_OK;
 }

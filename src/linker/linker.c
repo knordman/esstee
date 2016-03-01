@@ -108,12 +108,36 @@ int st_link_queries(
     struct query_t *itr = NULL;
     DL_FOREACH(queries, itr)
     {
+	if(!itr->qi->runtime_constant_reference)
+	{
+	    errors->new_issue_at(
+		errors,
+		"array indices must be runtime constant in query mode",
+		1,
+		ISSUE_ERROR_CLASS,
+		itr->qi->last->location);
+
+	    return ESSTEE_ERROR;
+	}
+	
 	/* Verify the qualified identifer that is displayed/altered */
-	if(st_inner_resolve_qualified_identifier(itr->qi, errors, config) != ESSTEE_OK)
+	int chain_resolve = st_qualified_identifier_resolve_chain(itr->qi,
+								  errors,
+								  config);
+	if(chain_resolve != ESSTEE_OK)
 	{
 	    return ESSTEE_ERROR;
 	}
-    
+
+	int array_index_resolve = st_qualified_identifier_resolve_array_index(
+	    itr->qi,
+	    errors,
+	    config);
+	if(array_index_resolve != ESSTEE_OK)
+	{
+	    return array_index_resolve;
+	}
+	    
 	/* Verify the new value expression and its compatibility */
 	if(itr->new_value)
 	{

@@ -53,6 +53,21 @@ int st_parser_reset(struct parser_t *parser)
     return ESSTEE_OK;
 }
 
+int st_reset_parser_pou_refs(
+    struct parser_t *parser)
+{
+    parser->pou_type_ref_pool = st_new_named_ref_pool();
+    parser->pou_var_ref_pool = st_new_named_ref_pool();
+
+    if(!(parser->pou_type_ref_pool && parser->pou_var_ref_pool))
+    {
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}
+
 void st_destroy_compilation_unit(
     struct compilation_unit_t *cu)
 {

@@ -120,6 +120,7 @@ struct qualified_identifier_t * st_new_inner_reference(
 	parser->errors,
 	error_free_resources);
 
+    qi->runtime_constant_reference = 1;
     qi->location = l;
     qi->identifier = identifier;
     qi->array_index = NULL;
@@ -127,6 +128,14 @@ struct qualified_identifier_t * st_new_inner_reference(
     qi->program = NULL;
     qi->target = NULL;
 
+    if(outer)
+    {
+	outer->last = qi;
+    }
+    else
+    {
+	qi->last = qi;
+    }
     DL_APPEND(outer, qi);
 
     return outer;
@@ -144,12 +153,16 @@ struct qualified_identifier_t * st_attach_array_index_to_inner_ref(
     struct array_index_t *array_index,
     struct parser_t *parser)
 {
-    struct qualified_identifier_t *itr;
-    DL_FOREACH(inner_ref, itr)
+    inner_ref->last->array_index = array_index;
+
+    struct array_index_t *itr = NULL;
+    DL_FOREACH(array_index, itr)
     {
-	if(itr->next == NULL);
+	int index_array_constant =
+	    itr->index_expression->runtime_constant(itr->index_expression);
+	if(index_array_constant != ESSTEE_TRUE)
 	{
-	    itr->array_index = array_index;
+	    inner_ref->runtime_constant_reference = 0;
 	    break;
 	}
     }
@@ -192,7 +205,11 @@ struct qualified_identifier_t * st_new_qualified_identifier_inner_ref(
 	NULL,
 	location_identifier,
 	st_qualified_identifier_base_resolved);
-    
+
+    qi->last = inner_reference->last;
+    qi->runtime_constant_reference = inner_reference->runtime_constant_reference;
+    inner_reference->last = NULL;
+
     DL_PREPEND(inner_reference, qi);
     
     return qi;
@@ -227,6 +244,7 @@ struct qualified_identifier_t * st_new_qualified_identifier_array_index(
 	parser->errors,
 	error_free_resources);
 
+    qi->runtime_constant_reference = 1;
     qi->location = l;
     qi->identifier = identifier;
     qi->prev = NULL;
@@ -243,6 +261,20 @@ struct qualified_identifier_t * st_new_qualified_identifier_array_index(
 	NULL,
 	location_identifier,
 	st_qualified_identifier_base_resolved);
+
+    struct array_index_t *itr = NULL;
+    DL_FOREACH(array_index, itr)
+    {
+	int index_array_constant =
+	    itr->index_expression->runtime_constant(itr->index_expression);
+	if(index_array_constant != ESSTEE_TRUE)
+	{
+	    qi->runtime_constant_reference = 0;
+	    break;
+	}
+    }
+    
+    qi->last = qi;
     
     return qi;
     

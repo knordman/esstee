@@ -49,4 +49,36 @@ int st_simple_assignment_variable_resolved(
     return ESSTEE_OK;
 }
 
+int st_invoke_statement_as_variable_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct invoke_statement_t *is =
+	(struct invoke_statement_t *)referrer;
 
+    is->variable = (struct variable_t *)target;
+
+    return ESSTEE_OK;
+}
+
+int st_invoke_statement_as_func_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    struct invoke_statement_t *is =
+	(struct invoke_statement_t *)referrer;
+
+    is->function = (struct function_t *)target;
+
+    return ESSTEE_OK;
+}

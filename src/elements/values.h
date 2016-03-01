@@ -621,7 +621,47 @@ const struct struct_init_value_t * st_struct_init_value(
 /* Function block value                                                   */
 /**************************************************************************/
 
-/* TODO: Function block value */
+struct function_block_value_t {
+    struct value_iface_t value;
+    struct variable_t *variables;
+    struct invoke_iface_t *statements;
+    const struct type_iface_t *type;
+    int invoke_state;
+};
+
+int st_function_block_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_function_block_value_type_of(
+    const struct value_iface_t *self);
+
+void st_function_block_value_destroy(
+    struct value_iface_t *self);
+
+struct variable_t * st_function_block_value_sub_variable(
+    struct value_iface_t *self,
+    const char *identifier,
+    const struct config_iface_t *config);
+
+int st_function_block_value_invoke_verify(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_function_block_value_invoke_step(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_function_block_value_invoke_reset(
+    struct value_iface_t *self);
 
 /**************************************************************************/
 /* Inline values                                                          */
