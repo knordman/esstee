@@ -46,7 +46,8 @@ int st_empty_statement_step(
 }
 
 int st_empty_statement_reset(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
 {
     return ESSTEE_OK;
 }
@@ -161,8 +162,7 @@ int st_assignment_statement_simple_step(
     if(sa->invoke_state == 0 && sa->rhs->invoke.step)
     {
 	sa->invoke_state = 1;
-	DL_APPEND(cursor->call_stack, &(sa->rhs->invoke));
-	cursor->current = &(sa->rhs->invoke);
+	st_switch_current(cursor, &(sa->rhs->invoke), config);
 	return INVOKE_RESULT_IN_PROGRESS;
     }
 
@@ -226,12 +226,30 @@ struct invoke_iface_t * st_assignment_statement_simple_clone(
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
 
     struct simple_assignment_statement_t *copy = NULL;
+    struct expression_iface_t *rhs_copy = NULL;
+    
     ALLOC_OR_JUMP(
 	copy,
 	struct simple_assignment_statement_t,
 	error_free_resources);
-
+    
     memcpy(copy, sa, sizeof(struct simple_assignment_statement_t));
+
+    if(sa->rhs->clone)
+    {
+	ALLOC_OR_JUMP(
+	    rhs_copy,
+	    struct expression_iface_t,
+	    error_free_resources);
+
+	rhs_copy = sa->rhs->clone(sa->rhs);
+	if(!rhs_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->rhs = rhs_copy;
+    }
     
     copy->invoke.destroy = st_assignment_statement_simple_clone_destroy;
 
@@ -242,7 +260,8 @@ error_free_resources:
 }
 
 int st_assignment_statement_simple_reset(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
 {
     struct simple_assignment_statement_t *sa =
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
@@ -251,7 +270,7 @@ int st_assignment_statement_simple_reset(
 
     if(sa->rhs->invoke.reset)
     {
-	int rhs_reset = sa->rhs->invoke.reset(&(sa->rhs->invoke));
+	int rhs_reset = sa->rhs->invoke.reset(&(sa->rhs->invoke), config);
 
 	if(rhs_reset != ESSTEE_OK)
 	{
@@ -367,8 +386,7 @@ int st_assignment_statement_qualified_step(
     if(qis->rhs_invoke_state == 0 && qis->rhs->invoke.step)
     {
 	qis->rhs_invoke_state = 1;
-	DL_APPEND(cursor->call_stack, &(qis->rhs->invoke));
-	cursor->current = &(qis->rhs->invoke);
+	st_switch_current(cursor, &(qis->rhs->invoke), config);
 	return INVOKE_RESULT_IN_PROGRESS;
     }
     	
@@ -397,7 +415,29 @@ int st_assignment_statement_qualified_step(
 						     rhs_value,
 						     config);
 
-    if(assignment_status != ESSTEE_OK)
+    if(assignment_status == ESSTEE_RT_TYPE_UNDERFLOW)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "assignment destination type underflow",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    qis->lhs->location);
+
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(assignment_status == ESSTEE_RT_TYPE_OVERFLOW)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "assignment destination type overflow",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    qis->lhs->location);
+
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(assignment_status != ESSTEE_OK)
     {
 	errors->new_issue_at(
 	    errors,
@@ -429,28 +469,57 @@ struct invoke_iface_t * st_assignment_statement_qualified_clone(
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
     struct qualified_assignment_statement_t *copy = NULL;
+    struct qualified_identifier_t *lhs_copy = NULL;
+    struct expression_iface_t *rhs_copy = NULL;
+
     ALLOC_OR_JUMP(
 	copy,
 	struct qualified_assignment_statement_t,
 	error_free_resources);
 
+    ALLOC_OR_JUMP(
+	lhs_copy,
+	struct qualified_identifier_t,
+	error_free_resources);
+    
     memcpy(copy, qis, sizeof(struct qualified_assignment_statement_t));
+    memcpy(lhs_copy, qis->lhs, sizeof(struct qualified_identifier_t));
+    
+    if(qis->rhs->clone)
+    {
+	ALLOC_OR_JUMP(
+	    rhs_copy,
+	    struct expression_iface_t,
+	    error_free_resources);
+
+	rhs_copy = qis->rhs->clone(qis->rhs);
+	if(!rhs_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->rhs = rhs_copy;
+    }
     
     copy->invoke.destroy = st_assignment_statement_qualified_clone_destroy;
 
     return &(copy->invoke);
 
 error_free_resources:
+    free(copy);
+    free(lhs_copy);
+    free(rhs_copy);
     return NULL;
 }
 
 int st_assignment_statement_qualified_reset(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
 {
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int lhs_reset = st_qualified_identifier_reset(qis->lhs);
+    int lhs_reset = st_qualified_identifier_reset(qis->lhs, config);
     if(lhs_reset != ESSTEE_OK)
     {
 	return lhs_reset;
@@ -458,7 +527,7 @@ int st_assignment_statement_qualified_reset(
     
     if(qis->rhs->invoke.reset)
     {
-	int rhs_reset = qis->rhs->invoke.reset(&(qis->rhs->invoke));
+	int rhs_reset = qis->rhs->invoke.reset(&(qis->rhs->invoke), config);
 
 	if(rhs_reset != ESSTEE_OK)
 	{
@@ -479,4 +548,193 @@ void st_assignment_statement_qualified_clone_destroy(
     struct invoke_iface_t *self)
 {
     /* TODO: destructor */
+}
+
+/**************************************************************************/
+/* Invoke statement                                                       */
+/**************************************************************************/
+
+const struct st_location_t * st_invoke_statement_location(
+    const struct invoke_iface_t *self)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+
+    return is->location;
+}
+    
+int st_invoke_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+
+    if(is->invoke_state == 2)
+    {
+	return INVOKE_RESULT_FINISHED;
+    }
+    
+    if(is->parameters && is->invoke_state == 0)
+    {
+	int step_result = st_step_invoke_parameters(is->parameters,
+						    cursor,
+						    time,
+						    config,
+						    errors);
+	if(step_result != INVOKE_RESULT_FINISHED)
+	{
+	    return step_result;
+	}
+	else
+	{
+	    is->invoke_state = 1;
+	}
+    }
+    else
+    {
+	is->invoke_state = 1;
+    }
+
+    if(is->variable)
+    {
+	is->invoke_state = 2;
+	return is->variable->value->invoke_step(is->variable->value,
+						is->parameters,
+						cursor,
+						time,
+						config,
+						errors);
+    }
+    
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_invoke_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+
+    if(is->variable)
+    {
+	if(is->function)
+	{
+	    errors->new_issue_at(
+		errors,
+		"variable shadows function",
+		ISSUE_WARNING_CLASS,
+		1,
+		is->location);
+	}
+
+	if(!is->variable->value->invoke_step)
+	{
+	    errors->new_issue_at(
+		errors,
+		"variable cannot be invoked",
+		ISSUE_ERROR_CLASS,
+		1,
+		is->location);
+
+	    return ESSTEE_ERROR;
+	}
+
+	int verify = is->variable->value->invoke_verify(
+	    is->variable->value,
+	    is->parameters,
+	    config,
+	    errors);
+
+	if(verify != ESSTEE_OK)
+	{
+	    return verify;
+	}
+
+    }
+    else if(!is->function)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "no variable or function referenced",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    is->location);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
+
+int st_invoke_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+
+    if(is->variable && is->variable->value->invoke_reset)
+    {
+	int reset = 
+	    is->variable->value->invoke_reset(is->variable->value);
+
+	if(reset != ESSTEE_OK)
+	{
+	    return reset;
+	}
+    }
+    
+    is->invoke_state = 0;
+    if(is->parameters)
+    {
+	is->parameters->invoke_state = 0;
+    }
+    
+    return ESSTEE_OK;
+}
+
+struct invoke_iface_t * st_invoke_statement_clone(
+    struct invoke_iface_t *self)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+
+    struct invoke_statement_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct invoke_statement_t,
+	error_free_resources);
+
+    memcpy(copy, is, sizeof(struct invoke_statement_t));
+    
+    copy->invoke.destroy = st_invoke_statement_clone_destroy;
+
+    return &(copy->invoke);
+
+error_free_resources:
+    return NULL;
+}
+
+void st_invoke_statement_destroy(
+    struct invoke_iface_t *self)
+{
+    /* struct invoke_statement_t *is = */
+    /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
+
+    /* TODO: invoke destructor */
+}
+
+void st_invoke_statement_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* struct invoke_statement_t *is = */
+    /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
+
+    /* TODO: clone destructor invoke statement */
 }

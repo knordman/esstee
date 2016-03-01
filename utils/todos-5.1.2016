@@ -31,7 +31,6 @@ unsorted
 116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
 117 /* TODO: only used for case structure, not a value */ ../src/parser/pvalues.c
 119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
-7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h
 9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
 10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
 11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
@@ -197,3 +196,4 @@ DONE 98 /* TODO: function block type location */ ../src/elements/types.c
 DONE 99 /* TODO: function block type create value of */ ../src/elements/types.c
 DONE 100 /* TODO: function block type reset value of */ ../src/elements/types.c
 DONE 102 /*TODO: functions for string type with defined length */ ../src/elements/types.c
+DONE 7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h

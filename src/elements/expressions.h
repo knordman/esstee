@@ -124,7 +124,8 @@ int st_qualified_identifier_term_step(
     struct errors_iface_t *errors);
 
 int st_qualified_identifier_term_reset(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
 
 const struct value_iface_t * st_qualified_identifier_term_return_value(
     struct expression_iface_t *self);
@@ -198,7 +199,8 @@ struct binary_expression_t {
 };
 
 int st_binary_expression_reset(
-	struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
 
 const struct st_location_t * st_binary_expression_location(
     const struct invoke_iface_t *self);

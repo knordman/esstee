@@ -20,6 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <linker/linker.h>
 #include <elements/types.h>
 #include <elements/values.h>
+#include <elements/pous.h>
 #include <util/bitflag.h>
 #include <util/macros.h>
 
@@ -341,5 +342,76 @@ int st_struct_element_type_name_resolved(
 
     se->element_type = (struct type_iface_t *)target;
     
+    return ESSTEE_OK;
+}
+
+int st_check_function_block_type_refs(
+    struct function_block_t *fb,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct variable_t *itr = NULL;
+    DL_FOREACH(fb->header->variables, itr)
+    {
+	st_bitflag_t type_class = itr->type->class(itr->type, config);
+
+	if(ST_FLAG_IS_SET(type_class, FB_TYPE))
+	{
+	    struct type_iface_t *var_type = itr->type;
+	    if(ST_FLAG_IS_SET(type_class, DERIVED_TYPE))
+	    {
+		struct derived_type_t *dt =
+		    (struct derived_type_t *)itr->type;
+
+		var_type = dt->ancestor;
+	    }
+	    
+	    struct function_block_t *ref_fb =
+		CONTAINER_OF(var_type, struct function_block_t, type);
+
+	    struct variable_t *found = NULL;
+	    HASH_FIND_STR(ref_fb->header->variables, itr->identifier, found);
+	    if(found && itr == found)
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "variable cannot have its container type as type",
+		    ISSUE_ERROR_CLASS,
+		    1,
+		    itr->identifier_location);
+		return ESSTEE_ERROR;
+	    }
+	    
+	    struct variable_t *vitr = NULL;
+	    DL_FOREACH(ref_fb->header->variables, vitr)
+	    {
+		st_bitflag_t fb_var_type_class = vitr->type->class(vitr->type, config);
+
+		if(ST_FLAG_IS_SET(fb_var_type_class, FB_TYPE))
+		{
+		    struct type_iface_t *fb_var_type = vitr->type;
+		    if(ST_FLAG_IS_SET(fb_var_type_class, DERIVED_TYPE))
+		    {
+			struct derived_type_t *dt =
+			    (struct derived_type_t *)itr->type;
+
+			fb_var_type = dt->ancestor;
+		    }
+
+		    if(fb_var_type == &(fb->type))
+		    {
+			errors->new_issue_at(
+			    errors,
+			    "circular reference",
+			    ISSUE_ERROR_CLASS,
+			    1,
+			    itr->identifier_location);
+			return ESSTEE_ERROR;
+		    }
+		}
+	    }
+	}
+    }
+
     return ESSTEE_OK;
 }

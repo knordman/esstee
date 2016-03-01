@@ -1930,7 +1930,7 @@ struct value_iface_t * st_function_block_type_create_value_of(
     
     struct variable_t *vitr = NULL;
     struct variable_t *variable_copies = NULL;
-    DL_FOREACH(fb->header->variables, vitr)
+    for(vitr = fb->header->variables; vitr != NULL; vitr = vitr->hh.next)
     {
 	struct variable_t *copy = NULL;
 	ALLOC_OR_JUMP(
@@ -1946,26 +1946,24 @@ struct value_iface_t * st_function_block_type_create_value_of(
 	DL_APPEND(variable_copies, copy);
     }
     
-    struct variable_t *variable_table =
+    struct variable_t *variable_copies_table =
 	st_link_variables(variable_copies, NULL, NULL);
 
-    st_resolve_var_refs(fb->var_ref_pool, variable_table);
+    fb->var_ref_pool->reset_resolved(fb->var_ref_pool);
+    st_resolve_var_refs(fb->var_ref_pool, variable_copies_table);
 
     fb->var_ref_pool->trigger_resolve_callbacks(fb->var_ref_pool,
 						NULL,
 						config);
 
     /* Create values of variables */
-    DL_FOREACH(fb->header->variables, vitr)
+    for(struct variable_t *vitr = variable_copies_table;
+	vitr != NULL;
+	vitr = vitr->hh.next)
     {
-	for(struct variable_t *vitr = variable_copies;
-	    vitr != NULL;
-	    vitr = vitr->hh.next)
+	if((vitr->value = vitr->type->create_value_of(vitr->type, config)) == NULL)
 	{
-	    if((vitr->value = vitr->type->create_value_of(vitr->type, config)) == NULL)
-	    {
-		goto error_free_resources;
-	    }
+	    goto error_free_resources;
 	}
     }
     
@@ -1980,11 +1978,16 @@ struct value_iface_t * st_function_block_type_create_value_of(
 	    goto error_free_resources;
 	}
 
+	copy->next = NULL;
+	copy->prev = NULL;
+	copy->call_stack_prev = NULL;
+	copy->call_stack_next = NULL;
+	
 	DL_APPEND(statement_copies, copy);
     }
 
     fbv->type = self;
-    fbv->variables = variable_copies;
+    fbv->variables = variable_copies_table;
     fbv->statements = statement_copies;
 
     memset(&(fbv->value), 0, sizeof(struct value_iface_t));
@@ -1993,6 +1996,9 @@ struct value_iface_t * st_function_block_type_create_value_of(
     fbv->value.type_of = st_function_block_value_type_of;
     fbv->value.destroy = st_function_block_value_destroy;
     fbv->value.sub_variable = st_function_block_value_sub_variable;
+    fbv->value.invoke_verify = st_function_block_value_invoke_verify;
+    fbv->value.invoke_step = st_function_block_value_invoke_step;
+    fbv->value.invoke_reset = st_function_block_value_invoke_reset;
 
     return &(fbv->value);
     
@@ -2022,7 +2028,7 @@ int st_function_block_type_reset_value_of(
     struct invoke_iface_t *sitr = NULL;
     DL_FOREACH(fv->statements, sitr)
     {
-	int reset = sitr->reset(sitr);
+	int reset = sitr->reset(sitr, config);
 	if(reset != ESSTEE_OK)
 	{
 	    return reset;

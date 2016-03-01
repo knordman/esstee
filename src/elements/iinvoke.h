@@ -48,7 +48,8 @@ struct invoke_iface_t {
 	struct errors_iface_t *errors);
 
     int (*reset)(
-	struct invoke_iface_t *self);
+	struct invoke_iface_t *self,
+	const struct config_iface_t *config);
 
     struct invoke_iface_t * (*clone)(
     	struct invoke_iface_t *self);

@@ -256,7 +256,8 @@ const struct st_location_t * st_qualified_identifier_term_location(
 }
 
 int st_qualified_identifier_term_reset(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -264,7 +265,7 @@ int st_qualified_identifier_term_reset(
     struct qualified_identifier_term_t *qit
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
 
-    int reset = st_qualified_identifier_reset(qit->identifier);
+    int reset = st_qualified_identifier_reset(qit->identifier, config);
     if(reset != ESSTEE_OK)
     {
 	return reset;
@@ -503,15 +504,13 @@ static int be_step_operands(
 {
     if(be->invoke_state == 0 && be->left_operand->invoke.step)
     {
-	DL_APPEND(cursor->call_stack, &(be->left_operand->invoke));
-	cursor->current = &(be->left_operand->invoke);
+	st_switch_current(cursor, &(be->left_operand->invoke), config);
 	be->invoke_state = 1;
 	return INVOKE_RESULT_IN_PROGRESS;
     }
     else if(be->invoke_state == 1 && be->right_operand->invoke.step)
     {
-	DL_APPEND(cursor->call_stack, &(be->right_operand->invoke));
-	cursor->current = &(be->right_operand->invoke);
+	st_switch_current(cursor, &(be->right_operand->invoke), config);
 	be->invoke_state = 1;
 	return INVOKE_RESULT_IN_PROGRESS;
     }    
@@ -598,7 +597,8 @@ static int be_step_operands(
     } while(0)
 
 int st_binary_expression_reset(
-	struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -611,7 +611,7 @@ int st_binary_expression_reset(
     if(be->left_operand->invoke.reset)
     {
 	int left_reset = be->left_operand->invoke.reset(
-	    &(be->left_operand->invoke));
+	    &(be->left_operand->invoke), config);
 
 	if(left_reset != ESSTEE_OK)
 	{
@@ -622,7 +622,7 @@ int st_binary_expression_reset(
     if(be->right_operand->invoke.reset)
     {
 	int right_reset = be->right_operand->invoke.reset(
-	    &(be->right_operand->invoke));
+	    &(be->right_operand->invoke), config);
 
 	if(right_reset != ESSTEE_OK)
 	{

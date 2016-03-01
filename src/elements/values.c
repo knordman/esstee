@@ -20,6 +20,8 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/values.h>
 #include <util/macros.h>
 #include <elements/shared.h>
+#include <rt/cursor.h>
+#include <linker/linker.h>
 
 #include <utlist.h>
 #include <stdio.h>
@@ -158,7 +160,7 @@ int st_integer_value_compares_and_operates(
     
     if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
-	if(other_value->type_of)
+	if(other_value->type_of && iv->type)
 	{
 	    const struct type_iface_t *other_value_type =
 		other_value->type_of(other_value);
@@ -1995,18 +1997,66 @@ struct variable_t * st_function_block_value_sub_variable(
     return found;
 }
 
-int st_function_block_invoke(
+int st_function_block_value_invoke_step(
     struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
     struct errors_iface_t *errors)
 {
-    struct function_block_value_t *fv =
+    struct function_block_value_t *fbv =
 	CONTAINER_OF(self, struct function_block_value_t, value);
 
-    DL_APPEND(cursor->call_stack, fv->statements);
-    cursor->current = fv->statements;
+    if(fbv->invoke_state > 0)
+    {
+	return INVOKE_RESULT_FINISHED;
+    }
+    
+    int input_assign = st_assign_from_invoke_parameters(parameters,
+							fbv->variables,
+							config,
+							errors);
+    if(input_assign != ESSTEE_OK)
+    {
+	return INVOKE_RESULT_ERROR;
+    }
+
+    fbv->invoke_state = 1;
+    
+    st_switch_current(cursor, fbv->statements, config);
 
     return INVOKE_RESULT_IN_PROGRESS;
+}
+
+int st_function_block_value_invoke_verify(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct function_block_value_t *fbv =
+	CONTAINER_OF(self, struct function_block_value_t, value);
+
+    int parameters_verify = st_verify_invoke_parameters(parameters,
+							fbv->variables,
+							errors,
+							config);
+    if(parameters_verify != ESSTEE_OK)
+    {
+	return parameters_verify;
+    }
+
+    return st_verify_statements(fbv->statements, config, errors);
+}
+
+int st_function_block_value_invoke_reset(
+    struct value_iface_t *self)
+{
+    struct function_block_value_t *fbv =
+	CONTAINER_OF(self, struct function_block_value_t, value);
+
+    fbv->invoke_state = 0;
+
+    return ESSTEE_OK;
 }

@@ -17,23 +17,23 @@ You should have received a copy of the GNU General Public License
 along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include <rt/cursor.h>
+#include <elements/iinvoke.h>
 
-#include <esstee/locations.h>
-#include <util/iconfig.h>
+#include <utlist.h>
 
-struct invoke_iface_t;
-
-struct cursor_t {
-
-    struct invoke_iface_t *call_stack;
-    struct invoke_iface_t *current;
-    
-};
 
 void st_switch_current(
     struct cursor_t *cursor,
     struct invoke_iface_t *switch_to,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config)
+{
+    /* Prepare a new run of the invoke switched to */
+    switch_to->reset(switch_to, config);
     
-    
+    DL_PREPEND2(cursor->call_stack,
+		cursor->current,
+		call_stack_prev,
+		call_stack_next);
+    cursor->current = switch_to;
+}

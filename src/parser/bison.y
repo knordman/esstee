@@ -1128,7 +1128,7 @@ IDENTIFIER ASSIGN expression
 }
 | expression
 {
-    if(($$ = st_new_invoke_parameter(NULL, NULL, $1, parser)) == NULL)
+    if(($$ = st_new_invoke_parameter(NULL, &@1, $1, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;

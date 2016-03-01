@@ -82,7 +82,8 @@ int st_qualified_identifier_step(
     const struct config_iface_t *config);
 
 int st_qualified_identifier_reset(
-    struct qualified_identifier_t *qi);
+    struct qualified_identifier_t *qi,
+    const struct config_iface_t *config);
 
 void st_destroy_qualified_identifier(
     struct qualified_identifier_t *qi);
@@ -94,6 +95,28 @@ struct invoke_parameter_t {
     char *identifier;
     struct expression_iface_t *expression;
     struct st_location_t *location;
+    int invoke_state;
     struct invoke_parameter_t *prev;
     struct invoke_parameter_t *next;
 };
+
+int st_verify_invoke_parameters(
+    struct invoke_parameter_t *parameters,
+    const struct variable_t *variables,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
+int st_step_invoke_parameters(
+    struct invoke_parameter_t *parameters,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_assign_from_invoke_parameters(
+    struct invoke_parameter_t *parameters,
+    struct variable_t *variables,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+    
+    

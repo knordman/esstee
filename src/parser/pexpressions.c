@@ -253,6 +253,7 @@ static struct expression_iface_t * new_binary_expression(
     be->expression.invoke.step = step_function;
     be->expression.invoke.verify = verify_function;
     be->expression.invoke.location = st_binary_expression_location;
+    be->expression.invoke.reset = st_binary_expression_reset;
     be->expression.return_value = st_binary_expression_return_value;
     be->expression.runtime_constant = st_binary_expression_runtime_constant;
     be->expression.clone = st_binary_expression_clone;

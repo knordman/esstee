@@ -182,12 +182,60 @@ error_free_resources:
 /**************************************************************************/
 struct invoke_iface_t * st_new_invoke_statement(
     char *identifier,
-    const struct st_location_t *identfier_location,
+    const struct st_location_t *identifier_location,
     struct invoke_parameter_t *invoke_parameters,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new invoke statement */
+    struct invoke_statement_t *is = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	is,
+	struct invoke_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	identifier_location,
+	parser->errors,
+	error_free_resources);
+
+    if(parser->pou_var_ref_pool->add(
+	   parser->pou_var_ref_pool,
+	   identifier,
+	   is,
+	   NULL,
+	   identifier_location,
+	   st_invoke_statement_as_variable_resolved) != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    if(parser->function_ref_pool->add(
+	   parser->function_ref_pool,
+	   identifier,
+	   is,
+	   NULL,
+	   identifier_location,
+	   st_invoke_statement_as_func_resolved) != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    is->location = loc;
+    is->parameters = invoke_parameters;
+    is->invoke.location = st_invoke_statement_location;
+    is->invoke.step = st_invoke_statement_step;
+    is->invoke.verify = st_invoke_statement_verify;
+    is->invoke.reset = st_invoke_statement_reset;
+    is->invoke.clone = st_invoke_statement_clone;
+    is->invoke.destroy = st_invoke_statement_destroy;
+
+    return &(is->invoke);
+    
+error_free_resources:
+    free(is);
+    free(loc);
     return NULL;
 }
 

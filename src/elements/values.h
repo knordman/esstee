@@ -626,6 +626,7 @@ struct function_block_value_t {
     struct variable_t *variables;
     struct invoke_iface_t *statements;
     const struct type_iface_t *type;
+    int invoke_state;
 };
 
 int st_function_block_value_display(
@@ -645,12 +646,22 @@ struct variable_t * st_function_block_value_sub_variable(
     const char *identifier,
     const struct config_iface_t *config);
 
-int st_function_block_invoke(
+int st_function_block_value_invoke_verify(
     struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_function_block_value_invoke_step(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
+
+int st_function_block_value_invoke_reset(
+    struct value_iface_t *self);
 
 /**************************************************************************/
 /* Inline values                                                          */

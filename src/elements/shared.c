@@ -1,5 +1,5 @@
 /*
-eCopyright (C) 2015 Kristian Nordman
+Copyright (C) 2015 Kristian Nordman
 
 This file is part of esstee. 
 
@@ -243,10 +243,7 @@ int st_qualified_identifier_step(
 		/* Push to call stack (to be stepped), when stepping is
 		 * complete, index has been evaluated (=increase state) */
 		qi->invoke_state++;
-
-		DL_APPEND(cursor->call_stack, &(itr->index_expression->invoke));
-		cursor->current = &(itr->index_expression->invoke);
-
+		st_switch_current(cursor, &(itr->index_expression->invoke), config);
 		return INVOKE_RESULT_IN_PROGRESS;
 	    }
 	    else
@@ -271,7 +268,8 @@ int st_qualified_identifier_step(
 
 
 int st_qualified_identifier_reset(
-    struct qualified_identifier_t *qi)
+    struct qualified_identifier_t *qi,
+    const struct config_iface_t *config)
 {
     qi->invoke_state = 0;
 
@@ -281,7 +279,7 @@ int st_qualified_identifier_reset(
 	if(itr->index_expression->invoke.step)
 	{
 	    int reset = itr->index_expression->invoke.reset(
-		&(itr->index_expression->invoke));
+		&(itr->index_expression->invoke), config);
 
 	    if(reset != ESSTEE_OK)
 	    {
@@ -297,4 +295,170 @@ void st_destroy_qualified_identifier(
     struct qualified_identifier_t *qi)
 {
     /* TODO: destructor for qualified identifier */
+}
+
+/**************************************************************************/
+/* Invoke parameters                                                      */
+/**************************************************************************/
+int st_verify_invoke_parameters(
+    struct invoke_parameter_t *parameters,
+    const struct variable_t *variables,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    int verified = ESSTEE_OK;
+    struct variable_t *found = NULL;
+    struct invoke_parameter_t *itr = NULL;
+    DL_FOREACH(parameters, itr)
+    {
+	if(!itr->identifier)	/* TODO: process parameters without identifier */
+	{
+	    verified = ESSTEE_ERROR;
+	    errors->new_issue_at(
+		errors,
+		"input variables must be referred to by name",
+		ISSUE_ERROR_CLASS,
+		1,
+		itr->location);
+
+	    continue;
+	}
+	
+	HASH_FIND_STR(variables, itr->identifier, found);
+	if(!found)
+	{
+	    verified = ESSTEE_ERROR;
+	    errors->new_issue_at(
+		errors,
+		"no such variable defined",
+		ISSUE_ERROR_CLASS,
+		1,
+		itr->location);
+
+	    continue;
+	}
+
+	if(!ST_FLAG_IS_SET(found->class, INPUT_VAR_CLASS))
+	{
+	    verified = ESSTEE_ERROR;
+	    errors->new_issue_at(
+		errors,
+		"the variable is not an input variable",
+		ISSUE_ERROR_CLASS,
+		1,
+		itr->location);
+
+	    continue;
+	}
+
+	if(itr->expression->invoke.verify)
+	{
+	    int expression_verified = itr->expression->invoke.verify(
+		&(itr->expression->invoke),
+		config,
+		errors);
+	    if(expression_verified != ESSTEE_OK)
+	    {
+		verified = ESSTEE_ERROR;
+	    }
+
+	    continue;
+	}
+
+	const struct value_iface_t *assign_value =
+	    itr->expression->return_value(itr->expression);
+
+	int variable_assignable = found->value->assignable_from(found->value,
+								assign_value,
+								config);
+	
+	if(variable_assignable != ESSTEE_TRUE)
+	{
+	    verified = ESSTEE_ERROR;
+	    errors->new_issue_at(
+		errors,
+		"the input variable cannot be assigned from this value",
+		ISSUE_ERROR_CLASS,
+		1,
+		itr->location);
+	}
+    }
+
+    return verified;
+}
+
+int st_step_invoke_parameters(
+    struct invoke_parameter_t *parameters,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct invoke_parameter_t *itr = NULL;
+    int skipped = 0;
+    DL_FOREACH(parameters, itr)
+    {
+	if(skipped >= parameters->invoke_state)
+	{
+	    break;
+	}
+
+	skipped++;
+    }
+
+    /* Check if the ones left need to be stepped */
+    for(; itr != NULL; itr = itr->next)
+    {
+	if(itr->expression->invoke.step)
+	{
+	    parameters->invoke_state++;
+	    st_switch_current(cursor, &(itr->expression->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+	else
+	{
+	    parameters->invoke_state++;
+	}
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_assign_from_invoke_parameters(
+    struct invoke_parameter_t *parameters,
+    struct variable_t *variables,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct variable_t *found = NULL;
+    struct invoke_parameter_t *itr = NULL;
+    DL_FOREACH(parameters, itr)
+    {
+	/* TODO: handle assignemnts without identifier */
+	HASH_FIND_STR(variables, itr->identifier, found);
+	if(found)
+	{
+	    const struct value_iface_t *parameter_value =
+		itr->expression->return_value(itr->expression);
+	    
+	    int assign = found->value->assign(found->value,
+					      parameter_value,
+					      config);
+
+	    if(assign != ESSTEE_OK)
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "variable assignment from value failed",
+		    ISSUE_ERROR_CLASS,
+		    1,
+		    itr->location);
+
+		return ESSTEE_ERROR;
+	    }
+
+	}
+    }
+
+    return ESSTEE_OK;
 }

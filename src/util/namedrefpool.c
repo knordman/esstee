@@ -262,7 +262,8 @@ int st_named_ref_pool_resolve_with_remark(
 int st_named_ref_pool_reset_resolved(
     struct namedreference_iface_t *self)
 {
-    struct named_ref_pool_t *np = CONTAINER_OF(self, struct named_ref_pool_t, named_ref);
+    struct named_ref_pool_t *np =
+	CONTAINER_OF(self, struct named_ref_pool_t, named_ref);
 
     struct named_ref_entry_t *itr = NULL;
 
