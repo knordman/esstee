@@ -10,9 +10,8 @@ building better testing and debug tools for ST applications.
 
 esstee is licensed under GPLv3. Besides Bison and Flex, esstee has no
 external dependencies besides the header libraries included in the
-source. Unit tests are written using Catch (and thus compiled under
-C++11). Compiling has so far only been tested under Debian, but should
-work without problems in any Linux distro. 
+source. Compiling has so far only been tested under Debian, but should
+work without problems in any Linux distro.
 
 ## Quick Start
 
