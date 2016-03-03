@@ -35,10 +35,6 @@ unsorted
 10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
 11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
 12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
-8 /*TODO: if statements invoke functions */ ../src/elements/statements.h
-142 /* TODO: new if statement */ ../src/parser/pstatements.c
-143 /* TODO: append else if to if */ ../src/parser/pstatements.c
-144 /* TODO: new if statement */ ../src/parser/pstatements.c
 145 /* TODO: append case value to case */ ../src/parser/pstatements.c
 146 /* TODO: new case */ ../src/parser/pstatements.c
 147 /* TODO: append case to case conditional */ ../src/parser/pstatements.c
@@ -197,3 +193,7 @@ DONE 99 /* TODO: function block type create value of */ ../src/elements/types.c
 DONE 100 /* TODO: function block type reset value of */ ../src/elements/types.c
 DONE 102 /*TODO: functions for string type with defined length */ ../src/elements/types.c
 DONE 7 /*TODO: invoke statement invoke functions */ ../src/elements/statements.h
+DONE 8 /*TODO: if statements invoke functions */ ../src/elements/statements.h
+DONE 142 /* TODO: new if statement */ ../src/parser/pstatements.c
+DONE 143 /* TODO: append else if to if */ ../src/parser/pstatements.c
+DONE 144 /* TODO: new if statement */ ../src/parser/pstatements.c
