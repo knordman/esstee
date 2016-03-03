@@ -187,15 +187,41 @@ void st_invoke_statement_clone_destroy(
 /**************************************************************************/
 struct if_statement_t {
     struct invoke_iface_t invoke;
-
     struct expression_iface_t *condition;
-
+    struct st_location_t *location;
     struct invoke_iface_t *true_statements;
     struct if_statement_t *elsif;
     struct invoke_iface_t *else_statements;
+    int invoke_state;
 };
 
-/* TODO: if statements invoke functions */
+const struct st_location_t * st_if_statement_location(
+    const struct invoke_iface_t *self);
+    
+int st_if_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_if_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_if_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+struct invoke_iface_t * st_if_statement_clone(
+    struct invoke_iface_t *self);
+
+void st_if_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_if_statement_clone_destroy(
+    struct invoke_iface_t *self);
 
 /**************************************************************************/
 /* While statement                                                        */

@@ -249,7 +249,37 @@ struct if_statement_t * st_new_elsif_clause(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new if statement */
+    struct if_statement_t *ifs = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ifs,
+	struct if_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ifs->condition = condition;
+    ifs->location = loc;
+    ifs->true_statements = true_statements;
+    ifs->else_statements = NULL;
+    ifs->elsif = NULL;
+
+    ifs->invoke.location = st_if_statement_location;
+    ifs->invoke.step = st_if_statement_step;
+    ifs->invoke.verify = st_if_statement_verify;
+    ifs->invoke.reset = st_if_statement_reset;
+    ifs->invoke.clone = st_if_statement_clone;
+    ifs->invoke.destroy = st_if_statement_destroy;
+	
+    return ifs;
+    
+error_free_resources:
+    free(ifs);
+    free(loc);
     return NULL;
 }
 
@@ -259,8 +289,19 @@ struct if_statement_t * st_append_elsif_clause(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: append else if to if */
-    return NULL;
+    if(!elsif_clauses)
+    {
+	return elsif_clause;
+    }
+    else
+    {
+	struct if_statement_t *itr = elsif_clauses;
+	for(; itr->elsif != NULL; itr = itr->elsif){}
+
+	itr->elsif = elsif_clause;
+    }
+
+    return elsif_clauses;
 }
 
 struct invoke_iface_t * st_new_if_statement(
@@ -272,7 +313,38 @@ struct invoke_iface_t * st_new_if_statement(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new if statement */
+    struct if_statement_t *ifs = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ifs,
+	struct if_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ifs->condition = condition;
+    ifs->location = loc;
+    ifs->true_statements = true_statements;
+    ifs->elsif = elsif_clauses;
+    struct if_statement_t *itr = ifs;
+    for(; itr->elsif != NULL; itr = itr->elsif){}
+    itr->else_statements = else_statements;
+
+    ifs->invoke.location = st_if_statement_location;
+    ifs->invoke.step = st_if_statement_step;
+    ifs->invoke.verify = st_if_statement_verify;
+    ifs->invoke.reset = st_if_statement_reset;
+    ifs->invoke.clone = st_if_statement_clone;
+    ifs->invoke.destroy = st_if_statement_destroy;
+	
+    return &(ifs->invoke);
+    
+error_free_resources:
+    /* TODO: determine what to destroy  */
     return NULL;
 }
 

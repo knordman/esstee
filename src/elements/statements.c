@@ -573,41 +573,38 @@ int st_invoke_statement_step(
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    if(is->invoke_state == 2)
+    switch(is->invoke_state)
     {
-	return INVOKE_RESULT_FINISHED;
-    }
-    
-    if(is->parameters && is->invoke_state == 0)
-    {
-	int step_result = st_step_invoke_parameters(is->parameters,
+    case 0:
+	if(is->parameters)
+	{
+	    is->invoke_state = 1;
+	    int step_result = st_step_invoke_parameters(is->parameters,
+							cursor,
+							time,
+							config,
+							errors);
+	    if(step_result != INVOKE_RESULT_FINISHED)
+	    {
+		return step_result;
+	    }
+	}
+
+    case 1:
+	if(is->variable)
+	{
+	    is->invoke_state = 2;
+	    return is->variable->value->invoke_step(is->variable->value,
+						    is->parameters,
 						    cursor,
 						    time,
 						    config,
 						    errors);
-	if(step_result != INVOKE_RESULT_FINISHED)
-	{
-	    return step_result;
 	}
-	else
-	{
-	    is->invoke_state = 1;
-	}
-    }
-    else
-    {
-	is->invoke_state = 1;
-    }
-
-    if(is->variable)
-    {
-	is->invoke_state = 2;
-	return is->variable->value->invoke_step(is->variable->value,
-						is->parameters,
-						cursor,
-						time,
-						config,
-						errors);
+	
+    case 2:
+    default:
+	break;
     }
     
     return INVOKE_RESULT_FINISHED;
@@ -737,4 +734,290 @@ void st_invoke_statement_clone_destroy(
     /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
 
     /* TODO: clone destructor invoke statement */
+}
+
+/**************************************************************************/
+/* If statements                                                          */
+/**************************************************************************/
+const struct st_location_t * st_if_statement_location(
+    const struct invoke_iface_t *self)
+{
+    struct if_statement_t *ifs =
+	CONTAINER_OF(self, struct if_statement_t, invoke);
+
+    return ifs->location;
+}
+    
+int st_if_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct if_statement_t *ifs =
+	CONTAINER_OF(self, struct if_statement_t, invoke);
+
+    switch(ifs->invoke_state)
+    {
+    case 0:
+	if(ifs->condition->invoke.step)
+	{
+	    ifs->invoke_state = 1;
+	    st_switch_current(cursor, &(ifs->condition->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1: {
+	const struct value_iface_t *condition_value =
+	    ifs->condition->return_value(ifs->condition);
+
+	int current_condition = condition_value->bool(condition_value, config);
+
+	ifs->invoke_state = 2;
+	
+	if(current_condition == ESSTEE_TRUE)
+	{
+	    st_switch_current(cursor, ifs->true_statements, config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+	else if(ifs->elsif)
+	{
+	    st_switch_current(cursor, &(ifs->elsif->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+	else
+	{
+	    st_switch_current(cursor, ifs->else_statements, config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+    }
+
+    case 2:
+    default:
+	break;
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_if_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct if_statement_t *ifs =
+	CONTAINER_OF(self, struct if_statement_t, invoke);
+
+    if(ifs->condition->invoke.verify)
+    {
+	int condition_verify =
+	    ifs->condition->invoke.verify(&(ifs->condition->invoke),
+					  config,
+					  errors);
+	if(condition_verify != ESSTEE_OK)
+	{
+	    return condition_verify;
+	}
+    }
+
+    const struct value_iface_t *condition_value =
+	ifs->condition->return_value(ifs->condition);
+
+    if(!condition_value->bool)
+    {
+	errors->new_issue_at(errors,
+			     "condition cannot be interpreted as true or false",
+			     ISSUE_ERROR_CLASS,
+			     1,
+			     ifs->location);
+	return ESSTEE_ERROR;
+    }
+    
+    struct invoke_iface_t *true_itr;
+    DL_FOREACH(ifs->true_statements, true_itr)
+    {
+	if(true_itr->verify(true_itr, config, errors) != ESSTEE_OK)
+	{
+	    return ESSTEE_ERROR;
+	}
+    }
+
+    if(ifs->elsif)
+    {
+	return st_if_statement_verify(&(ifs->elsif->invoke),
+				      config,
+				      errors);
+    }
+    else if(ifs->else_statements)
+    {
+	struct invoke_iface_t *else_itr;
+	DL_FOREACH(ifs->else_statements, else_itr)
+	{
+	    if(else_itr->verify(else_itr, config, errors) != ESSTEE_OK)
+	    {
+		return ESSTEE_ERROR;
+	    }
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_if_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct if_statement_t *ifs =
+	CONTAINER_OF(self, struct if_statement_t, invoke);
+
+    ifs->invoke_state = 0;
+
+    if(ifs->condition->invoke.reset)
+    {
+	int reset_result
+	    = ifs->condition->invoke.reset(&(ifs->condition->invoke),
+					   config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    struct invoke_iface_t *true_itr = NULL;
+    DL_FOREACH(ifs->true_statements, true_itr)
+    {
+	int reset_result = true_itr->reset(true_itr, config);
+
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    if(ifs->elsif)
+    {
+	return ifs->elsif->invoke.reset(&(ifs->elsif->invoke),
+					config);
+    }
+    else if(ifs->else_statements)
+    {
+	struct invoke_iface_t *else_itr;
+	DL_FOREACH(ifs->else_statements, else_itr)
+	{
+	    if(else_itr->reset(else_itr, config) != ESSTEE_OK)
+	    {
+		return ESSTEE_ERROR;
+	    }
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+struct invoke_iface_t * st_if_statement_clone(
+    struct invoke_iface_t *self)
+{
+    struct if_statement_t *ifs =
+	CONTAINER_OF(self, struct if_statement_t, invoke);
+
+    struct if_statement_t *copy = NULL;
+    struct expression_iface_t *condition_copy = NULL;
+    struct invoke_iface_t *true_statements_copy = NULL;
+    struct invoke_iface_t *else_statements_copy = NULL;
+    struct invoke_iface_t *destroy_itr = NULL;
+    struct invoke_iface_t *tmp = NULL;
+    
+    ALLOC_OR_JUMP(
+	copy,
+	struct if_statement_t,
+	error_free_resources);
+
+    memcpy(copy, ifs, sizeof(struct if_statement_t));
+
+    if(ifs->condition->clone)
+    {
+	condition_copy = ifs->condition->clone(ifs->condition);
+
+	if(!condition_copy)
+	{
+	    goto error_free_resources;
+	}
+    }
+
+    struct invoke_iface_t *true_itr = NULL;
+    DL_FOREACH(ifs->true_statements, true_itr)
+    {
+	struct invoke_iface_t *statement_copy = true_itr->clone(true_itr);
+
+	if(!statement_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	DL_APPEND(true_statements_copy, statement_copy);
+    }
+
+    if(ifs->elsif)
+    {
+	struct invoke_iface_t *elsif_copy_invoke =
+	    ifs->elsif->invoke.clone(&(ifs->elsif->invoke));
+
+	if(!elsif_copy_invoke)
+	{
+	    goto error_free_resources;
+	}
+
+	struct if_statement_t *elsif_copy =
+	    CONTAINER_OF(elsif_copy_invoke, struct if_statement_t, invoke);
+
+	copy->elsif = elsif_copy;
+    }
+    else if(ifs->else_statements)
+    {
+	struct invoke_iface_t *else_itr;
+	DL_FOREACH(ifs->else_statements, else_itr)
+	{
+	    struct invoke_iface_t *statement_copy = else_itr->clone(else_itr);
+
+	    if(!statement_copy)
+	    {
+		goto error_free_resources;
+	    }
+
+	    DL_APPEND(else_statements_copy, statement_copy);
+	}
+    }
+    
+    copy->true_statements = true_statements_copy;
+    copy->else_statements = else_statements_copy;
+
+    copy->invoke.destroy = st_if_statement_clone_destroy;
+    
+    return &(copy->invoke);
+    
+error_free_resources:
+    DL_FOREACH_SAFE(true_statements_copy, destroy_itr, tmp)
+    {
+	free(destroy_itr);
+    }
+    DL_FOREACH_SAFE(else_statements_copy, destroy_itr, tmp)
+    {
+	free(destroy_itr);
+    }
+    free(copy);
+    free(condition_copy);
+    return NULL;
+}
+
+void st_if_statement_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: if statement destructor */
+}
+
+void st_if_statement_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: if statement clone destructor */
 }

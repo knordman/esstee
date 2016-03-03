@@ -240,6 +240,9 @@ const struct value_iface_t * st_qualified_identifier_term_return_value(
     struct qualified_identifier_term_t *qit = CONTAINER_OF(
 	self, struct qualified_identifier_term_t, expression);
 
+    /* TODO: return a valid value (for verification) even though the
+     * array index is !runtime constant? */
+    
     return qit->identifier->target;
 }
 

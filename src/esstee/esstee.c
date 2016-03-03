@@ -747,6 +747,7 @@ const struct st_location_t * st_step(
     struct st_t *st)
 {
     struct invoke_iface_t *start = st->cursor.current;
+    int start_result = INVOKE_RESULT_IN_PROGRESS;
 
     do
     {
@@ -757,6 +758,11 @@ const struct st_location_t * st_step(
 	    st->config,
 	    st->errors);
 
+	if(st->cursor.current == start)
+	{
+	    start_result = invoke_result;
+	}
+
 	if(invoke_result == INVOKE_RESULT_ERROR)
 	{
 	    return NULL;
@@ -766,7 +772,7 @@ const struct st_location_t * st_step(
 	    set_cursor_to_next(st->cursor.current, st);
 	}
     }
-    while(st->cursor.current->prev != start);
+    while(start_result != INVOKE_RESULT_FINISHED);
     
     return st->cursor.current->location(st->cursor.current);
 }
