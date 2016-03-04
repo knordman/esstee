@@ -175,11 +175,12 @@ union YYSTYPE
     struct invoke_parameter_t *invoke_parameter;
     struct case_t *case_clause;
     struct if_statement_t *if_statement;
+    struct case_list_element_t *case_list;
     
     st_bitflag_t bitflag;
     int64_t integer;
 
-#line 183 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 184 "src/parser/bison.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

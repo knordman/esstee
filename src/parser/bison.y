@@ -118,6 +118,7 @@ void yyerror(
     struct invoke_parameter_t *invoke_parameter;
     struct case_t *case_clause;
     struct if_statement_t *if_statement;
+    struct case_list_element_t *case_list;
     
     st_bitflag_t bitflag;
     int64_t integer;
@@ -277,7 +278,7 @@ void yyerror(
 %type	<invoke>	else_clause
 %type	<case_clause>	cases
 %type	<case_clause>	a_case
-%type	<value>		case_list
+%type	<case_list>	case_list
 %type	<value>		case_list_element
 
 %destructor {printf("freeing: %s\n", $$);/*free($$);*/} <string>
@@ -1268,7 +1269,7 @@ a_case
 a_case :
 case_list ':' statements
 {
-    if(($$ = st_new_case($1, $3, parser)) == NULL)
+    if(($$ = st_new_case($1, &@1, $3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -1276,12 +1277,12 @@ case_list ':' statements
 case_list :
 case_list_element
 {
-    if(($$ = st_append_case_value(NULL, $1, parser)) == NULL)
+    if(($$ = st_append_case_value(NULL, $1, &@1, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | case_list ',' case_list_element
 {
-    if(($$ = st_append_case_value($1, $3, parser)) == NULL)
+    if(($$ = st_append_case_value($1, $3, &@3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;

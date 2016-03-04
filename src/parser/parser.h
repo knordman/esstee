@@ -682,13 +682,15 @@ struct invoke_iface_t * st_new_if_statement(
     const struct st_location_t *location,
     struct parser_t *parser);
 
-struct value_iface_t * st_append_case_value(
-    struct value_iface_t *case_list,
+struct case_list_element_t * st_append_case_value(
+    struct case_list_element_t *case_list,
     struct value_iface_t *case_value,
+    const struct st_location_t *case_value_location,
     struct parser_t *parser);
 
 struct case_t * st_new_case(
-    struct value_iface_t *case_value_list,
+    struct case_list_element_t *case_value_list,
+    const struct st_location_t *location,
     struct invoke_iface_t *statements,
     struct parser_t *parser);
 

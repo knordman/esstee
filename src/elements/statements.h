@@ -183,6 +183,61 @@ void st_invoke_statement_clone_destroy(
     struct invoke_iface_t *self);
 
 /**************************************************************************/
+/* Case statement                                                         */
+/**************************************************************************/
+struct case_list_element_t {
+    struct value_iface_t *value;
+    struct st_location_t *location;
+    struct case_list_element_t *prev;
+    struct case_list_element_t *next;
+};
+
+struct case_t {
+    struct case_list_element_t *case_list;
+    struct invoke_iface_t *statements;
+    struct st_location_t *location;
+    struct case_t *prev;
+    struct case_t *next;
+};
+
+struct case_statement_t {
+    struct invoke_iface_t invoke;
+    struct expression_iface_t *selector;
+    struct case_t *cases;
+    struct st_location_t *location;
+    struct invoke_iface_t *else_statements;
+    int invoke_state;
+};
+
+const struct st_location_t * st_case_statement_location(
+    const struct invoke_iface_t *self);
+
+int st_case_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_case_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_case_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+struct invoke_iface_t * st_case_statement_clone(
+    struct invoke_iface_t *self);
+
+void st_case_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_case_statement_clone_destroy(
+    struct invoke_iface_t *self);
+
+/**************************************************************************/
 /* If statements                                                          */
 /**************************************************************************/
 struct if_statement_t {

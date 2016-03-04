@@ -2060,3 +2060,125 @@ int st_function_block_value_invoke_reset(
 
     return ESSTEE_OK;
 }
+
+/**************************************************************************/
+/* Inline values                                                          */
+/**************************************************************************/
+int st_inline_enum_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    struct inline_enum_value_t *ie
+	= CONTAINER_OF(self, struct inline_enum_value_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%s",
+				 ie->data.identifier);
+    if(written_bytes == 0)
+    {
+	return ESSTEE_FALSE;
+    }
+    else if(written_bytes < 0)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return written_bytes;
+}
+
+int st_inline_enum_value_comparable_to(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->enumeration)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+int st_inline_enum_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct inline_enum_value_t *ie
+	= CONTAINER_OF(self, struct inline_enum_value_t, value);
+
+    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+    
+    if(strcmp(ie->data.identifier, other_value_enum->identifier) == 0)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+const struct enum_item_t * st_inline_enum_value_enumeration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct inline_enum_value_t *ie
+	= CONTAINER_OF(self, struct inline_enum_value_t, value);
+
+    return &(ie->data);
+}
+
+void st_inline_enum_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: inline enum value destructor */
+}
+
+int st_subrange_case_value_comparable_to(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(other_value->integer)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+int st_subrange_case_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct subrange_case_value_t *sv =
+	CONTAINER_OF(self, struct subrange_case_value_t, value);
+
+
+    int min_greater_than_other = sv->subrange->min->greater(sv->subrange->min,
+							    other_value,
+							    config);
+    if(min_greater_than_other == ESSTEE_TRUE)
+    {
+	return ESSTEE_FALSE;
+    }
+    
+    int max_lesser_than_other = sv->subrange->max->lesser(sv->subrange->max,
+							  other_value,
+							  config);
+    if(max_lesser_than_other == ESSTEE_TRUE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+void st_subrange_case_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: inline subrange case value destructor */
+}

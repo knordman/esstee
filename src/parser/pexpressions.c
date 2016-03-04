@@ -103,8 +103,7 @@ struct expression_iface_t * st_new_single_identifier_term(
     
     sit->variable = NULL;
     sit->location = sitl;
-    sit->identifier = identifier;
-    memset(&(sit->value), 0, sizeof(struct value_iface_t));
+    sit->inline_enum.data.identifier = identifier;
         
     sit->expression.invoke.verify = NULL;
     sit->expression.invoke.step = NULL;

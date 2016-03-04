@@ -666,9 +666,48 @@ int st_function_block_value_invoke_reset(
 /**************************************************************************/
 /* Inline values                                                          */
 /**************************************************************************/
+struct inline_enum_value_t {
+    struct value_iface_t value;
+    struct enum_item_t data;
+};
+
+int st_inline_enum_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_inline_enum_value_comparable_to(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_inline_enum_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+void st_inline_enum_value_destroy(
+    struct value_iface_t *self);
+
+const struct enum_item_t * st_inline_enum_value_enumeration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
+
 struct subrange_case_value_t {
     struct value_iface_t value;
     struct subrange_t *subrange;
 };
 
+int st_subrange_case_value_comparable_to(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
 
+int st_subrange_case_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+void st_subrange_case_value_destroy(
+    struct value_iface_t *self);
