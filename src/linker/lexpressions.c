@@ -46,16 +46,15 @@ int st_single_identifier_variable_resolved(
 	
 	sit->expression.return_value = st_single_identifier_term_enum_return_value;
 
-	sit->inline_enum.group = NULL;
-	sit->inline_enum.location = NULL;
-	sit->inline_enum.identifier = sit->identifier;
+	sit->inline_enum.data.group = NULL;
+	sit->inline_enum.data.location = sit->location;
 	
-	memset(&(sit->value), 0, sizeof(struct value_iface_t));
+	memset(&(sit->inline_enum.value), 0, sizeof(struct value_iface_t));
 
-	sit->value.display = st_inline_enum_value_display;
-	sit->value.comparable_to = st_inline_enum_value_comparable_to;
-	sit->value.equals = st_inline_enum_value_equals;
-	sit->value.enumeration = st_inline_enum_value_enumeration;
+	sit->inline_enum.value.display = st_inline_enum_value_display;
+	sit->inline_enum.value.comparable_to = st_inline_enum_value_comparable_to;
+	sit->inline_enum.value.equals = st_inline_enum_value_equals;
+	sit->inline_enum.value.enumeration = st_inline_enum_value_enumeration;
     }
 
     return ESSTEE_OK;

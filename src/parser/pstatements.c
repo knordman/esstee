@@ -351,21 +351,66 @@ error_free_resources:
 /**************************************************************************/
 /* Case statement                                                         */
 /**************************************************************************/
-struct value_iface_t * st_append_case_value(
-    struct value_iface_t *case_list,
+struct case_list_element_t * st_append_case_value(
+    struct case_list_element_t *case_list,
     struct value_iface_t *case_value,
+    const struct st_location_t *case_value_location,
     struct parser_t *parser)
 {
-    /* TODO: append case value to case */
+    struct case_list_element_t *ce = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ce,
+	struct case_list_element_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	case_value_location,
+	parser->errors,
+	error_free_resources);
+
+    ce->location = loc;
+    ce->value = case_value;
+
+    DL_APPEND(case_list, ce);
+
+    return case_list;
+
+error_free_resources:
+    free(ce);
+    free(loc);
     return NULL;
 }
 
 struct case_t * st_new_case(
-    struct value_iface_t *case_value_list,
+    struct case_list_element_t *case_value_list,
+    const struct st_location_t *location,
     struct invoke_iface_t *statements,
     struct parser_t *parser)
 {
-    /* TODO: new case */
+    struct case_t *c = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	c,
+	struct case_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    c->location = loc;
+    c->case_list = case_value_list;
+    c->statements = statements;
+
+    return c;
+    
+error_free_resources:
+    free(c);
+    free(loc);
     return NULL;
 }
 
@@ -374,18 +419,47 @@ struct case_t * st_append_case(
     struct case_t *new_case,
     struct parser_t *parser)
 {
-    /* TODO: append case to case conditional */
-    return NULL;
+    DL_APPEND(case_list, new_case);
+
+    return case_list;
 }
 
 struct invoke_iface_t * st_new_case_statement(
-    struct expression_iface_t *switcher,
+    struct expression_iface_t *selector,
     struct case_t *case_list,
     struct invoke_iface_t *else_statements,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new case statement */
+    struct case_statement_t *cs = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	cs,
+	struct case_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    cs->location = loc;
+    cs->selector = selector;
+    cs->cases = case_list;
+    cs->else_statements = else_statements;
+
+    cs->invoke.location = st_case_statement_location;
+    cs->invoke.step = st_case_statement_step;
+    cs->invoke.verify = st_case_statement_verify;
+    cs->invoke.reset = st_case_statement_reset;
+    cs->invoke.clone = st_case_statement_clone;
+    cs->invoke.destroy = st_case_statement_destroy;
+
+    return &(cs->invoke);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
     return NULL;
 }
 

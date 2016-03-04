@@ -1,30 +1,21 @@
 FUNCTION_BLOCK m1
 
 VAR_INPUT
-	d : INT;
+	a : (hello, bye);
 END_VAR
 
 VAR
-	a : INT;
 	b : INT;
 END_VAR
 
-if (1+1)*10>2 then
+b := 40;
 
-   if d = 5*6 then
-      if true then
-      	 b := 5;
-      end_if;
-   else
-      b := 10;
-   end_if;
-
-elsif a=1 then
-   b := 4;
+case a of
+hello : b := 1;
+bye   : b := 2;
 else
-   b := 2;
-end_if;
-
+b := 30;
+end_case;
 
 END_FUNCTION_BLOCK
 
@@ -35,11 +26,9 @@ PROGRAM testprgm
 VAR
 	ma : m1;
 	mb : m1;
-
 END_VAR
 
-ma(d:=30);
-mb(d:=31);
-
+ma(a:=hello);
+mb(a:=bye);
 
 END_PROGRAM

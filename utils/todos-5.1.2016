@@ -1,3 +1,20 @@
+for-while-statement
+149 /* TODO: new for statement */ ../src/parser/pstatements.c
+150 /* TODO: new while statement */ ../src/parser/pstatements.c
+9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
+151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
+10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
+
+exit-return-statement (return func, fb, prgm; exit for loops)
+152 /* TODO: new exit statement */ ../src/parser/pstatements.c
+11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
+153 /* TODO: new return statement */ ../src/parser/pstatements.c
+12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
+
+function-left-overs
+119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
+TODO: invoke functions
+
 date-type-value
 168 /* TODO: date literal */ ../src/parser/pliterals.c
 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
@@ -19,33 +36,6 @@ datetod-type-value
 70 /* TODO: date tod type reset value of */ ../src/elements/types.c
 71 /* TODO: date tod type can hold */ ../src/elements/types.c
 
-config
-103 /* TODO: implement set config */ ../src/esstee/esstee.c
-104 /* TODO: implement get config */ ../src/esstee/esstee.c
-
-unsorted
-115 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
-105 /* TODO: implement loading of buffer */ ../src/esstee/esstee.c
-107 /* TODO: Functionality, resetting linking prior to link operation */ ../src/esstee/esstee.c
-109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c
-116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
-117 /* TODO: only used for case structure, not a value */ ../src/parser/pvalues.c
-119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
-9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
-10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
-11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
-12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
-145 /* TODO: append case value to case */ ../src/parser/pstatements.c
-146 /* TODO: new case */ ../src/parser/pstatements.c
-147 /* TODO: append case to case conditional */ ../src/parser/pstatements.c
-148 /* TODO: new case statement */ ../src/parser/pstatements.c
-141 /* TODO: new invoke statement */ ../src/parser/pstatements.c
-149 /* TODO: new for statement */ ../src/parser/pstatements.c
-150 /* TODO: new while statement */ ../src/parser/pstatements.c
-151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
-152 /* TODO: new exit statement */ ../src/parser/pstatements.c
-153 /* TODO: new return statement */ ../src/parser/pstatements.c
-
 direct-memory
 21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
 22 /*TODO: negative prefix term expression functions */ ../src/elements/expressions.h
@@ -59,6 +49,16 @@ direct-memory
 112 /* TODO: new direct variable */ ../src/parser/pvariables.c
 113 /* TODO: new direct var by explicit initial value */ ../src/parser/pvariables.c
 18 /* TODO: add data of direct memory */ ../src/elements/directmemory.h
+
+config
+103 /* TODO: implement set config */ ../src/esstee/esstee.c
+104 /* TODO: implement get config */ ../src/esstee/esstee.c
+
+unsorted
+105 /* TODO: implement loading of buffer */ ../src/esstee/esstee.c
+107 /* TODO: Functionality, resetting linking prior to link operation */ ../src/esstee/esstee.c
+109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c
+116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
 
 destructors
 83 /* TODO: enum type destructor */ ../src/elements/types.c
@@ -197,3 +197,11 @@ DONE 8 /*TODO: if statements invoke functions */ ../src/elements/statements.h
 DONE 142 /* TODO: new if statement */ ../src/parser/pstatements.c
 DONE 143 /* TODO: append else if to if */ ../src/parser/pstatements.c
 DONE 144 /* TODO: new if statement */ ../src/parser/pstatements.c
+DONE 141 /* TODO: new invoke statement */ ../src/parser/pstatements.c
+DONE 115 /* TODO: move to types, change name from value, not really a value */ ../src/parser/pvalues.c
+DONE case-statement
+DONE 117 /* TODO: only used for case structure, not a value */ ../src/parser/pvalues.c
+DONE 145 /* TODO: append case value to case */ ../src/parser/pstatements.c
+DONE 146 /* TODO: new case */ ../src/parser/pstatements.c
+DONE 147 /* TODO: append case to case conditional */ ../src/parser/pstatements.c
+DONE 148 /* TODO: new case statement */ ../src/parser/pstatements.c

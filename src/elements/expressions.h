@@ -24,6 +24,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/pous.h>
 #include <elements/shared.h>
 #include <elements/types.h>
+#include <elements/values.h>
 #include <rt/isystime.h>
 #include <rt/cursor.h>
 #include <util/bitflag.h>
@@ -57,9 +58,7 @@ void st_value_expression_destroy(
 struct single_identifier_term_t {
     struct expression_iface_t expression;
     struct st_location_t *location;
-    struct value_iface_t value;
-    char *identifier;
-    struct enum_item_t inline_enum;
+    struct inline_enum_value_t inline_enum;
     struct variable_t *variable;
 };
 
@@ -80,26 +79,6 @@ struct expression_iface_t * st_single_identifier_term_clone(
 
 void st_single_identifier_term_destroy(
     struct expression_iface_t *self);
-
-int st_inline_enum_value_display(
-    const struct value_iface_t *self,
-    char *buffer,
-    size_t buffer_size,
-    const struct config_iface_t *config);
-
-int st_inline_enum_value_comparable_to(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
-    const struct config_iface_t *config);
-
-int st_inline_enum_value_equals(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
-    const struct config_iface_t *config);
-
-const struct enum_item_t * st_inline_enum_value_enumeration(
-    const struct value_iface_t *self,
-    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Qualified identifier term                                              */
