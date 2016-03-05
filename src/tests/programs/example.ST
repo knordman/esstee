@@ -1,34 +1,35 @@
 FUNCTION_BLOCK m1
 
 VAR_INPUT
-	a : (hello, bye);
+	e : INT;
 END_VAR
 
 VAR
-	b : INT;
+
 END_VAR
 
-b := 40;
-
-case a of
-hello : b := 1;
-bye   : b := 2;
-else
-b := 30;
-end_case;
+;
 
 END_FUNCTION_BLOCK
-
 
 
 PROGRAM testprgm
 
 VAR
+	a : INT := 0;
+	b : INT := 0;
+	c : INT;
+	d : INT;
+
 	ma : m1;
 	mb : m1;
 END_VAR
 
-ma(a:=hello);
-mb(a:=bye);
+repeat
+	a := a + 1;
+	b := b - 1;
+until a > 3
+end_repeat;
+
 
 END_PROGRAM

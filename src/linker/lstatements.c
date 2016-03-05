@@ -82,3 +82,32 @@ int st_invoke_statement_as_func_resolved(
 
     return ESSTEE_OK;
 }
+
+int st_for_statement_variable_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    if(target == NULL)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "undefined variable",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+	return ESSTEE_ERROR;
+    }
+    
+    struct for_statement_t *fs =
+	(struct for_statement_t *)referrer;
+
+    fs->variable = (struct variable_t *)target;
+
+    return ESSTEE_OK;
+}
+	

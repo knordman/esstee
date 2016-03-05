@@ -283,26 +283,92 @@ void st_if_statement_clone_destroy(
 /**************************************************************************/
 struct while_statement_t {
     struct invoke_iface_t invoke;
-
     struct expression_iface_t *while_expression;
-
-    struct invoke_iface_t *true_statements;
+    struct invoke_iface_t *statements;
+    struct st_location_t *location;
+    int invoke_state;
 };
 
-/* TODO: while statement invoke functions */
+const struct st_location_t * st_while_statement_location(
+    const struct invoke_iface_t *self);
+
+int st_while_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_while_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_while_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+struct invoke_iface_t * st_while_statement_clone(
+    struct invoke_iface_t *self);
+
+void st_while_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_while_statement_clone_destroy(
+    struct invoke_iface_t *self);
+
+/**************************************************************************/
+/* For statement                                                          */
+/**************************************************************************/
+struct for_statement_t {
+    struct invoke_iface_t invoke;
+    struct variable_t *variable;
+    struct expression_iface_t *from;
+    struct expression_iface_t *to;
+    struct expression_iface_t *increment;
+    struct invoke_iface_t *statements;
+    struct st_location_t *location;
+    struct st_location_t *identifier_location;
+    int invoke_state;
+};
+
+const struct st_location_t * st_for_statement_location(
+    const struct invoke_iface_t *self);
+
+int st_for_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_for_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_for_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+struct invoke_iface_t * st_for_statement_clone(
+    struct invoke_iface_t *self);
+
+void st_for_statement_destroy(
+    struct invoke_iface_t *self);
+
+void st_for_statement_clone_destroy(
+    struct invoke_iface_t *self);
 
 /**************************************************************************/
 /* Repeat statement                                                       */
 /**************************************************************************/
-struct repeat_statement_t {
-    struct invoke_iface_t invoke;
-
-    struct expression_iface_t *until_condition;
-
-    struct invoke_iface_t *statements;
-};
-
-/* TODO: repeat statement invoke functions */
+int st_repeat_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
 
 /**************************************************************************/
 /* Exit statement                                                         */

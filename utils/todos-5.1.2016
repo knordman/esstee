@@ -1,10 +1,3 @@
-for-while-statement
-149 /* TODO: new for statement */ ../src/parser/pstatements.c
-150 /* TODO: new while statement */ ../src/parser/pstatements.c
-9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
-151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
-10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
-
 exit-return-statement (return func, fb, prgm; exit for loops)
 152 /* TODO: new exit statement */ ../src/parser/pstatements.c
 11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
@@ -205,3 +198,9 @@ DONE 145 /* TODO: append case value to case */ ../src/parser/pstatements.c
 DONE 146 /* TODO: new case */ ../src/parser/pstatements.c
 DONE 147 /* TODO: append case to case conditional */ ../src/parser/pstatements.c
 DONE 148 /* TODO: new case statement */ ../src/parser/pstatements.c
+DONE for-while-repeat-statement
+DONE 149 /* TODO: new for statement */ ../src/parser/pstatements.c
+DONE 150 /* TODO: new while statement */ ../src/parser/pstatements.c
+DONE 9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
+DONE 151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
+DONE 10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h

@@ -719,6 +719,7 @@ static void set_cursor_to_next(
 {
     if(current->next != NULL)
     {
+	current->next->reset(current->next, st->config);
 	st->cursor.current = current->next;
     }
     else

@@ -19,6 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/statements.h>
 #include <elements/shared.h>
+#include <elements/values.h>
 #include <util/macros.h>
 
 #include <utlist.h>
@@ -1333,4 +1334,638 @@ void st_if_statement_clone_destroy(
     struct invoke_iface_t *self)
 {
     /* TODO: if statement clone destructor */
+}
+
+/**************************************************************************/
+/* While statement                                                        */
+/**************************************************************************/
+const struct st_location_t * st_while_statement_location(
+    const struct invoke_iface_t *self)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+
+    return ws->location;
+}
+    
+int st_while_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+
+    const struct value_iface_t *while_value = NULL;
+    
+    switch(ws->invoke_state)
+    {
+    case 0:
+	if(ws->while_expression->invoke.step)
+	{
+	    ws->invoke_state = 1;
+	    st_switch_current(cursor, &(ws->while_expression->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1:
+    default:
+	while_value = ws->while_expression->return_value(ws->while_expression);
+
+	if(while_value->bool(while_value, config) == ESSTEE_TRUE)
+	{
+	    ws->invoke_state = 0;
+	    st_switch_current(cursor, ws->statements, config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+    }
+    
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_while_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+    
+    if(ws->while_expression->invoke.verify)
+    {
+	int verify_result =
+	    ws->while_expression->invoke.verify(&(ws->while_expression->invoke),
+						config,
+						errors);
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+
+    const struct value_iface_t *while_value =
+	ws->while_expression->return_value(ws->while_expression);
+
+    if(!while_value->bool)
+    {
+	const struct st_location_t *while_expression_location =
+	    ws->while_expression->invoke.location(&(ws->while_expression->invoke));	    
+	
+	errors->new_issue_at(errors,
+			     "condition cannot be interpreted as true or false",
+			     ISSUE_ERROR_CLASS,
+			     1,
+			     while_expression_location);
+	return ESSTEE_ERROR;
+    }
+   
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(ws->statements, itr)
+    {
+	int verify_result = itr->verify(itr, config, errors);
+
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_while_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+
+    ws->invoke_state = 0;
+
+    if(ws->while_expression->invoke.reset)
+    {
+	int reset_result
+	    = ws->while_expression->invoke.reset(&(ws->while_expression->invoke),
+						 config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(ws->statements, itr)
+    {
+	int reset_result = itr->reset(itr, config);
+
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+    
+    return ESSTEE_OK;
+}
+
+struct invoke_iface_t * st_while_statement_clone(
+    struct invoke_iface_t *self)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+
+    struct while_statement_t *copy = NULL;
+    struct invoke_iface_t *statements_copy = NULL;
+    struct expression_iface_t *while_expression_copy = NULL;
+
+    ALLOC_OR_JUMP(
+	copy,
+	struct while_statement_t,
+	error_free_resources);
+
+    memcpy(copy, ws, sizeof(struct while_statement_t));
+
+    if(ws->while_expression->clone)
+    {
+	while_expression_copy = ws->while_expression->clone(ws->while_expression);
+
+	if(!while_expression_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->while_expression = while_expression_copy;
+    }
+
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(ws->statements, itr)
+    {
+	struct invoke_iface_t *statement_copy = itr->clone(itr);
+
+	if(!statement_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	DL_APPEND(statements_copy, statement_copy);
+    }
+    
+    copy->statements = statements_copy;
+
+    copy->invoke.destroy = st_while_statement_clone_destroy;
+
+    return &(copy->invoke);
+
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
+void st_while_statement_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: while statement destructor */
+}
+
+void st_while_statement_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: while statement clone destructor */
+}
+
+/**************************************************************************/
+/* For statement                                                          */
+/**************************************************************************/
+const struct st_location_t * st_for_statement_location(
+    const struct invoke_iface_t *self)
+{
+    struct for_statement_t *fs =
+	CONTAINER_OF(self, struct for_statement_t, invoke);
+
+    return fs->location;
+}
+
+int st_for_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct for_statement_t *fs =
+	CONTAINER_OF(self, struct for_statement_t, invoke);
+
+    struct integer_value_t implicit_increment = {
+	.value = {
+	    .integer = st_integer_value_integer
+	},
+	.num = 1
+    };
+
+    const struct value_iface_t *increment_value = &(implicit_increment.value);
+    if(fs->increment)
+    {
+	increment_value = fs->increment->return_value(fs->increment);
+    }
+    
+    const struct value_iface_t *from_value = fs->from->return_value(fs->from);
+    const struct value_iface_t *to_value = fs->to->return_value(fs->to);
+    int variable_assign_result = ESSTEE_ERROR;
+    
+    switch(fs->invoke_state)
+    {
+    case 0:
+	if(fs->from->invoke.step)
+	{
+	    fs->invoke_state = 1;
+	    st_switch_current(cursor, &(fs->from->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1:
+	variable_assign_result = fs->variable->value->assign(fs->variable->value,
+							     from_value,
+							     config);
+	if(variable_assign_result != ESSTEE_OK)
+	{
+	    errors->new_issue_at(
+		errors,
+		"assignment of variable failed",
+		ISSUE_ERROR_CLASS,
+		1,
+		fs->identifier_location);
+	    return INVOKE_RESULT_ERROR;
+	}
+
+    case 2:
+	if(fs->to->invoke.step)
+	{
+	    fs->invoke_state = 3;
+	    st_switch_current(cursor, &(fs->to->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 3:
+	if(fs->variable->value->greater(fs->variable->value, to_value, config) == ESSTEE_TRUE)
+	{
+	    break;
+	}
+	
+    case 4: 
+	fs->invoke_state = 5;
+	st_switch_current(cursor, fs->statements, config);
+	return INVOKE_RESULT_IN_PROGRESS;
+
+    case 5:
+	if(fs->increment && fs->increment->invoke.step)
+	{
+	    fs->invoke_state = 6;
+	    st_switch_current(cursor, &(fs->increment->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+	
+    case 6:
+	if(fs->variable->value->plus(fs->variable->value, increment_value, config) != ESSTEE_OK)
+	{
+	    errors->new_issue_at(
+		errors,
+		"incrementing variable failed",
+		ISSUE_ERROR_CLASS,
+		1,
+		fs->identifier_location);
+	    return INVOKE_RESULT_ERROR;
+	}
+
+	fs->invoke_state = 2;
+	return INVOKE_RESULT_IN_PROGRESS;
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_for_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct for_statement_t *fs =
+	CONTAINER_OF(self, struct for_statement_t, invoke);
+
+    if(fs->from->invoke.verify)
+    {
+	int verify_result = fs->from->invoke.verify(&(fs->from->invoke),
+						    config,
+						    errors);
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+
+    if(fs->to->invoke.verify)
+    {
+	int verify_result = fs->to->invoke.verify(&(fs->to->invoke),
+						    config,
+						    errors);
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+    
+    if(fs->increment && fs->increment->invoke.verify)
+    {
+	int verify_result = fs->increment->invoke.verify(&(fs->increment->invoke),
+							 config,
+							 errors);
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+
+    const struct value_iface_t *from_value = fs->from->return_value(fs->from);
+
+    const struct value_iface_t *to_value = fs->to->return_value(fs->to);
+
+    struct integer_value_t implicit_increment = {
+	.value = {
+	    .integer = st_integer_value_integer,
+	    .class = st_general_value_empty_class,
+	},
+	.num = 1,
+    };
+
+    const struct value_iface_t *increment_value = &(implicit_increment.value);
+    if(fs->increment)
+    {
+	increment_value = fs->increment->return_value(fs->increment);
+    }
+    
+    int var_from_assignable = fs->variable->value->assignable_from(fs->variable->value,
+								   from_value,
+								   config);
+    if(var_from_assignable != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "variable cannot be assigned the value of the from expression",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    fs->identifier_location,
+	    fs->from->invoke.location(&(fs->from->invoke)));
+	return ESSTEE_ERROR;
+    }
+
+    const struct type_iface_t *var_type =
+	fs->variable->value->type_of(fs->variable->value);
+
+    int type_can_hold_to_value = var_type->can_hold(var_type, to_value, config);
+    if(type_can_hold_to_value != ESSTEE_TRUE)
+    {	
+	errors->new_issue_at(
+	    errors,
+	    "variable cannot hold the to value",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    fs->identifier_location,
+	    fs->to->invoke.location(&(fs->to->invoke)));
+	return ESSTEE_ERROR;
+    }
+    
+    int var_increment_operates =
+	fs->variable->value->operates_with(fs->variable->value, increment_value, config);
+
+    if(var_increment_operates != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "variable value cannot be incremented by value",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    fs->identifier_location);
+	return ESSTEE_ERROR;
+    }
+    
+    int var_to_comparable =
+	fs->variable->value->comparable_to(fs->variable->value,
+					   to_value,
+					   config);
+    if(var_to_comparable != ESSTEE_TRUE)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "variable cannot be compared to the value of the to expression",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    fs->identifier_location,
+	    fs->to->invoke.location(&(fs->to->invoke)));
+	return ESSTEE_ERROR;
+    }
+
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(fs->statements, itr)
+    {
+	int verify_result = itr->verify(itr, config, errors);
+
+	if(verify_result != ESSTEE_OK)
+	{
+	    return ESSTEE_ERROR;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_for_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct for_statement_t *fs =
+	CONTAINER_OF(self, struct for_statement_t, invoke);
+
+    fs->invoke_state = 0;
+    
+    if(fs->from->invoke.reset)
+    {
+	int reset_result = fs->from->invoke.reset(&(fs->from->invoke),
+						  config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+    
+    if(fs->to->invoke.reset)
+    {
+	int reset_result = fs->to->invoke.reset(&(fs->to->invoke),
+						  config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    if(fs->increment && fs->increment->invoke.reset)
+    {
+	int reset_result = fs->increment->invoke.reset(&(fs->increment->invoke),
+						       config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(fs->statements, itr)
+    {
+	int reset_result = itr->reset(itr, config);
+	
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+struct invoke_iface_t * st_for_statement_clone(
+    struct invoke_iface_t *self)
+{
+    struct for_statement_t *fs =
+	CONTAINER_OF(self, struct for_statement_t, invoke);
+
+    struct for_statement_t *copy = NULL;
+    struct expression_iface_t *from_copy = NULL;
+    struct expression_iface_t *to_copy = NULL;
+    struct expression_iface_t *increment_copy = NULL;
+    struct invoke_iface_t *statements_copy = NULL;
+    struct invoke_iface_t *statement_copy = NULL;
+    
+    ALLOC_OR_JUMP(
+	copy,
+	struct for_statement_t,
+	error_free_resources);
+
+    memcpy(copy, fs, sizeof(struct for_statement_t));
+    copy->statements = NULL;
+    
+    if(fs->from->clone)
+    {
+	from_copy = fs->from->clone(fs->from);
+
+	if(!from_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->from = from_copy;
+    }
+    
+    if(fs->to->clone)
+    {
+	to_copy = fs->to->clone(fs->to);
+
+	if(!to_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->to = to_copy;
+    }
+
+    if(fs->increment && fs->increment->clone)
+    {
+	increment_copy = fs->increment->clone(fs->increment);
+
+	if(!increment_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->increment = increment_copy;
+    }
+
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(fs->statements, itr)
+    {
+	statement_copy = itr->clone(itr);
+
+	if(!statement_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	DL_APPEND(statements_copy, statement_copy);
+    }
+
+    copy->statements = statements_copy;
+    copy->invoke.destroy = st_for_statement_clone_destroy;
+    
+    return &(copy->invoke);
+
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
+void st_for_statement_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: for statement destructor */
+}
+
+void st_for_statement_clone_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: cloned for statement destructor */
+}
+
+/**************************************************************************/
+/* Repeat statement                                                       */
+/**************************************************************************/
+int st_repeat_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+
+    const struct value_iface_t *while_value = NULL;
+    
+    switch(ws->invoke_state)
+    {
+    case 0:
+	ws->invoke_state = 1;
+	st_switch_current(cursor, ws->statements, config);
+	return INVOKE_RESULT_IN_PROGRESS;
+
+    case 1:
+	if(ws->while_expression->invoke.step)
+	{
+	    ws->invoke_state = 2;
+	    st_switch_current(cursor, &(ws->while_expression->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 2:
+	while_value = ws->while_expression->return_value(ws->while_expression);
+
+	if(while_value->bool(while_value, config) == ESSTEE_FALSE)
+	{
+	    ws->invoke_state = 0;
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+	else
+	{
+	    break;
+	}
+    }
+    
+    return INVOKE_RESULT_FINISHED;
 }

@@ -439,19 +439,62 @@ static int be_step_operands(
     const struct config_iface_t *config,
     struct errors_iface_t *errors)
 {
-    if(be->invoke_state == 0 && be->left_operand->invoke.step)
+    switch(be->invoke_state)
     {
-	st_switch_current(cursor, &(be->left_operand->invoke), config);
-	be->invoke_state = 1;
-	return INVOKE_RESULT_IN_PROGRESS;
+    case 0:
+	if(be->left_operand->invoke.step)
+	{
+	    be->invoke_state = 1;
+	    st_switch_current(cursor, &(be->left_operand->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1:
+	if(be->right_operand->invoke.step)
+	{
+	    be->invoke_state = 2;
+	    st_switch_current(cursor, &(be->right_operand->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 2:
+    default:
+	break;
     }
-    else if(be->invoke_state == 1 && be->right_operand->invoke.step)
-    {
-	st_switch_current(cursor, &(be->right_operand->invoke), config);
-	be->invoke_state = 1;
-	return INVOKE_RESULT_IN_PROGRESS;
-    }    
     
+    return INVOKE_RESULT_FINISHED;
+}
+
+static int be_step_operands_assign_temporary(
+    struct binary_expression_t *be,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    int step_operands_result = be_step_operands(be,
+						cursor,
+						time,
+						config,
+						errors);
+    if(step_operands_result != INVOKE_RESULT_FINISHED)
+    {
+	return step_operands_result;
+    }
+
+    const struct value_iface_t *left_value =
+	be->left_operand->return_value(be->left_operand);
+
+    if(be->temporary->assign(be->temporary, left_value, config) != ESSTEE_OK)
+    {
+	errors->internal_error(
+	    errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+	return INVOKE_RESULT_ERROR;
+    }
+
     return INVOKE_RESULT_FINISHED;
 }
 
@@ -463,22 +506,20 @@ static int be_step_operands(
 	struct binary_expression_t *be =				\
 	    CONTAINER_OF(e, struct binary_expression_t, expression);	\
 									\
-	int operand_step_result = be_step_operands(be, cursor, time, config, errors); \
-	if(operand_step_result != INVOKE_RESULT_FINISHED)		\
+	int inner_step_result = be_step_operands_assign_temporary(	\
+	    be,								\
+	    cursor,							\
+	    time,							\
+	    config,							\
+	    errors);							\
+	if(inner_step_result != INVOKE_RESULT_FINISHED)			\
 	{								\
-	    return operand_step_result;					\
+	    return inner_step_result;					\
 	}								\
 									\
-	const struct value_iface_t *left_value =			\
-	    be->left_operand->return_value(be->left_operand);		\
 	const struct value_iface_t *right_value =			\
 	    be->right_operand->return_value(be->right_operand);		\
 									\
-	if(be->temporary->assign(be->temporary, left_value, config) != ESSTEE_OK) \
-	{								\
-	    errors->internal_error(errors, __FILE__, __FUNCTION__, __LINE__); \
-	    return INVOKE_RESULT_FATAL_ERROR;				\
-	}								\
 	if(be->temporary->operation(be->temporary, right_value, config) != ESSTEE_OK) \
 	{								\
 	    errors->new_issue_at(					\
@@ -639,6 +680,8 @@ struct expression_iface_t * st_binary_expression_clone(
 	{
 	    goto error_free_resources;
 	}
+
+	copy->left_operand = left_copy;
     }
 
     if(be->right_operand->clone)
@@ -648,15 +691,7 @@ struct expression_iface_t * st_binary_expression_clone(
 	{
 	    goto error_free_resources;
 	}
-    }
 
-    if(left_copy)
-    {
-	copy->left_operand = left_copy;
-    }
-    
-    if(right_copy)
-    {
 	copy->right_operand = right_copy;
     }
 

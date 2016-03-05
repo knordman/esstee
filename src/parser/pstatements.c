@@ -469,14 +469,72 @@ error_free_resources:
 struct invoke_iface_t * st_new_for_statement(
     char *variable_identifier,
     const struct st_location_t *identifier_location,
-    struct expression_iface_t *start,
-    struct expression_iface_t *end,
+    struct expression_iface_t *from,
+    struct expression_iface_t *to,
     struct expression_iface_t *increment,
     struct invoke_iface_t *statements,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new for statement */
+    struct for_statement_t *fs = NULL;
+    struct st_location_t *fs_location = NULL;
+    struct st_location_t *fs_identifier_location = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	fs,
+	struct for_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	fs_location,
+	location,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	fs_identifier_location,
+	identifier_location,
+	parser->errors,
+	error_free_resources);
+
+    int ref_add_result =
+	parser->pou_type_ref_pool->add(parser->pou_var_ref_pool,
+				       variable_identifier,
+				       fs,
+				       NULL,
+				       identifier_location,
+				       st_for_statement_variable_resolved);
+
+    if(ref_add_result != ESSTEE_OK)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	goto error_free_resources;
+    }
+    
+    fs->location = fs_location;
+    fs->identifier_location = fs_identifier_location;
+    fs->from = from;
+    fs->to = to;
+    fs->increment = increment;
+    fs->statements = statements;
+
+    fs->invoke.location = st_for_statement_location;
+    fs->invoke.step = st_for_statement_step;
+    fs->invoke.verify = st_for_statement_verify;
+    fs->invoke.reset = st_for_statement_reset;
+    fs->invoke.clone = st_for_statement_clone;
+    fs->invoke.destroy = st_for_statement_destroy;
+
+    return &(fs->invoke);
+    
+error_free_resources:
+    free(fs);
+    free(fs_location);
+    free(fs_identifier_location);
     return NULL;
 }
 
@@ -485,11 +543,39 @@ struct invoke_iface_t * st_new_for_statement(
 /**************************************************************************/
 struct invoke_iface_t * st_new_while_statement(
     struct expression_iface_t *while_expression,
-    struct invoke_iface_t *true_statements,
+    struct invoke_iface_t *statements,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new while statement */
+    struct while_statement_t *ws = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ws,
+	struct while_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ws->location = loc;
+    ws->while_expression = while_expression;
+    ws->statements = statements;
+
+    ws->invoke.location = st_while_statement_location;
+    ws->invoke.step = st_while_statement_step;
+    ws->invoke.verify = st_while_statement_verify;
+    ws->invoke.reset = st_while_statement_reset;
+    ws->invoke.clone = st_while_statement_clone;
+    ws->invoke.destroy = st_while_statement_destroy;
+      
+    return &(ws->invoke);
+    
+error_free_resources:
+    free(ws);
+    free(loc);
     return NULL;
 }
 
@@ -502,7 +588,35 @@ struct invoke_iface_t * st_new_repeat_statement(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new repeat statement */
+    struct while_statement_t *ws = NULL;
+    struct st_location_t *loc = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ws,
+	struct while_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ws->location = loc;
+    ws->while_expression = repeat_expression;
+    ws->statements = statements;
+
+    ws->invoke.location = st_while_statement_location;
+    ws->invoke.step = st_repeat_statement_step;
+    ws->invoke.verify = st_while_statement_verify;
+    ws->invoke.reset = st_while_statement_reset;
+    ws->invoke.clone = st_while_statement_clone;
+    ws->invoke.destroy = st_while_statement_destroy;
+      
+    return &(ws->invoke);
+    
+error_free_resources:
+    free(ws);
+    free(loc);
     return NULL;
 }
 
