@@ -188,6 +188,53 @@ struct expression_iface_t * st_new_function_invocation_term(
     struct invoke_parameter_t *invoke_parameters,
     struct parser_t *parser)
 {
+    struct function_invocation_term_t *ft = NULL;
+    struct st_location_t *ft_location = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	ft,
+	struct function_invocation_term_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	ft_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    int ref_add_result = parser->function_ref_pool->add(
+	parser->function_ref_pool,
+	function_identifier,
+	ft,
+	NULL,
+	location,
+	st_function_invocation_term_function_resolved);
+    if(ref_add_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
+    ft->location = ft_location;
+    ft->function = NULL;
+    ft->parameters = invoke_parameters;
+
+    ft->expression.invoke.location = st_function_invocation_term_location;
+    ft->expression.invoke.step = st_function_invocation_term_step;
+    ft->expression.invoke.verify = st_function_invocation_term_verify;
+    ft->expression.invoke.reset = st_function_invocation_term_reset;
+    ft->expression.invoke.clone = NULL;
+    ft->expression.invoke.destroy = NULL;
+
+    ft->expression.return_value = st_function_invocation_term_return_value;
+    ft->expression.runtime_constant = st_function_invocation_term_runtime_constant;
+    ft->expression.clone = st_function_invocation_term_clone;
+    ft->expression.destroy = st_function_invocation_term_destroy;
+
+    return &(ft->expression);
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
     return NULL;
 }
 
@@ -199,6 +246,44 @@ struct expression_iface_t * st_new_negate_term(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
+    struct negative_prefix_term_t *nt = NULL;
+    struct st_location_t *nt_location = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	nt,
+	struct negative_prefix_term_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	nt_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    nt->location = nt_location;
+    nt->to_negate = term;
+
+    nt->expression.invoke.location = st_negative_prefix_term_location;
+    nt->expression.invoke.step = st_negative_prefix_term_step;
+    nt->expression.invoke.verify = st_negative_prefix_term_verify;
+    nt->expression.invoke.reset = st_negative_prefix_term_reset;
+    nt->expression.invoke.clone = NULL;
+    nt->expression.invoke.destroy = NULL;
+
+    nt->expression.return_value = st_negative_prefix_term_return_value;
+    nt->expression.runtime_constant = st_negative_prefix_term_runtime_constant;
+    nt->expression.clone = NULL;
+    if(nt->to_negate->clone)
+    {
+	nt->expression.clone = st_negative_prefix_term_clone;
+    }
+    nt->expression.destroy = st_negative_prefix_term_destroy;
+
+    return &(nt->expression);
+
+error_free_resources:
+    free(nt);
+    free(nt_location);
     return NULL;
 }
 
@@ -210,6 +295,44 @@ struct expression_iface_t * st_new_not_term(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
+    struct not_prefix_term_t *nt = NULL;
+    struct st_location_t *nt_location = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	nt,
+	struct not_prefix_term_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	nt_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    nt->location = nt_location;
+    nt->to_not = term;
+
+    nt->expression.invoke.location = st_not_prefix_term_location;
+    nt->expression.invoke.step = st_not_prefix_term_step;
+    nt->expression.invoke.verify = st_not_prefix_term_verify;
+    nt->expression.invoke.reset = st_not_prefix_term_reset;
+    nt->expression.invoke.clone = NULL;
+    nt->expression.invoke.destroy = NULL;
+
+    nt->expression.return_value = st_not_prefix_term_return_value;
+    nt->expression.runtime_constant = st_not_prefix_term_runtime_constant;
+    nt->expression.clone = NULL;
+    if(nt->to_not->clone)
+    {
+	nt->expression.clone = st_not_prefix_term_clone;
+    }
+    nt->expression.destroy = st_not_prefix_term_destroy;
+
+    return &(nt->expression);
+
+error_free_resources:
+    free(nt);
+    free(nt_location);
     return NULL;
 }
 

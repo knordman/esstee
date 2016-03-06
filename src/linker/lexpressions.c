@@ -59,3 +59,31 @@ int st_single_identifier_variable_resolved(
 
     return ESSTEE_OK;
 }
+
+int st_function_invocation_term_function_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config)
+{
+    if(target == NULL)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "reference to undefined function",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+	return ESSTEE_ERROR;
+    }
+    
+    struct function_invocation_term_t *ft =
+	(struct function_invocation_term_t *)referrer;
+
+    ft->function = (struct function_t *)target;
+
+    return ESSTEE_OK;
+}

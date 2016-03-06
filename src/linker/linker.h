@@ -117,6 +117,15 @@ int st_single_identifier_variable_resolved(
     struct errors_iface_t *errors,
     const struct config_iface_t *config);
 
+int st_function_invocation_term_function_resolved(
+    void *referrer,
+    void *subreferrer,
+    void *target,
+    st_bitflag_t remark,
+    const struct st_location_t *location,
+    struct errors_iface_t *errors,
+    const struct config_iface_t *config);
+
 /**************************************************************************/
 /* Statements                                                             */
 /**************************************************************************/

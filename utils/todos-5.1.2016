@@ -21,9 +21,6 @@ datetod-type-value
 
 direct-memory
 21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
-22 /*TODO: negative prefix term expression functions */ ../src/elements/expressions.h
-23 /*TODO: function invocation term expression functions */ ../src/elements/expressions.h
-24 /*TODO: not prefix term expression functions */ ../src/elements/expressions.h
 25 /* TODO: return offset into direct memory based on direct address */ ../src/elements/directmemory.c
 26 /* TODO: reset direct memory, to zero, or resetted value?  */ ../src/elements/directmemory.c
 108 /* TODO: implement construction of new direct address */ ../src/parser/pdirectmemory.c
@@ -202,3 +199,7 @@ DONE 116 /* TODO: inline enum value, determine where use, perhaps not a value ei
 DONE function-left-overs
 DONE 119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
 DONE TODO: invoke functions
+DONE expressions
+DONE 22 /*TODO: negative prefix term expression functions */ ../src/elements/expressions.h
+DONE 24 /*TODO: not prefix term expression functions */ ../src/elements/expressions.h
+DONE 23 /*TODO: function invocation term expression functions */ ../src/elements/expressions.h

@@ -253,6 +253,587 @@ void st_qualified_identifier_term_destroy(
 }
 
 /**************************************************************************/
+/* Negative prefix term                                                   */
+/**************************************************************************/
+int st_negative_prefix_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
+
+    if(nt->to_negate->invoke.reset)
+    {
+	int reset_result = nt->to_negate->invoke.reset(&(nt->to_negate->invoke),
+						       config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    nt->invoke_state = 0;
+
+    return ESSTEE_OK;
+}
+
+const struct st_location_t * st_negative_prefix_term_location(
+    const struct invoke_iface_t *self)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
+
+    return nt->location;
+}
+
+int st_negative_prefix_term_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
+
+    if(nt->to_negate->invoke.verify)
+    {
+	int negate_result = nt->to_negate->invoke.verify(&(nt->to_negate->invoke),
+							 config,
+							 errors);
+	if(negate_result != ESSTEE_OK)
+	{
+	    return negate_result;
+	}
+    }
+
+    const struct value_iface_t *to_negate_value =
+	nt->to_negate->return_value(nt->to_negate);
+
+    if(!to_negate_value->create_temp_from)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "value cannot be used in an expression",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    nt->to_negate->invoke.location(&(nt->to_negate->invoke)));
+	return ESSTEE_ERROR;
+    }
+    else if(!to_negate_value->negate)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "value cannot be modified by a minus prefix",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    nt->to_negate->invoke.location(&(nt->to_negate->invoke)));
+	return ESSTEE_ERROR;
+    }
+    
+    nt->temporary = to_negate_value->create_temp_from(to_negate_value);
+    if(!nt->temporary)
+    {
+	errors->memory_error(
+	    errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
+
+int st_negative_prefix_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
+    
+    switch(nt->invoke_state)
+    {
+    case 0:
+	if(nt->to_negate->invoke.step)
+	{
+	    nt->invoke_state = 1;
+	    st_switch_current(cursor, &(nt->to_negate->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1: {
+	const struct value_iface_t *to_negate_value = 
+	    nt->to_negate->return_value(nt->to_negate);
+	
+	int assign_result = nt->temporary->assign(nt->temporary,
+						  to_negate_value,
+						  config);
+
+	int negate_result = ESSTEE_ERROR;
+	if(assign_result == ESSTEE_OK)
+	{
+	    negate_result = nt->temporary->negate(nt->temporary, config);
+	}
+
+	if(assign_result != ESSTEE_OK || negate_result != ESSTEE_OK)
+	{
+	    errors->new_issue_at(
+		errors,
+		"expression evaluation failed",
+		ISSUE_ERROR_CLASS,
+		1,
+		nt->location);
+	    
+	    return INVOKE_RESULT_ERROR;
+	}
+    }
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+
+const struct value_iface_t * st_negative_prefix_term_return_value(
+    struct expression_iface_t *self)
+{
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(self, struct negative_prefix_term_t, expression);
+
+    return nt->temporary;
+}
+
+int st_negative_prefix_term_runtime_constant(
+    struct expression_iface_t *self)
+{
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(self, struct negative_prefix_term_t, expression);
+
+    return nt->to_negate->runtime_constant(nt->to_negate);
+}
+
+struct expression_iface_t * st_negative_prefix_term_clone(
+    struct expression_iface_t *self)
+{
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(self, struct negative_prefix_term_t, expression);
+
+    struct negative_prefix_term_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct negative_prefix_term_t,
+	error_free_resources);
+
+    memcpy(copy, nt, sizeof(struct negative_prefix_term_t));
+    
+    copy->to_negate = nt->to_negate->clone(nt->to_negate);
+    copy->expression.destroy = st_negative_prefix_term_clone_destroy;
+
+    return &(copy->expression);
+
+error_free_resources:
+    free(copy);
+    return NULL;
+}
+
+void st_negative_prefix_term_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+void st_negative_prefix_term_clone_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+/**************************************************************************/
+/* Function invocation term                                               */
+/**************************************************************************/
+int st_function_invocation_term_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
+
+    return st_verify_invoke_parameters(ft->parameters,
+				       ft->function->header->variables,
+				       errors,
+				       config);
+}
+
+int st_function_invocation_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
+
+    switch(ft->invoke_state)
+    {
+    case 0:
+	st_push_return_context(cursor, self);
+
+	ft->invoke_state = 1;
+	int step_result = st_step_invoke_parameters(ft->parameters,
+						    cursor,
+						    time,
+						    config,
+						    errors);
+	if(step_result != INVOKE_RESULT_FINISHED)
+	{
+	    return step_result;
+	}
+
+    case 1: {
+	int assign_result = st_assign_from_invoke_parameters(ft->parameters,
+							     ft->function->header->variables,
+							     config,
+							     errors);
+	if(assign_result != ESSTEE_OK)
+	{
+	    return INVOKE_RESULT_ERROR;
+	}
+	
+	ft->invoke_state = 2;
+	st_switch_current(cursor, ft->function->statements, config);
+	return INVOKE_RESULT_IN_PROGRESS;
+    }
+	
+    case 2:
+    default:
+	break;
+    }
+
+    st_pop_return_context(cursor);
+    
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_function_invocation_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
+    
+    struct variable_t *itr = NULL;
+    DL_FOREACH(ft->function->header->variables, itr)
+    {
+	int reset_result = itr->type->reset_value_of(itr->type,
+						     itr->value,
+						     config);
+
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+const struct st_location_t * st_function_invocation_term_location(
+    const struct invoke_iface_t *self)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
+
+    return ft->location;
+}
+
+const struct value_iface_t * st_function_invocation_term_return_value(
+    struct expression_iface_t *self)
+{
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(self, struct function_invocation_term_t, expression);
+    
+    return ft->function->output.value;
+}
+    
+int st_function_invocation_term_runtime_constant(
+    struct expression_iface_t *self)
+{
+    return ESSTEE_FALSE;
+}
+
+struct expression_iface_t * st_function_invocation_term_clone(
+    struct expression_iface_t *self)
+{
+    /* TODO: cloning of invoke parameters (when not constants) */
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(self, struct function_invocation_term_t, expression);
+
+    struct function_invocation_term_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct function_invocation_term_t,
+	error_free_resources);
+
+    memcpy(copy, ft, sizeof(struct function_invocation_term_t));
+
+    copy->expression.destroy = st_function_invocation_clone_destroy;
+
+    return &(copy->expression);
+    
+error_free_resources:
+    return NULL;
+}
+
+void st_function_invocation_term_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+void st_function_invocation_clone_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+/**************************************************************************/
+/* Not prefix term                                                        */
+/**************************************************************************/
+int st_not_prefix_term_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct not_prefix_term_t, expression);
+
+    if(nt->to_not->invoke.verify)
+    {
+	int verify_result = nt->to_not->invoke.verify(&(nt->to_not->invoke),
+						      config,
+						      errors);
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+
+    const struct value_iface_t *to_not_value =
+	nt->to_not->return_value(nt->to_not);
+
+    if(!to_not_value->create_temp_from)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "value cannot be used in an expression",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    nt->to_not->invoke.location(&(nt->to_not->invoke)));
+	return ESSTEE_ERROR;
+    }
+    else if(!to_not_value->not)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "value cannot be modified by a not prefix",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    nt->to_not->invoke.location(&(nt->to_not->invoke)));
+	return ESSTEE_ERROR;
+    }
+    
+    nt->temporary = to_not_value->create_temp_from(to_not_value);
+    if(!nt->temporary)
+    {
+	errors->memory_error(
+	    errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
+
+int st_not_prefix_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct not_prefix_term_t, expression);
+    
+    switch(nt->invoke_state)
+    {
+    case 0:
+	if(nt->to_not->invoke.step)
+	{
+	    nt->invoke_state = 1;
+	    st_switch_current(cursor, &(nt->to_not->invoke), config);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1: {
+	const struct value_iface_t *to_not_value = 
+	    nt->to_not->return_value(nt->to_not);
+	
+	int assign_result = nt->temporary->assign(nt->temporary,
+						  to_not_value,
+						  config);
+
+	int not_result = ESSTEE_ERROR;
+	if(assign_result == ESSTEE_OK)
+	{
+	    not_result = nt->temporary->not(nt->temporary, config);
+	}
+
+	if(assign_result != ESSTEE_OK || not_result != ESSTEE_OK)
+	{
+	    errors->new_issue_at(
+		errors,
+		"expression evaluation failed",
+		ISSUE_ERROR_CLASS,
+		1,
+		nt->location);
+	    
+	    return INVOKE_RESULT_ERROR;
+	}
+    }
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_not_prefix_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct not_prefix_term_t, expression);
+
+    if(nt->to_not->invoke.reset)
+    {
+	int reset_result = nt->to_not->invoke.reset(&(nt->to_not->invoke),
+						    config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    nt->invoke_state = 0;
+
+    return ESSTEE_OK;
+}
+
+const struct st_location_t * st_not_prefix_term_location(
+    const struct invoke_iface_t *self)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct not_prefix_term_t, expression);
+
+    return nt->location;
+}
+
+const struct value_iface_t * st_not_prefix_term_return_value(
+    struct expression_iface_t *self)
+{
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(self, struct not_prefix_term_t, expression);
+
+    return nt->temporary;
+}
+
+int st_not_prefix_term_runtime_constant(
+    struct expression_iface_t *self)
+{
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(self, struct not_prefix_term_t, expression);
+
+    return nt->to_not->runtime_constant(nt->to_not);
+}
+
+struct expression_iface_t * st_not_prefix_term_clone(
+    struct expression_iface_t *self)
+{
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(self, struct not_prefix_term_t, expression);
+
+    struct not_prefix_term_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct not_prefix_term_t,
+	error_free_resources);
+
+    memcpy(copy, nt, sizeof(struct not_prefix_term_t));
+    
+    copy->to_not = nt->to_not->clone(nt->to_not);
+    copy->expression.destroy = st_not_prefix_term_clone_destroy;
+
+    return &(copy->expression);
+
+error_free_resources:
+    free(copy);
+    return NULL;
+}
+
+void st_not_prefix_term_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+void st_not_prefix_term_clone_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: destructor */
+}
+
+/**************************************************************************/
 /* Binary expressions                                                     */
 /**************************************************************************/
 static int be_verify_operands(

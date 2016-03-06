@@ -87,6 +87,10 @@ int st_integer_value_equals(
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
 
+int st_integer_value_negate(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
+
 int st_integer_value_plus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
@@ -149,6 +153,10 @@ int st_bool_value_equals(
 int st_bool_value_bool(
     const struct value_iface_t *self,
     const struct config_iface_t *conf);
+
+int st_bool_value_not(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config);
 
 int st_bool_value_xor(
     const struct value_iface_t *self,
@@ -227,6 +235,10 @@ int st_real_value_lesser(
 int st_real_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_real_value_negate(
+    const struct value_iface_t *self,
     const struct config_iface_t *config);
 
 int st_real_value_plus(

@@ -137,11 +137,45 @@ struct direct_address_term_t {
 /**************************************************************************/
 struct negative_prefix_term_t {
     struct expression_iface_t expression;
-    struct value_iface_t evaluated_value;
+    struct value_iface_t *temporary;
     struct expression_iface_t *to_negate;
+    struct st_location_t *location;
+    int invoke_state;
 };
 
-/* TODO: negative prefix term expression functions */
+int st_negative_prefix_term_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_negative_prefix_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_negative_prefix_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+const struct value_iface_t * st_negative_prefix_term_return_value(
+    struct expression_iface_t *self);
+    
+const struct st_location_t * st_negative_prefix_term_location(
+    const struct invoke_iface_t *self);
+
+int st_negative_prefix_term_runtime_constant(
+    struct expression_iface_t *self);
+
+struct expression_iface_t * st_negative_prefix_term_clone(
+    struct expression_iface_t *self);
+
+void st_negative_prefix_term_destroy(
+    struct expression_iface_t *self);
+
+void st_negative_prefix_term_clone_destroy(
+    struct expression_iface_t *self);
 
 /**************************************************************************/
 /* Function invocation term                                               */
@@ -150,20 +184,88 @@ struct function_invocation_term_t {
     struct expression_iface_t expression;
     struct function_t *function;
     struct invoke_parameter_t *parameters;
+    struct st_location_t *location;
+    int invoke_state;
 };
 
-/* TODO: function invocation term expression functions */
+int st_function_invocation_term_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_function_invocation_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_function_invocation_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+const struct value_iface_t * st_function_invocation_term_return_value(
+    struct expression_iface_t *self);
+    
+const struct st_location_t * st_function_invocation_term_location(
+    const struct invoke_iface_t *self);
+
+int st_function_invocation_term_runtime_constant(
+    struct expression_iface_t *self);
+
+struct expression_iface_t * st_function_invocation_term_clone(
+    struct expression_iface_t *self);
+
+void st_function_invocation_term_destroy(
+    struct expression_iface_t *self);
+
+void st_function_invocation_clone_destroy(
+    struct expression_iface_t *self);
 
 /**************************************************************************/
 /* Not prefix term                                                        */
 /**************************************************************************/
 struct not_prefix_term_t {
     struct expression_iface_t expression;
-    struct value_iface_t evaluated_value;
+    struct value_iface_t *temporary;
     struct expression_iface_t *to_not;
+    struct st_location_t *location;
+    int invoke_state;
 };
 
-/* TODO: not prefix term expression functions */
+int st_not_prefix_term_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_not_prefix_term_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_not_prefix_term_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+const struct value_iface_t * st_not_prefix_term_return_value(
+    struct expression_iface_t *self);
+    
+const struct st_location_t * st_not_prefix_term_location(
+    const struct invoke_iface_t *self);
+
+int st_not_prefix_term_runtime_constant(
+    struct expression_iface_t *self);
+
+struct expression_iface_t * st_not_prefix_term_clone(
+    struct expression_iface_t *self);
+
+void st_not_prefix_term_destroy(
+    struct expression_iface_t *self);
+
+void st_not_prefix_term_clone_destroy(
+    struct expression_iface_t *self);
 
 /**************************************************************************/
 /* Binary expressions                                                     */

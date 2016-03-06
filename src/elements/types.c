@@ -562,6 +562,7 @@ struct value_iface_t * st_integer_type_create_value_of(
     iv->value.lesser = st_integer_value_lesser;
     iv->value.equals = st_integer_value_equals;
 
+    iv->value.negate = st_integer_value_negate;
     iv->value.plus = st_integer_value_plus;
     iv->value.minus = st_integer_value_minus;
     iv->value.multiply = st_integer_value_multiply;
@@ -664,6 +665,7 @@ struct value_iface_t * st_bool_type_create_value_of(
 
     iv->value.equals = st_bool_value_equals;
 
+    iv->value.not = st_bool_value_not;
     iv->value.xor = st_bool_value_xor;
     iv->value.and = st_bool_value_and;
     iv->value.or = st_bool_value_or;
@@ -741,6 +743,7 @@ struct value_iface_t * st_real_type_create_value_of(
     rv->value.lesser = st_real_value_lesser;
     rv->value.equals = st_real_value_equals;
 
+    rv->value.negate = st_real_value_negate;
     rv->value.plus = st_real_value_plus;
     rv->value.minus = st_real_value_minus;
     rv->value.multiply = st_real_value_multiply;

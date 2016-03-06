@@ -272,6 +272,18 @@ int st_integer_value_equals(
     return ESSTEE_FALSE;
 }
 
+int st_integer_value_negate(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    iv->num *= -1;
+
+    return ESSTEE_OK;
+}
+
 int st_integer_value_plus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
@@ -511,6 +523,18 @@ int st_bool_value_bool(
     }
 
     return ESSTEE_TRUE;
+}
+
+int st_bool_value_not(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct integer_value_t *iv =
+	CONTAINER_OF(self, struct integer_value_t, value);
+
+    iv->num = (iv->num == 0) ? 1 : 0;
+
+    return ESSTEE_OK;
 }
 
 int st_bool_value_xor(
@@ -790,6 +814,18 @@ int st_real_value_equals(
     }
 
     return ESSTEE_FALSE;
+}
+
+int st_real_value_negate(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config)
+{
+    struct real_value_t *rv =
+	CONTAINER_OF(self, struct real_value_t, value);
+
+    rv->num *= -1;
+
+    return ESSTEE_OK;
 }
 
 int st_real_value_plus(

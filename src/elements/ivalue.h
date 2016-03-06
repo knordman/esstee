@@ -199,6 +199,14 @@ struct value_iface_t {
 	const struct value_iface_t *other_value,
 	const struct config_iface_t *config);
 
+    int (*not)(
+	const struct value_iface_t *self,
+	const struct config_iface_t *config);
+
+    int (*negate)(
+	const struct value_iface_t *self,
+	const struct config_iface_t *config);
+    
     int (*plus)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
