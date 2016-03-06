@@ -29,13 +29,13 @@ END_FUNCTION_BLOCK
 PROGRAM testprgm
 
 VAR
-	a : BOOL;
+	a : INT;
 
 
 END_VAR
 
 
-a := myfunc(a:=10) = 12;
+a := -(myfunc(a:=10) + 10);
 
 
 END_PROGRAM

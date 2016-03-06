@@ -21,7 +21,10 @@ stepped/run. The public interface to the library is defined in
 `src/esstee/esstee.h`.
 
 Currently, the parsing step of the library is complete (Flex and Bison
-grammar), while the runnable representation is **under work**. 
+grammar). In addition there is support for types (elementary, derived
+and complex), all statements and expressions, however it is not yet
+properly tested (automatic integration tests not ready), and should be
+considered as **under work**.
 
 A simple test program using the library interface (and building all
 the current code) can be built by;
@@ -44,7 +47,7 @@ reference or an assignment. The program takes the following options:
 An example:
 
 ```
-build/program-tester --file="src/tests/programs/example.ST" --program="testprgm" --pre-run-queries="testprgm.myvar:=10*5+1" --post-run-queries="testprgm.myvar" 
+build/program-tester --file="src/tests/programs/example.ST" --program="testprgm" --pre-run-queries="testprgm.a:=10*5+1" --post-run-queries="testprgm.a" 
 
 ```
 
