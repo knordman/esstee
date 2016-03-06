@@ -34,8 +34,7 @@ void st_destroy_header(
 struct function_t {    
     struct header_t *header;
 
-    struct type_iface_t *return_type;
-    struct value_iface_t *return_value;
+    struct variable_t output;
 
     struct invoke_iface_t *statements;
 

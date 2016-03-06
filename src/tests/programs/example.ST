@@ -1,3 +1,13 @@
+FUNCTION myfunc : INT
+
+VAR_INPUT
+	a : INT;
+END_VAR
+
+myfunc := a + 1;
+
+END_FUNCTION
+
 FUNCTION_BLOCK m1
 
 VAR_INPUT
@@ -26,11 +36,6 @@ END_VAR
 
 
 
-
-ma();
-
-return;
-
-a := 1;
+myfunc(a:=1);
 
 END_PROGRAM

@@ -1,7 +1,3 @@
-function-left-overs
-119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
-TODO: invoke functions
-
 date-type-value
 168 /* TODO: date literal */ ../src/parser/pliterals.c
 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
@@ -45,7 +41,6 @@ unsorted
 105 /* TODO: implement loading of buffer */ ../src/esstee/esstee.c
 107 /* TODO: Functionality, resetting linking prior to link operation */ ../src/esstee/esstee.c
 109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c
-116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
 
 destructors
 83 /* TODO: enum type destructor */ ../src/elements/types.c
@@ -203,3 +198,7 @@ DONE 152 /* TODO: new exit statement */ ../src/parser/pstatements.c
 DONE 11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
 DONE 153 /* TODO: new return statement */ ../src/parser/pstatements.c
 DONE 12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
+DONE 116 /* TODO: inline enum value, determine where use, perhaps not a value either */ ../src/parser/pvalues.c
+DONE function-left-overs
+DONE 119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
+DONE TODO: invoke functions

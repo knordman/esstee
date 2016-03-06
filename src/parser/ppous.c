@@ -34,8 +34,20 @@ int st_new_function_pou(
     struct parser_t *parser)
 {
     struct function_t *f = NULL;
-    ALLOC_OR_ERROR_JUMP(f, struct function_t, parser->errors, error_free_resources);
+    struct st_location_t *f_location = NULL;
 
+    ALLOC_OR_ERROR_JUMP(
+	f,
+	struct function_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	f_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    f->location = f_location;
     f->type_ref_pool = parser->pou_type_ref_pool;
     f->var_ref_pool = parser->pou_var_ref_pool;
     parser->pou_type_ref_pool = NULL;
@@ -43,9 +55,14 @@ int st_new_function_pou(
 
     f->header = header;
     f->statements = statements;
-
-    /* TODO: error handling if type ref fails */
-    parser->global_type_ref_pool->add(
+    f->identifier = identifier;
+    
+    f->output.identifier = identifier;
+    f->output.class = OUTPUT_VAR_CLASS;
+    f->output.type = NULL;
+    f->output.identifier_location = f_location;
+    
+    int ref_add_result = parser->global_type_ref_pool->add(
 	parser->global_type_ref_pool,
 	return_type_identifier,
 	f,
@@ -53,12 +70,17 @@ int st_new_function_pou(
 	type_identifier_location,
 	st_function_return_type_resolved);
 
-    memcpy(&(f->location), location, sizeof(struct st_location_t));
+    if(ref_add_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
     
     DL_APPEND(parser->functions, f);
     return ESSTEE_OK;
 
 error_free_resources:
+    free(f);
+    free(f_location);
     parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
     return ESSTEE_ERROR;
 }

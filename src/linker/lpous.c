@@ -43,7 +43,7 @@ int st_function_return_type_resolved(
 
     struct function_t *function = (struct function_t *)referrer;
 
-    function->return_type = (struct type_iface_t *)target;
+    function->output.type = (struct type_iface_t *)target;
 
     return ESSTEE_OK;
 }

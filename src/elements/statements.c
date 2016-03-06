@@ -596,7 +596,7 @@ int st_invoke_statement_step(
     case 1:
 	if(is->variable)
 	{
-	    is->invoke_state = 2;
+	    is->invoke_state = 3;
 	    return is->variable->value->invoke_step(is->variable->value,
 						    is->parameters,
 						    cursor,
@@ -604,12 +604,25 @@ int st_invoke_statement_step(
 						    config,
 						    errors);
 	}
-	else
+	else if(is->function)
 	{
-	    /* TODO: function calling */
+	    is->invoke_state = 2;
+	    int assign_result = st_assign_from_invoke_parameters(is->parameters,
+								 is->function->header->variables,
+								 config,
+								 errors);
+	    if(assign_result != ESSTEE_OK)
+	    {
+		return INVOKE_RESULT_ERROR;
+	    }
 	}
 	
     case 2:
+	is->invoke_state = 3;
+	st_switch_current(cursor, is->function->statements, config);
+	return INVOKE_RESULT_IN_PROGRESS;
+
+    case 3:
     default:
 	break;
     }
@@ -663,7 +676,18 @@ int st_invoke_statement_verify(
 	}
 
     }
-    else if(!is->function)
+    else if(is->function)
+    {
+	int verify_result = st_verify_invoke_parameters(is->parameters,
+							is->function->header->variables,
+							errors,
+							config);
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+    else
     {
 	errors->new_issue_at(
 	    errors,
@@ -695,7 +719,22 @@ int st_invoke_statement_reset(
 	    return reset;
 	}
     }
-    
+    else if(is->function)
+    {
+	struct variable_t *itr = NULL;
+	DL_FOREACH(is->function->header->variables, itr)
+	{
+	    int reset_result = itr->type->reset_value_of(itr->type,
+							 itr->value,
+							 config);
+
+	    if(reset_result != ESSTEE_OK)
+	    {
+		return reset_result;
+	    }
+	}
+    }
+
     is->invoke_state = 0;
     if(is->parameters)
     {

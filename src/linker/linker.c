@@ -62,7 +62,7 @@ static int create_header_tables(
 int st_link_queries(
     struct query_t *queries,
     struct variable_t *global_variables,
-    struct function_t *functions, 
+    struct function_t *functions,
     struct namedreference_iface_t *var_ref_pool,
     struct namedreference_iface_t *func_ref_pool,
     struct program_t *main,
@@ -289,18 +289,63 @@ struct function_t * st_link_functions(
 		2,
 		itr->location,
 		found->location);
+	    continue;
 	}
-	else
+
+	struct variable_t *var_itr = NULL;
+	int invalid_variables = 0;
+	DL_FOREACH(itr->header->variables, var_itr)
 	{
-	    create_header_tables(itr->header, errors);
-	    
-	    HASH_ADD_KEYPTR(
-		hh, 
-		function_table, 
-		itr->identifier, 
-		strlen(itr->identifier), 
-		itr);
+	    st_bitflag_t var_class = var_itr->class;
+	    ST_CLEAR_FLAGS(var_class, INPUT_VAR_CLASS|CONSTANT_VAR_CLASS);
+	    if(var_class != 0)
+	    {
+		errors->new_issue_at(
+		    errors,
+		    "function variables can only be of input class (optionally constant)",
+		    ISSUE_ERROR_CLASS,
+		    1,
+		    var_itr->identifier_location);
+		invalid_variables = 1;
+	    }
 	}
+	if(invalid_variables)
+	{
+	    continue;
+	}
+	
+	int table_result = create_header_tables(itr->header, errors);
+	if(table_result != ESSTEE_OK)
+	{
+	    continue;
+	}
+
+	struct variable_t *found_var = NULL;
+	HASH_FIND_STR(itr->header->variables, itr->identifier, found_var);
+	if(found_var)
+	{
+	    errors->new_issue_at(
+		errors,
+		"implicit function output variable shadowed by explicit variable",
+		ISSUE_ERROR_CLASS,
+		1,
+		found_var->identifier_location);
+	    continue;
+	}
+
+	HASH_ADD_KEYPTR(
+	    hh,
+	    itr->header->variables,
+	    itr->output.identifier,
+	    strlen(itr->output.identifier),
+	    &(itr->output));
+	
+	HASH_ADD_KEYPTR(
+	    hh, 
+	    function_table, 
+	    itr->identifier, 
+	    strlen(itr->identifier), 
+	    itr);
     }
 
     return function_table;
