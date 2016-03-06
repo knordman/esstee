@@ -221,7 +221,7 @@ struct invoke_iface_t * st_new_invoke_statement(
     {
 	goto error_free_resources;
     }
-
+    
     is->location = loc;
     is->parameters = invoke_parameters;
     is->invoke.location = st_invoke_statement_location;
@@ -230,7 +230,7 @@ struct invoke_iface_t * st_new_invoke_statement(
     is->invoke.reset = st_invoke_statement_reset;
     is->invoke.clone = st_invoke_statement_clone;
     is->invoke.destroy = st_invoke_statement_destroy;
-
+    
     return &(is->invoke);
     
 error_free_resources:
@@ -521,7 +521,7 @@ struct invoke_iface_t * st_new_for_statement(
     fs->to = to;
     fs->increment = increment;
     fs->statements = statements;
-
+    
     fs->invoke.location = st_for_statement_location;
     fs->invoke.step = st_for_statement_step;
     fs->invoke.verify = st_for_statement_verify;
@@ -563,7 +563,7 @@ struct invoke_iface_t * st_new_while_statement(
     ws->location = loc;
     ws->while_expression = while_expression;
     ws->statements = statements;
-
+    
     ws->invoke.location = st_while_statement_location;
     ws->invoke.step = st_while_statement_step;
     ws->invoke.verify = st_while_statement_verify;
@@ -604,7 +604,7 @@ struct invoke_iface_t * st_new_repeat_statement(
     ws->location = loc;
     ws->while_expression = repeat_expression;
     ws->statements = statements;
-
+    
     ws->invoke.location = st_while_statement_location;
     ws->invoke.step = st_repeat_statement_step;
     ws->invoke.verify = st_while_statement_verify;
@@ -627,7 +627,46 @@ struct invoke_iface_t * st_new_exit_statement(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new exit statement */
+    struct pop_call_stack_statement_t *ps = NULL;
+    struct st_location_t *ps_location = NULL;
+
+    if(parser->loop_level < 1)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "exit outside of loop",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+
+	goto error_free_resources;
+    }
+    
+    ALLOC_OR_ERROR_JUMP(
+	ps,
+	struct pop_call_stack_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	ps_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ps->location = ps_location;
+
+    ps->invoke.location = st_pop_statement_location;
+    ps->invoke.step = st_exit_statement_step;
+    ps->invoke.verify = st_pop_statement_verify;
+    ps->invoke.reset = st_pop_statement_reset;
+    ps->invoke.clone = st_pop_statement_clone;
+    ps->invoke.destroy = st_pop_statement_destroy;
+
+    return &(ps->invoke);
+    
+error_free_resources:
+    free(ps);
+    free(ps_location);
     return NULL;
 }
 
@@ -638,6 +677,33 @@ struct invoke_iface_t * st_new_return_statement(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: new return statement */
+    struct pop_call_stack_statement_t *ps = NULL;
+    struct st_location_t *ps_location = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	ps,
+	struct pop_call_stack_statement_t,
+	parser->errors,
+	error_free_resources);
+    LOCDUP_OR_ERROR_JUMP(
+	ps_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    ps->location = ps_location;
+
+    ps->invoke.location = st_pop_statement_location;
+    ps->invoke.step = st_return_statement_step;
+    ps->invoke.verify = st_pop_statement_verify;
+    ps->invoke.reset = st_pop_statement_reset;
+    ps->invoke.clone = st_pop_statement_clone;
+    ps->invoke.destroy = st_pop_statement_destroy;
+
+    return &(ps->invoke);
+
+error_free_resources:
+    free(ps);
+    free(ps_location);
     return NULL;
 }

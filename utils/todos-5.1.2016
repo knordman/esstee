@@ -1,9 +1,3 @@
-exit-return-statement (return func, fb, prgm; exit for loops)
-152 /* TODO: new exit statement */ ../src/parser/pstatements.c
-11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
-153 /* TODO: new return statement */ ../src/parser/pstatements.c
-12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h
-
 function-left-overs
 119 /* TODO: error handling if type ref fails */ ../src/parser/ppous.c
 TODO: invoke functions
@@ -203,4 +197,9 @@ DONE 149 /* TODO: new for statement */ ../src/parser/pstatements.c
 DONE 150 /* TODO: new while statement */ ../src/parser/pstatements.c
 DONE 9 /*TODO: while statement invoke functions */ ../src/elements/statements.h
 DONE 151 /* TODO: new repeat statement */ ../src/parser/pstatements.c
-DONE 10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.h
+DONE 10 /*TODO: repeat statement invoke functions */ ../src/elements/statements.
+DONE exit-return-statement (return func, fb, prgm; exit for loops)
+DONE 152 /* TODO: new exit statement */ ../src/parser/pstatements.c
+DONE 11 /*TODO: exit statement, struct and invoke functions */ ../src/elements/statements.h
+DONE 153 /* TODO: new return statement */ ../src/parser/pstatements.c
+DONE 12 /*TODO: return statement, struct and invoke functions */ ../src/elements/statements.h

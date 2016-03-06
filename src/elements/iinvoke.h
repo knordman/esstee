@@ -25,10 +25,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <rt/cursor.h>
 #include <esstee/flags.h>
 
-#define INVOKE_RESULT_FINISHED    1
-#define INVOKE_RESULT_IN_PROGRESS 2
-#define INVOKE_RESULT_ERROR       3
-#define INVOKE_RESULT_FATAL_ERROR 4
+#define INVOKE_RESULT_FINISHED     1
+#define INVOKE_RESULT_IN_PROGRESS  2
+#define INVOKE_RESULT_ERROR        3
+#define INVOKE_RESULT_ALL_FINISHED 4
 
 struct invoke_iface_t {
 
@@ -56,10 +56,16 @@ struct invoke_iface_t {
 
     void (*destroy)(
 	struct invoke_iface_t *self);
-    
-    /* Lists of invokes */
+	
+    /* Invoke lists */
     struct invoke_iface_t *call_stack_prev;
     struct invoke_iface_t *call_stack_next;
+
+    struct invoke_iface_t *exit_context_prev;
+    struct invoke_iface_t *exit_context_next;
+
+    struct invoke_iface_t *return_context_prev;
+    struct invoke_iface_t *return_context_next;
     
     struct invoke_iface_t *prev;
     struct invoke_iface_t *next;

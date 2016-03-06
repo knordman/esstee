@@ -91,8 +91,7 @@ int st_new_program_pou(
     parser->pou_var_ref_pool = NULL;
 
     p->header = header;
-    p->statements = statements;
-    
+    p->statements = statements;    
     p->location = loc;
     
     DL_APPEND(parser->programs, p);
@@ -139,7 +138,7 @@ int st_new_function_block_pou(
     fb->var_ref_pool = parser->pou_var_ref_pool;
     parser->pou_type_ref_pool = NULL;
     parser->pou_var_ref_pool = NULL;
-
+    
     DL_APPEND(parser->function_blocks, fb);
     DL_APPEND(parser->global_types, &(fb->type));
 

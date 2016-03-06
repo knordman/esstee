@@ -61,6 +61,8 @@ struct parser_t {
     struct namedreference_iface_t *pou_type_ref_pool;
     struct namedreference_iface_t *pou_var_ref_pool;
 
+    int loop_level;
+    
     struct query_t *queries;
     int error_strategy;
     struct errors_iface_t *errors;
@@ -81,17 +83,6 @@ struct compilation_unit_t {
     
     UT_hash_handle hh;
 };
-
-int st_parser_init(
-    struct parser_t *parser,
-    struct namedreference_iface_t *global_type_ref_pool,
-    struct namedreference_iface_t *global_var_ref_pool,
-    struct namedreference_iface_t *function_ref_pool,
-    struct namedreference_iface_t *pou_type_ref_pool,
-    struct namedreference_iface_t *pou_var_ref_pool,
-    struct errors_iface_t *errors,
-    struct dmem_iface_t *direct_memory,
-    struct config_iface_t *config);
 
 int st_parser_reset(
     struct parser_t *parser);

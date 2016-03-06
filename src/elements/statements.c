@@ -577,6 +577,8 @@ int st_invoke_statement_step(
     switch(is->invoke_state)
     {
     case 0:
+	st_push_return_context(cursor, self);
+	
 	if(is->parameters)
 	{
 	    is->invoke_state = 1;
@@ -602,11 +604,17 @@ int st_invoke_statement_step(
 						    config,
 						    errors);
 	}
+	else
+	{
+	    /* TODO: function calling */
+	}
 	
     case 2:
     default:
 	break;
     }
+
+    st_pop_return_context(cursor);
     
     return INVOKE_RESULT_FINISHED;
 }
@@ -1098,7 +1106,7 @@ int st_if_statement_step(
 	    st_switch_current(cursor, &(ifs->elsif->invoke), config);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
-	else
+	else if(ifs->else_statements)
 	{
 	    st_switch_current(cursor, ifs->else_statements, config);
 	    return INVOKE_RESULT_IN_PROGRESS;
@@ -1363,24 +1371,29 @@ int st_while_statement_step(
     switch(ws->invoke_state)
     {
     case 0:
+	st_push_exit_context(cursor, self);
+	
+    case 1:
 	if(ws->while_expression->invoke.step)
 	{
-	    ws->invoke_state = 1;
+	    ws->invoke_state = 2;
 	    st_switch_current(cursor, &(ws->while_expression->invoke), config);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
-    case 1:
+    case 2:
     default:
 	while_value = ws->while_expression->return_value(ws->while_expression);
 
 	if(while_value->bool(while_value, config) == ESSTEE_TRUE)
 	{
-	    ws->invoke_state = 0;
+	    ws->invoke_state = 1;
 	    st_switch_current(cursor, ws->statements, config);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
     }
+
+    st_pop_exit_context(cursor);
     
     return INVOKE_RESULT_FINISHED;
 }
@@ -1576,6 +1589,8 @@ int st_for_statement_step(
     switch(fs->invoke_state)
     {
     case 0:
+	st_push_exit_context(cursor, self);
+	
 	if(fs->from->invoke.step)
 	{
 	    fs->invoke_state = 1;
@@ -1641,6 +1656,8 @@ int st_for_statement_step(
 	return INVOKE_RESULT_IN_PROGRESS;
     }
 
+    st_pop_exit_context(cursor);
+    
     return INVOKE_RESULT_FINISHED;
 }
 
@@ -1941,24 +1958,27 @@ int st_repeat_statement_step(
     switch(ws->invoke_state)
     {
     case 0:
-	ws->invoke_state = 1;
+	st_push_exit_context(cursor, self);
+	
+    case 1:
+	ws->invoke_state = 2;
 	st_switch_current(cursor, ws->statements, config);
 	return INVOKE_RESULT_IN_PROGRESS;
 
-    case 1:
+    case 2:
 	if(ws->while_expression->invoke.step)
 	{
-	    ws->invoke_state = 2;
+	    ws->invoke_state = 3;
 	    st_switch_current(cursor, &(ws->while_expression->invoke), config);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
-    case 2:
+    case 3:
 	while_value = ws->while_expression->return_value(ws->while_expression);
 
 	if(while_value->bool(while_value, config) == ESSTEE_FALSE)
 	{
-	    ws->invoke_state = 0;
+	    ws->invoke_state = 1;
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	else
@@ -1966,6 +1986,82 @@ int st_repeat_statement_step(
 	    break;
 	}
     }
+
+    st_pop_exit_context(cursor);
     
     return INVOKE_RESULT_FINISHED;
+}
+
+/**************************************************************************/
+/* Exit/return statement                                                  */
+/**************************************************************************/
+const struct st_location_t * st_pop_statement_location(
+    const struct invoke_iface_t *self)
+{
+    struct pop_call_stack_statement_t *ps = 
+	CONTAINER_OF(self, struct pop_call_stack_statement_t, invoke);
+
+    return ps->location;
+}
+
+int st_return_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    return st_jump_return(cursor);
+}
+
+int st_exit_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    st_jump_exit(cursor);
+    return INVOKE_RESULT_FINISHED;
+}
+
+int st_pop_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    return ESSTEE_OK;
+}
+
+int st_pop_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return ESSTEE_OK;
+}
+
+struct invoke_iface_t * st_pop_statement_clone(
+    struct invoke_iface_t *self)
+{
+    struct pop_call_stack_statement_t *ps = 
+	CONTAINER_OF(self, struct pop_call_stack_statement_t, invoke);
+
+    struct pop_call_stack_statement_t *copy = NULL;
+    ALLOC_OR_JUMP(
+	copy,
+	struct pop_call_stack_statement_t,
+	error_free_resources);
+
+    memcpy(copy, ps, sizeof(struct pop_call_stack_statement_t));
+
+    return &(copy->invoke);
+    
+error_free_resources:
+    return NULL;
+}
+
+void st_pop_statement_destroy(
+    struct invoke_iface_t *self)
+{
+    /* TODO: pop callstack statement destroy */
 }

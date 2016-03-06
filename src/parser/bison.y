@@ -1200,14 +1200,14 @@ IDENTIFIER ASSIGN expression
     	DO_ERROR_STRATEGY(parser);
 }
 | for_statement
-| WHILE expression DO statements END_WHILE
+| WHILE expression DO {parser->loop_level++;} statements {parser->loop_level--;} END_WHILE
 {
-    if(($$ = st_new_while_statement($2, $4, &@$, parser)) == NULL)
+    if(($$ = st_new_while_statement($2, $5, &@$, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
-| REPEAT statements UNTIL expression END_REPEAT
+| REPEAT {parser->loop_level++;} statements {parser->loop_level--;} UNTIL expression END_REPEAT
 {
-    if(($$ = st_new_repeat_statement($4, $2, &@$, parser)) == NULL)
+    if(($$ = st_new_repeat_statement($6, $3, &@$, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | EXIT
@@ -1302,9 +1302,9 @@ subrange
 ;
 
 for_statement :
-FOR IDENTIFIER ASSIGN expression TO expression DO statements END_FOR
+FOR IDENTIFIER ASSIGN expression TO expression DO {parser->loop_level++;} statements {parser->loop_level--;} END_FOR
 {
-    if(($$ = st_new_for_statement($2, &@2, $4, $6, NULL, $8, &@$, parser)) == NULL)
+    if(($$ = st_new_for_statement($2, &@2, $4, $6, NULL, $9, &@$, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | FOR IDENTIFIER ASSIGN expression TO expression BY expression DO statements END_FOR

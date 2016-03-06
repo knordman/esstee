@@ -41,6 +41,8 @@ int st_parser_reset(struct parser_t *parser)
     parser->pou_type_ref_pool = st_new_named_ref_pool();
     parser->pou_var_ref_pool = st_new_named_ref_pool();
 
+    parser->loop_level = 0;
+    
     if(!(parser->global_type_ref_pool
 	 && parser->global_var_ref_pool
 	 && parser->function_ref_pool

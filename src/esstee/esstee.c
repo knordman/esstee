@@ -437,6 +437,7 @@ const struct st_location_t * st_start(
     st->main = found;
 
     st->cursor.current = st->main->statements;
+    st->cursor.return_context = NULL;
     st->cursor.current->reset(st->cursor.current, st->config);
     st->cursor.call_stack = NULL;
     
@@ -767,6 +768,12 @@ const struct st_location_t * st_step(
 	if(invoke_result == INVOKE_RESULT_ERROR)
 	{
 	    return NULL;
+	}
+	else if(invoke_result == INVOKE_RESULT_ALL_FINISHED)
+	{
+	    st->cursor.current = st->main->statements;
+	    st->cursor.call_stack = NULL;
+	    break;
 	}
 	else if(invoke_result == INVOKE_RESULT_FINISHED)
 	{

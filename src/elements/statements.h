@@ -371,14 +371,43 @@ int st_repeat_statement_step(
     struct errors_iface_t *errors);
 
 /**************************************************************************/
-/* Exit statement                                                         */
+/* Exit/return statement                                                  */
 /**************************************************************************/
+struct pop_call_stack_statement_t {
+    struct invoke_iface_t invoke;
+    struct st_location_t *location;
+    int has_loop_parent;
+};
 
-/* TODO: exit statement, struct and invoke functions */
+const struct st_location_t * st_pop_statement_location(
+    const struct invoke_iface_t *self);
 
-/**************************************************************************/
-/* Return statement                                                       */
-/**************************************************************************/
+int st_return_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
 
-/* TODO: return statement, struct and invoke functions */
+int st_exit_statement_step(
+    struct invoke_iface_t *self,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_pop_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+int st_pop_statement_reset(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config);
+
+struct invoke_iface_t * st_pop_statement_clone(
+    struct invoke_iface_t *self);
+
+void st_pop_statement_destroy(
+    struct invoke_iface_t *self);
 

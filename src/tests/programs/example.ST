@@ -8,7 +8,10 @@ VAR
 
 END_VAR
 
-;
+e := 1;
+e := 2;
+
+return;
 
 END_FUNCTION_BLOCK
 
@@ -17,19 +20,17 @@ PROGRAM testprgm
 
 VAR
 	a : INT := 0;
-	b : INT := 0;
-	c : INT;
-	d : INT;
 
 	ma : m1;
-	mb : m1;
 END_VAR
 
-repeat
-	a := a + 1;
-	b := b - 1;
-until a > 3
-end_repeat;
 
+
+
+ma();
+
+return;
+
+a := 1;
 
 END_PROGRAM
