@@ -54,7 +54,8 @@ struct expression_iface_t * st_new_expression_value(
     ve->expression.invoke.location = st_value_expression_location;
     ve->expression.invoke.step = NULL;
     ve->expression.invoke.verify = NULL;
-    ve->expression.runtime_constant = st_value_expression_runtime_constant;
+    ve->expression.invoke.reset = NULL;
+    ve->expression.invoke.clone = NULL;
     
     ve->expression.return_value = st_value_expression_return_value;
     ve->expression.destroy = st_value_expression_destroy;
@@ -209,6 +210,7 @@ struct expression_iface_t * st_new_function_invocation_term(
 	NULL,
 	location,
 	st_function_invocation_term_function_resolved);
+
     if(ref_add_result != ESSTEE_OK)
     {
 	goto error_free_resources;
@@ -226,7 +228,6 @@ struct expression_iface_t * st_new_function_invocation_term(
     ft->expression.invoke.destroy = NULL;
 
     ft->expression.return_value = st_function_invocation_term_return_value;
-    ft->expression.runtime_constant = st_function_invocation_term_runtime_constant;
     ft->expression.clone = st_function_invocation_term_clone;
     ft->expression.destroy = st_function_invocation_term_destroy;
 
@@ -263,21 +264,30 @@ struct expression_iface_t * st_new_negate_term(
     nt->location = nt_location;
     nt->to_negate = term;
 
+    if(nt->to_negate->invoke.step || nt->to_negate->clone)
+    {
+	nt->expression.invoke.step = st_negative_prefix_term_step;
+	nt->expression.invoke.verify = st_negative_prefix_term_verify;
+	nt->expression.invoke.reset = st_negative_prefix_term_reset;
+    }
+    else
+    {
+	nt->expression.invoke.step = NULL;
+	nt->expression.invoke.verify = st_negative_prefix_term_constant_verify;
+	nt->expression.invoke.reset = NULL;
+    }
+    
     nt->expression.invoke.location = st_negative_prefix_term_location;
-    nt->expression.invoke.step = st_negative_prefix_term_step;
-    nt->expression.invoke.verify = st_negative_prefix_term_verify;
-    nt->expression.invoke.reset = st_negative_prefix_term_reset;
     nt->expression.invoke.clone = NULL;
     nt->expression.invoke.destroy = NULL;
-
     nt->expression.return_value = st_negative_prefix_term_return_value;
-    nt->expression.runtime_constant = st_negative_prefix_term_runtime_constant;
+    nt->expression.destroy = st_negative_prefix_term_destroy;
+    
     nt->expression.clone = NULL;
     if(nt->to_negate->clone)
     {
 	nt->expression.clone = st_negative_prefix_term_clone;
     }
-    nt->expression.destroy = st_negative_prefix_term_destroy;
 
     return &(nt->expression);
 
@@ -312,20 +322,30 @@ struct expression_iface_t * st_new_not_term(
     nt->location = nt_location;
     nt->to_not = term;
 
+    if(nt->to_not->invoke.step || nt->to_not->clone)
+    {
+	nt->expression.invoke.step = st_not_prefix_term_step;
+	nt->expression.invoke.verify = st_not_prefix_term_verify;
+	nt->expression.invoke.reset = st_not_prefix_term_reset;
+    }
+    else
+    {
+	nt->expression.invoke.step = NULL;
+	nt->expression.invoke.verify = st_not_prefix_term_constant_verify;
+	nt->expression.invoke.reset = NULL;
+    }
+    
     nt->expression.invoke.location = st_not_prefix_term_location;
-    nt->expression.invoke.step = st_not_prefix_term_step;
-    nt->expression.invoke.verify = st_not_prefix_term_verify;
-    nt->expression.invoke.reset = st_not_prefix_term_reset;
     nt->expression.invoke.clone = NULL;
     nt->expression.invoke.destroy = NULL;
-
     nt->expression.return_value = st_not_prefix_term_return_value;
-    nt->expression.runtime_constant = st_not_prefix_term_runtime_constant;
+
     nt->expression.clone = NULL;
     if(nt->to_not->clone)
     {
 	nt->expression.clone = st_not_prefix_term_clone;
     }
+
     nt->expression.destroy = st_not_prefix_term_destroy;
 
     return &(nt->expression);
@@ -342,6 +362,10 @@ error_free_resources:
 static struct expression_iface_t * new_binary_expression(
     struct expression_iface_t *left_operand,
     struct expression_iface_t *right_operand,
+    int (*verify_constant_function)(
+	struct invoke_iface_t *self,
+	const struct config_iface_t *config,
+	struct errors_iface_t *errors),
     int (*verify_function)(
 	struct invoke_iface_t *self,
 	const struct config_iface_t *config,
@@ -370,16 +394,33 @@ static struct expression_iface_t * new_binary_expression(
 
     be->left_operand = left_operand;
     be->right_operand = right_operand;
-    be->invoke_state = 0;
+
+    if((left_operand->invoke.step || left_operand->clone) || (right_operand->invoke.step || right_operand->clone))
+    {
+	be->expression.invoke.verify = verify_function;
+	be->expression.invoke.step = step_function;
+	be->expression.invoke.reset = st_binary_expression_reset;
+    }
+    else
+    {
+	be->expression.invoke.verify = verify_constant_function;
+	be->expression.invoke.step = NULL;
+	be->expression.invoke.reset = NULL;
+    }
+
+    if(left_operand->clone || right_operand->clone)
+    {
+	be->expression.clone = st_binary_expression_clone;
+    }
+    else
+    {
+	be->expression.clone = NULL;
+    }
     
-    be->expression.invoke.step = step_function;
-    be->expression.invoke.verify = verify_function;
     be->expression.invoke.location = st_binary_expression_location;
-    be->expression.invoke.reset = st_binary_expression_reset;
+    be->expression.invoke.clone = NULL;
     be->expression.return_value = st_binary_expression_return_value;
-    be->expression.runtime_constant = st_binary_expression_runtime_constant;
-    be->expression.clone = st_binary_expression_clone;
-    
+    be->expression.destroy = st_binary_expression_destroy;
     be->temporary = NULL;
     
     return &(be->expression);
@@ -399,6 +440,7 @@ struct expression_iface_t * st_new_xor_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_xor_expression_constant_verify,
 	st_xor_expression_verify,
 	location,
 	st_xor_expression_step,
@@ -414,6 +456,7 @@ struct expression_iface_t * st_new_and_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_and_expression_constant_verify,
 	st_and_expression_verify,       
 	location,
 	st_and_expression_step,
@@ -429,7 +472,8 @@ struct expression_iface_t * st_new_or_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_or_expression_verify,	
+	st_or_expression_constant_verify,
+	st_or_expression_verify,
 	location,
 	st_or_expression_step,
 	parser);
@@ -444,7 +488,8 @@ struct expression_iface_t * st_new_greater_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_greater_expression_verify,	
+	st_greater_expression_constant_verify,
+	st_greater_expression_verify,
 	location,
 	st_greater_expression_step,
 	parser);
@@ -459,6 +504,7 @@ struct expression_iface_t * st_new_lesser_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_lesser_expression_constant_verify,
 	st_lesser_expression_verify,	
 	location,
 	st_lesser_expression_step,
@@ -474,7 +520,8 @@ struct expression_iface_t * st_new_equals_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_equals_expression_verify,	
+	st_equals_expression_constant_verify,
+	st_equals_expression_verify,
 	location,
 	st_equals_expression_step,
 	parser);
@@ -489,7 +536,8 @@ struct expression_iface_t * st_new_gequals_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_gequals_expression_verify,	
+	st_gequals_expression_constant_verify,
+	st_gequals_expression_verify,
 	location,
 	st_gequals_expression_step,
 	parser);
@@ -504,7 +552,8 @@ struct expression_iface_t * st_new_lequals_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_lequals_expression_verify,	
+	st_lequals_expression_constant_verify,
+	st_lequals_expression_verify,
 	location,
 	st_lequals_expression_step,
 	parser);
@@ -519,6 +568,7 @@ struct expression_iface_t * st_new_nequals_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_nequals_expression_constant_verify,
 	st_nequals_expression_verify,	
 	location,
 	st_nequals_expression_step,
@@ -534,6 +584,7 @@ struct expression_iface_t * st_new_plus_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_plus_expression_constant_verify,
 	st_plus_expression_verify,	
 	location,
 	st_plus_expression_step,
@@ -549,6 +600,7 @@ struct expression_iface_t * st_new_minus_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_minus_expression_constant_verify,
 	st_minus_expression_verify,	
 	location,
 	st_minus_expression_step,
@@ -564,7 +616,8 @@ struct expression_iface_t * st_new_multiply_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_multiply_expression_verify,	
+	st_multiply_expression_constant_verify,
+	st_multiply_expression_verify,
 	location,
 	st_multiply_expression_step,
 	parser);
@@ -579,7 +632,8 @@ struct expression_iface_t * st_new_division_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_division_expression_verify,	
+	st_division_expression_constant_verify,
+	st_division_expression_verify,
 	location,
 	st_division_expression_step,
 	parser);
@@ -594,7 +648,8 @@ struct expression_iface_t * st_new_mod_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
-	st_mod_expression_verify,	
+	st_mod_expression_constant_verify,
+	st_mod_expression_verify,
 	location,
 	st_mod_expression_step,
 	parser);
@@ -609,6 +664,7 @@ struct expression_iface_t * st_new_to_power_expression(
     return new_binary_expression(
 	left_operand,
 	right_operand,
+	st_power_expression_constant_verify,
 	st_power_expression_verify,	
 	location,
 	st_power_expression_step,

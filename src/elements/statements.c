@@ -95,6 +95,129 @@ void st_empty_statement_clone_destroy(
     /* TODO: destructor */
 }
 
+
+/**************************************************************************/
+/* Assignment error helpers                                               */
+/**************************************************************************/
+static int check_assignment_status(
+    int assignment_status,
+    const struct st_location_t *assignment_destination_location,
+    struct errors_iface_t *errors)
+{
+    if(assignment_status == ESSTEE_TYPE_UNDERFLOW)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "assignment causes type underflow",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    assignment_destination_location);
+
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(assignment_status == ESSTEE_TYPE_OVERFLOW)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "assignment causes type overflow",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    assignment_destination_location);
+
+	return INVOKE_RESULT_ERROR;
+    }
+    else if(assignment_status != ESSTEE_OK)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "assignment failed",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    assignment_destination_location);
+
+	return INVOKE_RESULT_ERROR;
+    }
+    
+    return INVOKE_RESULT_FINISHED;
+}
+
+static int check_assignable_from(
+    struct value_iface_t *destination_value,
+    const struct st_location_t *destination_location,
+    const struct value_iface_t *source_value,
+    const struct st_location_t *source_location,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors)
+{
+    if(!destination_value->assignable_from)
+    {
+	errors->new_issue_at(
+	    errors,
+	    "element cannot be assigned a new value",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    destination_location);
+
+	return ESSTEE_ERROR;
+    }
+    
+    int assignable_result = destination_value->assignable_from(destination_value,
+							       source_value,
+							       config);
+
+    switch(assignable_result)
+    {
+    case ESSTEE_TRUE:
+	break;
+
+    case ESSTEE_TYPE_OVERFLOW:
+	errors->new_issue_at(
+	    errors,
+	    "assignment impossible due to value overflow",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    destination_location,
+	    source_location);
+
+	return ESSTEE_ERROR;
+
+    case ESSTEE_TYPE_UNDERFLOW:
+	errors->new_issue_at(
+	    errors,
+	    "assignment impossible due to value underflow",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    destination_location,
+	    source_location);
+
+	return ESSTEE_ERROR;
+
+    case ESSTEE_TYPE_INCOMPATIBILITY:
+	errors->new_issue_at(
+	    errors,
+	    "assignment impossible due to type incompatibility",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    destination_location,
+	    source_location);
+
+	return ESSTEE_ERROR;
+
+    default:
+	errors->new_issue_at(
+	    errors,
+	    "assignment not possible",
+	    ISSUE_ERROR_CLASS,
+	    2,
+	    destination_location,
+	    source_location);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
+
 /**************************************************************************/
 /* Simple assignment                                                      */
 /**************************************************************************/
@@ -119,35 +242,12 @@ int st_assignment_statement_simple_verify(
 
     const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
 
-    if(!sa->lhs->value->assignable_from)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "value is not assignable",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    sa->lhs_location);
-
-	return ESSTEE_ERROR;
-    }
-    
-    int lhs_assignable_from_rhs
-	= sa->lhs->value->assignable_from(sa->lhs->value, rhs_value, config);
-
-    if(lhs_assignable_from_rhs != ESSTEE_TRUE)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "left value cannot be assigned from right value",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    sa->lhs_location,
-	    sa->rhs->invoke.location(&(sa->rhs->invoke)));
-
-	return ESSTEE_ERROR;
-    }
-    
-    return ESSTEE_OK;
+    return check_assignable_from(sa->lhs->value,
+				 sa->lhs_location,
+				 rhs_value,
+				 sa->rhs->invoke.location(&(sa->rhs->invoke)),
+				 config,
+				 errors);
 }
 
 int st_assignment_statement_simple_step(
@@ -172,43 +272,10 @@ int st_assignment_statement_simple_step(
     int assignment_status = sa->lhs->value->assign(sa->lhs->value,
 						   rhs_value,
 						   config);
-    
-    if(assignment_status == ESSTEE_RT_TYPE_UNDERFLOW)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment destination type underflow",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    sa->lhs_location);
 
-	return INVOKE_RESULT_ERROR;
-    }
-    else if(assignment_status == ESSTEE_RT_TYPE_OVERFLOW)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment destination type overflow",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    sa->lhs_location);
-
-	return INVOKE_RESULT_ERROR;
-    }
-    else if(assignment_status != ESSTEE_OK)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment failed",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    sa->lhs_location,
-	    sa->rhs->invoke.location(&(sa->rhs->invoke)));
-
-	return INVOKE_RESULT_ERROR;
-    }
-    
-    return INVOKE_RESULT_FINISHED;
+    return check_assignment_status(assignment_status,
+				   sa->lhs_location,
+				   errors);
 }
 
 const struct st_location_t * st_assignment_statement_simple_location(
@@ -329,33 +396,12 @@ int st_assignment_statement_qualified_verify(
     {
 	const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
 
-	if(!qis->lhs->target->assignable_from)
-	{
-	    errors->new_issue_at(
-		errors,
-		"value is not assignable",
-		ISSUE_ERROR_CLASS,
-		1,
-		qis->lhs->location);
-
-	    return ESSTEE_ERROR;
-	}
-    
-	int lhs_assignable_from_rhs
-	    = qis->lhs->target->assignable_from(qis->lhs->target, rhs_value, config);
-
-	if(lhs_assignable_from_rhs != ESSTEE_TRUE)
-	{
-	    errors->new_issue_at(
-		errors,
-		"left value cannot be assigned from right value",
-		ISSUE_ERROR_CLASS,
-		2,
-		qis->lhs->location,
-		qis->rhs->invoke.location(&(qis->rhs->invoke)));
-
-	    return ESSTEE_ERROR;
-	}
+	return check_assignable_from(qis->lhs->target,
+				     qis->lhs->location,
+				     rhs_value,
+				     qis->rhs->invoke.location(&(qis->rhs->invoke)),
+				     config,
+				     errors);
     }
 
     return ESSTEE_OK;
@@ -395,19 +441,16 @@ int st_assignment_statement_qualified_step(
 
     if(!qis->lhs->runtime_constant_reference)
     {
-	int lhs_assignable_from_rhs
-	    = qis->lhs->target->assignable_from(qis->lhs->target, rhs_value, config);
+	int lhs_assignable_from_rhs = 
+	    check_assignable_from(qis->lhs->target,
+				  qis->lhs->location,
+				  rhs_value,
+				  qis->rhs->invoke.location(&(qis->rhs->invoke)),
+				  config,
+				  errors);
 
 	if(lhs_assignable_from_rhs != ESSTEE_TRUE)
 	{
-	    errors->new_issue_at(
-		errors,
-		"left value cannot be assigned from right value",
-		ISSUE_ERROR_CLASS,
-		2,
-		qis->lhs->location,
-		qis->rhs->invoke.location(&(qis->rhs->invoke)));
-
 	    return INVOKE_RESULT_ERROR;
 	}
     }
@@ -416,42 +459,9 @@ int st_assignment_statement_qualified_step(
 						     rhs_value,
 						     config);
 
-    if(assignment_status == ESSTEE_RT_TYPE_UNDERFLOW)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment destination type underflow",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    qis->lhs->location);
-
-	return INVOKE_RESULT_ERROR;
-    }
-    else if(assignment_status == ESSTEE_RT_TYPE_OVERFLOW)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment destination type overflow",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    qis->lhs->location);
-
-	return INVOKE_RESULT_ERROR;
-    }
-    else if(assignment_status != ESSTEE_OK)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment failed",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    qis->lhs->location,
-	    qis->rhs->invoke.location(&(qis->rhs->invoke)));
-
-	return INVOKE_RESULT_ERROR;
-    }
-    
-    return INVOKE_RESULT_FINISHED;
+    return check_assignment_status(assignment_status,
+				   qis->lhs->location,
+				   errors);
 }
 
 const struct st_location_t * st_assignment_statement_qualified_location(
@@ -477,14 +487,17 @@ struct invoke_iface_t * st_assignment_statement_qualified_clone(
 	copy,
 	struct qualified_assignment_statement_t,
 	error_free_resources);
-
-    ALLOC_OR_JUMP(
-	lhs_copy,
-	struct qualified_identifier_t,
-	error_free_resources);
     
     memcpy(copy, qis, sizeof(struct qualified_assignment_statement_t));
-    memcpy(lhs_copy, qis->lhs, sizeof(struct qualified_identifier_t));
+
+    lhs_copy = st_clone_qualified_identifier(qis->lhs);
+
+    if(!lhs_copy)
+    {
+	goto error_free_resources;
+    }
+
+    copy->lhs = lhs_copy;
     
     if(qis->rhs->clone)
     {
@@ -738,7 +751,12 @@ int st_invoke_statement_reset(
     is->invoke_state = 0;
     if(is->parameters)
     {
-	is->parameters->invoke_state = 0;
+	int reset_result = st_reset_invoke_parameters(is->parameters,
+						      config);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
     }
     
     return ESSTEE_OK;
@@ -757,12 +775,21 @@ struct invoke_iface_t * st_invoke_statement_clone(
 	error_free_resources);
 
     memcpy(copy, is, sizeof(struct invoke_statement_t));
-    
+
+    struct invoke_parameter_t *parameters_copy =
+	st_clone_invoke_parameters(is->parameters);
+    if(!parameters_copy)
+    {
+	goto error_free_resources;
+    }
+
+    copy->parameters = parameters_copy;
     copy->invoke.destroy = st_invoke_statement_clone_destroy;
 
     return &(copy->invoke);
 
 error_free_resources:
+    free(copy);
     return NULL;
 }
 

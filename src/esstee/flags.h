@@ -28,6 +28,7 @@ typedef uint64_t st_bitflag_t;
 #define ESSTEE_ERROR               -1
 #define ESSTEE_FALSE               -2
 
-#define ESSTEE_RT_DIVISION_BY_ZERO -10
-#define ESSTEE_RT_TYPE_OVERFLOW    -11
-#define ESSTEE_RT_TYPE_UNDERFLOW   -12
+#define ESSTEE_DIVISION_BY_ZERO   -10
+#define ESSTEE_TYPE_OVERFLOW      -11
+#define ESSTEE_TYPE_UNDERFLOW     -12
+#define ESSTEE_TYPE_INCOMPATIBILITY -13

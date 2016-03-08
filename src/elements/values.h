@@ -23,6 +23,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/types.h>
 
 #define TEMPORARY_VALUE (1 << 0)
+#define CONSTANT_VALUE  (1 << 1)
 
 st_bitflag_t st_general_value_empty_class(
     const struct value_iface_t *self,

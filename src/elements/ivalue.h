@@ -67,6 +67,9 @@ struct value_iface_t {
      * @param other_value the value to which assignment is evaluated.
      * @param config configuration to take into consideration.
      * @return ESSTEE_TRUE if assignment is possible. 
+     * @return ESSTEE_TYPE_OVERFLOW if assignment is impossible since it would lead to overflow.
+     * @return ESSTEE_TYPE_UNDERFLOW if assignment is impossible since it would lead to underflow.
+     * @return ESSTEE_TYPE_INCOMPATIBLE if assignment is impossible due to type incompatibility between destination and source.
      * @return ESSTEE_FALSE if assignment is impossible. 
      */
     int (*assignable_from)(
@@ -80,6 +83,7 @@ struct value_iface_t {
      * @param other_value the value to which comparison is evaluated.
      * @param config configuration to take into consideration.
      * @return ESSTEE_TRUE if comparison is possible. 
+     * @return ESSTEE_TYPE_INCOMPATIBLE if comparison is impossible due to type incompatibility. 
      * @return ESSTEE_FALSE if comparison is impossible. 
      */
     int (*comparable_to)(
@@ -146,6 +150,14 @@ struct value_iface_t {
 
     int (*invoke_reset)(
 	struct value_iface_t *self);
+
+    int (*not)(
+	const struct value_iface_t *self,
+	const struct config_iface_t *config);
+
+    int (*negate)(
+	const struct value_iface_t *self,
+	const struct config_iface_t *config);
     
     /* Binary comparision operations */
     int (*greater)(
@@ -197,14 +209,6 @@ struct value_iface_t {
     int (*or)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
-
-    int (*not)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *config);
-
-    int (*negate)(
-	const struct value_iface_t *self,
 	const struct config_iface_t *config);
     
     int (*plus)(

@@ -158,9 +158,7 @@ struct qualified_identifier_t * st_attach_array_index_to_inner_ref(
     struct array_index_t *itr = NULL;
     DL_FOREACH(array_index, itr)
     {
-	int index_array_constant =
-	    itr->index_expression->runtime_constant(itr->index_expression);
-	if(index_array_constant != ESSTEE_TRUE)
+	if(itr->index_expression->invoke.step || itr->index_expression->clone)
 	{
 	    inner_ref->runtime_constant_reference = 0;
 	    break;
@@ -265,9 +263,7 @@ struct qualified_identifier_t * st_new_qualified_identifier_array_index(
     struct array_index_t *itr = NULL;
     DL_FOREACH(array_index, itr)
     {
-	int index_array_constant =
-	    itr->index_expression->runtime_constant(itr->index_expression);
-	if(index_array_constant != ESSTEE_TRUE)
+	if(itr->index_expression->invoke.step || itr->index_expression->clone)
 	{
 	    qi->runtime_constant_reference = 0;
 	    break;

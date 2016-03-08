@@ -46,9 +46,6 @@ const struct st_location_t * st_value_expression_location(
 const struct value_iface_t * st_value_expression_return_value(
     struct expression_iface_t *self);
 
-int st_value_expression_runtime_constant(
-    struct expression_iface_t *self);
-
 void st_value_expression_destroy(
     struct expression_iface_t *self);
 
@@ -62,22 +59,22 @@ struct single_identifier_term_t {
     struct variable_t *variable;
 };
 
+const struct st_location_t * st_single_identifier_term_location(
+    const struct invoke_iface_t *self);
+
+struct expression_iface_t * st_single_identifier_term_clone(
+    struct expression_iface_t *self);
+
 const struct value_iface_t * st_single_identifier_term_var_return_value(
     struct expression_iface_t *self);
 
 const struct value_iface_t * st_single_identifier_term_enum_return_value(
     struct expression_iface_t *self);
 
-const struct st_location_t * st_single_identifier_term_location(
-    const struct invoke_iface_t *self);
-
-int st_single_identifier_term_runtime_constant(
-    struct expression_iface_t *self);
-
-struct expression_iface_t * st_single_identifier_term_clone(
-    struct expression_iface_t *self);
-
 void st_single_identifier_term_destroy(
+    struct expression_iface_t *self);
+
+void st_single_identfier_term_clone_destroy(
     struct expression_iface_t *self);
 
 /**************************************************************************/
@@ -89,6 +86,9 @@ struct qualified_identifier_term_t {
     int invoke_state;
     struct st_location_t *location;
 };
+
+const struct st_location_t * st_qualified_identifier_term_location(
+    const struct invoke_iface_t *self);
 
 int st_qualified_identifier_term_verify(
     struct invoke_iface_t *self,
@@ -107,12 +107,6 @@ int st_qualified_identifier_term_reset(
     const struct config_iface_t *config);
 
 const struct value_iface_t * st_qualified_identifier_term_return_value(
-    struct expression_iface_t *self);
-    
-const struct st_location_t * st_qualified_identifier_term_location(
-    const struct invoke_iface_t *self);
-
-int st_qualified_identifier_term_runtime_constant(
     struct expression_iface_t *self);
 
 struct expression_iface_t * st_qualified_identifier_term_clone(
@@ -143,6 +137,14 @@ struct negative_prefix_term_t {
     int invoke_state;
 };
 
+const struct st_location_t * st_negative_prefix_term_location(
+    const struct invoke_iface_t *self);
+
+int st_negative_prefix_term_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_negative_prefix_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -162,12 +164,6 @@ int st_negative_prefix_term_reset(
 const struct value_iface_t * st_negative_prefix_term_return_value(
     struct expression_iface_t *self);
     
-const struct st_location_t * st_negative_prefix_term_location(
-    const struct invoke_iface_t *self);
-
-int st_negative_prefix_term_runtime_constant(
-    struct expression_iface_t *self);
-
 struct expression_iface_t * st_negative_prefix_term_clone(
     struct expression_iface_t *self);
 
@@ -188,6 +184,9 @@ struct function_invocation_term_t {
     int invoke_state;
 };
 
+const struct st_location_t * st_function_invocation_term_location(
+    const struct invoke_iface_t *self);
+
 int st_function_invocation_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -205,12 +204,6 @@ int st_function_invocation_term_reset(
     const struct config_iface_t *config);
 
 const struct value_iface_t * st_function_invocation_term_return_value(
-    struct expression_iface_t *self);
-    
-const struct st_location_t * st_function_invocation_term_location(
-    const struct invoke_iface_t *self);
-
-int st_function_invocation_term_runtime_constant(
     struct expression_iface_t *self);
 
 struct expression_iface_t * st_function_invocation_term_clone(
@@ -233,6 +226,14 @@ struct not_prefix_term_t {
     int invoke_state;
 };
 
+const struct st_location_t * st_not_prefix_term_location(
+    const struct invoke_iface_t *self);
+
+int st_not_prefix_term_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_not_prefix_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -250,13 +251,7 @@ int st_not_prefix_term_reset(
     const struct config_iface_t *config);
 
 const struct value_iface_t * st_not_prefix_term_return_value(
-    struct expression_iface_t *self);
-    
-const struct st_location_t * st_not_prefix_term_location(
-    const struct invoke_iface_t *self);
-
-int st_not_prefix_term_runtime_constant(
-    struct expression_iface_t *self);
+    struct expression_iface_t *self);    
 
 struct expression_iface_t * st_not_prefix_term_clone(
     struct expression_iface_t *self);
@@ -279,21 +274,30 @@ struct binary_expression_t {
     struct value_iface_t *temporary;
 };
 
+const struct st_location_t * st_binary_expression_location(
+    const struct invoke_iface_t *self);
+
 int st_binary_expression_reset(
     struct invoke_iface_t *self,
     const struct config_iface_t *config);
 
-const struct st_location_t * st_binary_expression_location(
-    const struct invoke_iface_t *self);
-
 const struct value_iface_t * st_binary_expression_return_value(
-    struct expression_iface_t *self);
-
-int st_binary_expression_runtime_constant(
     struct expression_iface_t *self);
 
 struct expression_iface_t * st_binary_expression_clone(
     struct expression_iface_t *self);
+
+void st_binary_expression_destroy(
+    struct expression_iface_t *self);
+
+void st_binary_expression_clone_destroy(
+    struct expression_iface_t *self);
+
+/* xor */
+int st_xor_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
 
 int st_xor_expression_verify(
     struct invoke_iface_t *self,
@@ -304,6 +308,12 @@ int st_xor_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* and */
+int st_and_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -319,6 +329,12 @@ int st_and_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* or */
+int st_or_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_or_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -328,6 +344,12 @@ int st_or_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* plus */
+int st_plus_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -343,6 +365,12 @@ int st_plus_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* minus */
+int st_minus_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_minus_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -352,6 +380,12 @@ int st_minus_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* multiply */
+int st_multiply_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -367,6 +401,12 @@ int st_multiply_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* division */
+int st_division_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_division_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -376,6 +416,12 @@ int st_division_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* greater */
+int st_greater_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -391,6 +437,12 @@ int st_greater_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* lesser */
+int st_lesser_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_lesser_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -400,6 +452,12 @@ int st_lesser_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* equals */
+int st_equals_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -415,6 +473,12 @@ int st_equals_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* greater or equals */
+int st_gequals_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_gequals_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -424,6 +488,12 @@ int st_gequals_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* lesser or equals */
+int st_lequals_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
@@ -439,6 +509,12 @@ int st_lequals_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* not equals */
+int st_nequals_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_nequals_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -451,6 +527,12 @@ int st_nequals_expression_step(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 
+/* mod */
+int st_mod_expression_constant_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
 int st_mod_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
@@ -460,6 +542,12 @@ int st_mod_expression_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct errors_iface_t *errors);
+
+/* power */
+int st_power_expression_constant_verify(
+    struct invoke_iface_t *self,
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
 

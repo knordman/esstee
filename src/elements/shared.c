@@ -18,6 +18,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/shared.h>
+#include <util/macros.h>
 
 #include <utlist.h>
 
@@ -266,7 +267,6 @@ int st_qualified_identifier_step(
     return INVOKE_RESULT_FINISHED;
 }
 
-
 int st_qualified_identifier_reset(
     struct qualified_identifier_t *qi,
     const struct config_iface_t *config)
@@ -291,10 +291,69 @@ int st_qualified_identifier_reset(
     return ESSTEE_OK;
 }
 
+struct qualified_identifier_t * st_clone_qualified_identifier(
+    struct qualified_identifier_t *qi)
+{
+    struct qualified_identifier_t *copy = NULL;
+    struct array_index_t *array_index_copy = NULL;
+    struct array_index_t *array_index_element_copy = NULL;
+    struct expression_iface_t *index_expression_copy = NULL;
+    
+    ALLOC_OR_JUMP(
+	copy,
+	struct qualified_identifier_t,
+	error_free_resources);
+
+    memcpy(copy, qi, sizeof(struct qualified_identifier_t));
+
+    if(!qi->runtime_constant_reference)
+    {
+	struct array_index_t *itr = NULL;
+	DL_FOREACH(qi->array_index, itr)
+	{
+	    ALLOC_OR_JUMP(
+		array_index_element_copy,
+		struct array_index_t,
+		error_free_resources);
+
+	    memcpy(array_index_element_copy, itr, sizeof(struct array_index_t));
+	    
+	    if(itr->index_expression->clone)
+	    {
+		index_expression_copy = itr->index_expression->clone(
+		    itr->index_expression);
+		if(!index_expression_copy)
+		{
+		    goto error_free_resources;
+		}
+	    }
+
+	    DL_APPEND(array_index_copy, array_index_element_copy);
+	}
+
+	copy->array_index = array_index_copy;
+    }
+
+    return copy;
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
 void st_destroy_qualified_identifier(
     struct qualified_identifier_t *qi)
 {
     /* TODO: destructor for qualified identifier */
+}
+
+void st_destroy_qualified_identifier_clone(
+    struct qualified_identifier_t *qi)
+{
+    if(!qi->runtime_constant_reference)
+    {
+	/* TODO: destructor */	
+    }
 }
 
 /**************************************************************************/
@@ -461,4 +520,83 @@ int st_assign_from_invoke_parameters(
     }
 
     return ESSTEE_OK;
+}
+
+int st_reset_invoke_parameters(    
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config)
+{
+    struct invoke_parameter_t *itr = NULL;
+    DL_FOREACH(parameters, itr)
+    {
+	if(itr->expression->invoke.reset)
+	{
+	    int reset_result =
+		itr->expression->invoke.reset(&(itr->expression->invoke),
+					      config);
+	    
+	    if(reset_result != ESSTEE_OK)
+	    {
+		return reset_result;
+	    }
+	}
+
+	itr->invoke_state = 0;
+    }
+
+    return ESSTEE_OK;
+}
+
+struct invoke_parameter_t * st_clone_invoke_parameters(    
+    struct invoke_parameter_t *parameters)
+{
+    struct invoke_parameter_t *parameters_copy = NULL;
+    struct invoke_parameter_t *parameter_copy = NULL;
+    struct expression_iface_t *parameter_expression_copy = NULL;
+
+    struct invoke_parameter_t *itr = NULL;
+    DL_FOREACH(parameters, itr)
+    {
+	parameter_expression_copy = NULL;
+	
+	ALLOC_OR_JUMP(
+	    parameter_copy,
+	    struct invoke_parameter_t,
+	    error_free_resources);
+
+	memcpy(parameter_copy, itr, sizeof(struct invoke_parameter_t));
+
+	if(itr->expression->clone)
+	{
+	    parameter_expression_copy =
+		itr->expression->clone(itr->expression);
+
+	    if(!parameter_expression_copy)
+	    {
+		goto error_free_resources;
+	    }
+
+	    parameter_copy->expression = parameter_expression_copy;
+	}
+
+	DL_APPEND(parameters_copy, parameter_copy);
+    }
+
+    return parameters_copy;
+    
+error_free_resources:
+    /* TODO: determine what to destroy */
+    return NULL;
+}
+
+void st_destroy_invoke_parameters(
+    struct invoke_parameter_t *parameters)
+{
+    /* TODO: destructor */
+}
+
+void st_destroy_invoke_parameters_clone(
+    struct invoke_parameter_t *parameters)
+{
+    /* TODO: destructor */
 }

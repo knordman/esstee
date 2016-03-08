@@ -29,9 +29,6 @@ struct expression_iface_t {
     const struct value_iface_t * (*return_value)(
 	struct expression_iface_t *self);
 
-    int (*runtime_constant)(
-	struct expression_iface_t *self);
-
     struct expression_iface_t * (*clone)(
 	struct expression_iface_t *self);
     

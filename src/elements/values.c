@@ -109,8 +109,12 @@ int st_integer_value_assignable_from(
     
     st_bitflag_t other_value_class =
 	other_value->class(other_value, config);
+
+    int not_temp_or_constant =
+	!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE)
+	|| ST_FLAG_IS_SET(other_value_class, CONSTANT_VALUE);
     
-    if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
+    if(not_temp_or_constant)
     {
 	int type_can_hold = iv->type->can_hold(iv->type, other_value, config);
 
@@ -335,7 +339,7 @@ int st_integer_value_divide(
 
     if(other_value_num == 0)
     {
-	return ESSTEE_RT_DIVISION_BY_ZERO;
+	return ESSTEE_DIVISION_BY_ZERO;
     }
     
     iv->num /= other_value_num;

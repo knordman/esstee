@@ -15,11 +15,11 @@ VAR_INPUT
 END_VAR
 
 VAR
-
+	a : INT;
 END_VAR
 
-e := 1;
-e := 2;
+a := -(-(1 + 1) * 10);
+e := e + a;
 
 return;
 
@@ -30,12 +30,9 @@ PROGRAM testprgm
 
 VAR
 	a : INT;
-
-
+	b : m1; 
 END_VAR
 
-
-a := -(myfunc(a:=10) + 10);
-
+b(e:=a);
 
 END_PROGRAM

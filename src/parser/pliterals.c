@@ -21,6 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/values.h>
 #include <util/macros.h>
 #include <linker/linker.h>
+#include <util/bitflag.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -132,6 +133,8 @@ static struct value_iface_t * new_integer_literal(
 	goto error_free_resources;
     }
 
+    ST_SET_FLAGS(iv->class, CONSTANT_VALUE);
+    
     iv->num = interpreted * sign_prefix;
     iv->value.type_of = NULL;
     iv->value.assignable_from = NULL;

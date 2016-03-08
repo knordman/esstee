@@ -45,16 +45,11 @@ struct qualified_identifier_t {
     char *identifier;
     struct array_index_t *array_index;
     int runtime_constant_reference;
-    
     struct variable_t *variable;
-
     struct value_iface_t *target;
-
     int invoke_state;
     struct program_t *program;
-
     struct st_location_t *location;
-
     struct qualified_identifier_t *last;
     struct qualified_identifier_t *prev;
     struct qualified_identifier_t *next;
@@ -85,7 +80,13 @@ int st_qualified_identifier_reset(
     struct qualified_identifier_t *qi,
     const struct config_iface_t *config);
 
+struct qualified_identifier_t * st_clone_qualified_identifier(
+    struct qualified_identifier_t *qi);
+
 void st_destroy_qualified_identifier(
+    struct qualified_identifier_t *qi);
+
+void st_destroy_qualified_identifier_clone(
     struct qualified_identifier_t *qi);
 
 /**************************************************************************/
@@ -119,4 +120,15 @@ int st_assign_from_invoke_parameters(
     const struct config_iface_t *config,
     struct errors_iface_t *errors);
     
-    
+int st_reset_invoke_parameters(    
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config);
+
+struct invoke_parameter_t * st_clone_invoke_parameters(    
+    struct invoke_parameter_t *parameters);
+
+void st_destroy_invoke_parameters(
+    struct invoke_parameter_t *parameters);
+
+void st_destroy_invoke_parameters_clone(
+    struct invoke_parameter_t *parameters);

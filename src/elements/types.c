@@ -393,7 +393,7 @@ int st_type_general_compatible(
 	return ESSTEE_TRUE;
     }
 
-    return ESSTEE_FALSE;
+    return ESSTEE_TYPE_INCOMPATIBILITY;
 }
 
 struct type_iface_t * st_new_elementary_types(void) 
@@ -611,12 +611,12 @@ int st_integer_type_can_hold(
 
     if(intval > it->max)
     {
-	return ESSTEE_RT_TYPE_OVERFLOW;
+	return ESSTEE_TYPE_OVERFLOW;
     }
     
     if(intval < it->min)
     {
-	return ESSTEE_RT_TYPE_UNDERFLOW;
+	return ESSTEE_TYPE_UNDERFLOW;
     }
 
     return ESSTEE_TRUE;

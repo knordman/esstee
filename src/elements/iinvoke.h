@@ -35,18 +35,18 @@ struct invoke_iface_t {
     const struct st_location_t * (*location)(
 	const struct invoke_iface_t *self);
     
+    int (*verify)(
+	struct invoke_iface_t *self,
+	const struct config_iface_t *config,
+	struct errors_iface_t *errors);
+
     int (*step)(
 	struct invoke_iface_t *self,
 	struct cursor_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
 	struct errors_iface_t *errors);
-
-    int (*verify)(
-	struct invoke_iface_t *self,
-	const struct config_iface_t *config,
-	struct errors_iface_t *errors);
-
+    
     int (*reset)(
 	struct invoke_iface_t *self,
 	const struct config_iface_t *config);
