@@ -678,6 +678,25 @@ error_free_resources:
     return NULL;
 }
 
+struct value_iface_t * st_bool_type_create_temp_value(
+    const struct config_iface_t *config)
+{
+    struct value_iface_t *value =
+	st_bool_type_create_value_of(NULL, config);
+
+    if(!value)
+    {
+	return NULL;
+    }
+
+    struct integer_value_t *iv =
+	CONTAINER_OF(value, struct integer_value_t, value);
+    
+    ST_SET_FLAGS(iv->class, TEMPORARY_VALUE);
+
+    return value;
+}
+
 int st_bool_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
@@ -976,28 +995,28 @@ struct value_iface_t * st_date_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    struct date_value_t *dt = NULL;
+    struct date_value_t *dv = NULL;
     ALLOC_OR_JUMP(
-	dt,
+	dv,
 	struct date_value_t,
 	error_free_resources);
 
-    dt->type = self;
+    dv->type = self;
     
-    memset(&(dt->value), 0, sizeof(struct value_iface_t));
-    dt->value.display = st_date_value_display;
-    dt->value.assignable_from = st_date_value_assigns_and_compares;
-    dt->value.comparable_to = st_date_value_assigns_and_compares;
-    dt->value.assign = st_date_value_assign;
-    dt->value.destroy = st_date_value_destroy;
+    memset(&(dv->value), 0, sizeof(struct value_iface_t));
+    dv->value.display = st_date_value_display;
+    dv->value.assignable_from = st_date_value_assigns_and_compares;
+    dv->value.comparable_to = st_date_value_assigns_and_compares;
+    dv->value.assign = st_date_value_assign;
+    dv->value.destroy = st_date_value_destroy;
 
-    dt->value.greater = st_date_value_greater;
-    dt->value.lesser = st_date_value_lesser;
-    dt->value.equals = st_general_value_equals;
-    dt->value.date = st_date_value_date;
-    dt->value.class = st_general_value_empty_class;
+    dv->value.greater = st_date_value_greater;
+    dv->value.lesser = st_date_value_lesser;
+    dv->value.equals = st_general_value_equals;
+    dv->value.date = st_date_value_date;
+    dv->value.class = st_general_value_empty_class;
 
-    return &(dt->value);
+    return &(dv->value);
     
 error_free_resources:
     return NULL;
@@ -1054,7 +1073,30 @@ struct value_iface_t * st_tod_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: tod type create value of */
+    struct tod_value_t *tv = NULL;
+    ALLOC_OR_JUMP(
+	tv,
+	struct tod_value_t,
+	error_free_resources);
+
+    tv->type = self;
+    
+    memset(&(tv->value), 0, sizeof(struct value_iface_t));
+    tv->value.display = st_tod_value_display;
+    tv->value.assignable_from = st_tod_value_assigns_and_compares;
+    tv->value.comparable_to = st_tod_value_assigns_and_compares;
+    tv->value.assign = st_tod_value_assign;
+    tv->value.destroy = st_tod_value_destroy;
+
+    tv->value.greater = st_tod_value_greater;
+    tv->value.lesser = st_tod_value_lesser;
+    tv->value.equals = st_general_value_equals;
+    tv->value.tod = st_tod_value_tod;
+    tv->value.class = st_general_value_empty_class;
+
+    return &(tv->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -1063,8 +1105,18 @@ int st_tod_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: tod type reset value of */
-    return ESSTEE_FALSE;
+    const struct tod_type_t *tt =
+	CONTAINER_OF(self, struct tod_type_t, type);
+
+    struct tod_value_t *tv =
+	CONTAINER_OF(value_of, struct tod_value_t, value);
+
+    tv->tod.h = tt->default_hour;
+    tv->tod.m = tt->default_minute;
+    tv->tod.s = tt->default_second;
+    tv->tod.fs = tt->default_fractional_second;
+
+    return ESSTEE_OK;
 }
 
 int st_tod_type_can_hold(
@@ -1072,8 +1124,19 @@ int st_tod_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: tod type can hold */
-    return ESSTEE_FALSE;
+    if(!value->tod)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_tod_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return TOD_TYPE;
 }
 
 void st_tod_type_destroy(
@@ -1089,7 +1152,30 @@ struct value_iface_t * st_date_tod_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: date tod type create value */
+    struct date_tod_value_t *dv = NULL;
+    ALLOC_OR_JUMP(
+	dv,
+	struct date_tod_value_t,
+	error_free_resources);
+
+    dv->type = self;
+    
+    memset(&(dv->value), 0, sizeof(struct value_iface_t));
+    dv->value.display = st_date_tod_value_display;
+    dv->value.assignable_from = st_date_tod_value_assigns_and_compares;
+    dv->value.comparable_to = st_date_tod_value_assigns_and_compares;
+    dv->value.assign = st_date_tod_value_assign;
+    dv->value.destroy = st_date_tod_value_destroy;
+
+    dv->value.greater = st_date_tod_value_greater;
+    dv->value.lesser = st_date_tod_value_lesser;
+    dv->value.equals = st_general_value_equals;
+    dv->value.date_tod = st_date_tod_value_tod;
+    dv->value.class = st_general_value_empty_class;
+
+    return &(dv->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -1098,8 +1184,21 @@ int st_date_tod_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: date tod type reset value of */
-    return ESSTEE_FALSE;
+    const struct date_tod_type_t *dt =
+	CONTAINER_OF(self, struct date_tod_type_t, type);
+
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(value_of, struct date_tod_value_t, value);
+
+    dv->dt.date.y = dt->default_year;
+    dv->dt.date.m = dt->default_month;
+    dv->dt.date.d = dt->default_day;
+    dv->dt.tod.h = dt->default_hour;
+    dv->dt.tod.m = dt->default_minute;
+    dv->dt.tod.s = dt->default_second;
+    dv->dt.tod.fs = dt->default_fractional_second;
+    
+    return ESSTEE_OK;
 }
 
 int st_date_tod_type_can_hold(
@@ -1107,8 +1206,19 @@ int st_date_tod_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: date tod type can hold */
-    return ESSTEE_FALSE;
+    if(!value->date_tod)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_date_tod_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return DATE_TOD_TYPE;
 }
 
 void st_date_tod_type_destroy(

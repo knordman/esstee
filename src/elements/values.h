@@ -435,31 +435,103 @@ const struct date_t * st_date_value_date(
 /* Tod value                                                              */
 /**************************************************************************/
 struct tod_t {
-    uint8_t day;
-    uint8_t hours;
-    uint8_t minutes;
-    uint8_t seconds;
+    uint8_t h;
+    uint8_t m;
+    uint8_t s;
+    uint8_t fs;
 };
 
 struct tod_value_t {
     struct value_iface_t value;
-    struct type_iface_t *type;
+    const struct type_iface_t *type;
     struct tod_t tod;
 };
 
-/* TODO: Tod value, determine value interface function */
+int st_tod_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_tod_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_tod_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_date_value_type_of(
+    const struct value_iface_t *self);
+
+void st_tod_value_destroy(
+    struct value_iface_t *self);
+
+int st_tod_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_tod_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct tod_t * st_tod_value_tod(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Date tod value                                                         */
 /**************************************************************************/
-struct date_tod_value_t {
-    struct value_iface_t value;
-    struct type_iface_t *type;
+struct date_tod_t {
     struct date_t date;
     struct tod_t tod;
 };
 
-/* TODO: Date tod value, determine value interface function */
+struct date_tod_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *type;
+    struct date_tod_t dt;
+};
+
+int st_date_tod_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_date_tod_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_date_tod_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_date_tod_value_type_of(
+    const struct value_iface_t *self);
+
+void st_date_tod_value_destroy(
+    struct value_iface_t *self);
+
+int st_date_tod_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_date_tod_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct date_tod_t * st_date_tod_value_tod(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Enumerated value                                                       */

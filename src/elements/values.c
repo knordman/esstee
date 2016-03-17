@@ -1992,6 +1992,348 @@ const struct date_t * st_date_value_date(
 }
 
 /**************************************************************************/
+/* Tod value                                                              */
+/**************************************************************************/
+int st_tod_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct tod_value_t *tv =
+	CONTAINER_OF(self, struct tod_value_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%" PRIu8 "h%" PRIu8 "m%" PRIu8 ".%" PRIu8 "s",
+				 tv->tod.h,
+				 tv->tod.m,
+				 tv->tod.s,
+				 tv->tod.fs);
+    CHECK_WRITTEN_BYTES(written_bytes);
+
+    return written_bytes;
+}
+
+int st_tod_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct tod_value_t *tv =
+	CONTAINER_OF(self, struct tod_value_t, value);
+
+    const struct tod_t *ov =
+	new_value->tod(new_value, config);
+
+    tv->tod.h = ov->h;
+    tv->tod.m = ov->m;
+    tv->tod.s = ov->s;
+    tv->tod.fs = ov->fs;
+
+    return ESSTEE_OK;
+}
+
+int st_tod_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->tod)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+const struct type_iface_t * st_tod_value_type_of(
+    const struct value_iface_t *self)
+{
+    struct tod_value_t *tv =
+	CONTAINER_OF(self, struct tod_value_t, value);
+
+    return tv->type;
+}
+
+void st_tod_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: tod value destructor */
+}
+
+int st_tod_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct tod_value_t *tv =
+	CONTAINER_OF(self, struct tod_value_t, value);
+
+    const struct tod_t *ov =
+	other_value->tod(other_value, config);
+
+    if(tv->tod.h > ov->h)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    if(tv->tod.m > ov->m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(tv->tod.s > ov->s)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(tv->tod.fs > ov->fs)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    return ESSTEE_FALSE;
+}
+
+int st_tod_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct tod_value_t *tv =
+	CONTAINER_OF(self, struct tod_value_t, value);
+
+    const struct tod_t *ov =
+	other_value->tod(other_value, config);
+
+    if(tv->tod.h < ov->h)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    if(tv->tod.m < ov->m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(tv->tod.s < ov->s)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(tv->tod.fs < ov->fs)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    return ESSTEE_FALSE;
+}
+
+const struct tod_t * st_tod_value_tod(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct tod_value_t *tv =
+	CONTAINER_OF(self, struct tod_value_t, value);
+
+    return &(tv->tod);
+}
+
+/**************************************************************************/
+/* Date tod value                                                         */
+/**************************************************************************/
+int st_date_tod_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct date_tod_value_t *dv =
+	CONTAINER_OF(self, struct date_tod_value_t, value);
+
+    int total_written_bytes = 0;
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%" PRIu64 "-%" PRIu8 "-%" PRIu8,
+				 dv->dt.date.y,
+				 dv->dt.date.m,
+				 dv->dt.date.d);
+    CHECK_WRITTEN_BYTES(written_bytes);
+    total_written_bytes += written_bytes;
+    
+    written_bytes = snprintf(buffer,
+			     buffer_size,
+			     "%" PRIu8 "h%" PRIu8 "m%" PRIu8 ".%" PRIu8 "s",
+			     dv->dt.tod.h,
+			     dv->dt.tod.m,
+			     dv->dt.tod.s,
+			     dv->dt.tod.fs);
+    CHECK_WRITTEN_BYTES(written_bytes);
+    total_written_bytes += written_bytes;
+
+    return total_written_bytes;
+}
+
+int st_date_tod_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(self, struct date_tod_value_t, value);
+
+    const struct date_tod_t *ov =
+	new_value->date_tod(new_value, config);
+
+    dv->dt.date.y = ov->date.y;
+    dv->dt.date.m = ov->date.m;
+    dv->dt.date.d = ov->date.d;
+    dv->dt.tod.h = ov->tod.h;
+    dv->dt.tod.m = ov->tod.m;
+    dv->dt.tod.s = ov->tod.s;
+    dv->dt.tod.fs = ov->tod.fs;
+    
+    return ESSTEE_OK;
+}
+
+int st_date_tod_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    if(!other_value->date_tod)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+const struct type_iface_t * st_date_tod_value_type_of(
+    const struct value_iface_t *self)
+{
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(self, struct date_tod_value_t, value);
+
+    return dv->type;
+}
+
+void st_date_tod_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: date tod value destructor */
+}
+
+int st_date_tod_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(self, struct date_tod_value_t, value);
+
+    const struct date_tod_t *ov =
+	other_value->date_tod(other_value, config);
+
+    if(dv->dt.date.y > ov->date.y)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.date.m > ov->date.m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.date.d > ov->date.d)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    if(dv->dt.tod.h > ov->tod.h)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    if(dv->dt.tod.m > ov->tod.m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.tod.s > ov->tod.s)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.tod.fs > ov->tod.fs)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    return ESSTEE_FALSE;
+}
+
+int st_date_tod_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(self, struct date_tod_value_t, value);
+
+    const struct date_tod_t *ov =
+	other_value->date_tod(other_value, config);
+
+    if(dv->dt.date.y < ov->date.y)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.date.m < ov->date.m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.date.d < ov->date.d)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    if(dv->dt.tod.h < ov->tod.h)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    if(dv->dt.tod.m < ov->tod.m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.tod.s < ov->tod.s)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->dt.tod.fs < ov->tod.fs)
+    {
+	return ESSTEE_TRUE;
+    }
+    
+    return ESSTEE_FALSE;
+}
+
+const struct date_tod_t * st_date_tod_value_tod(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(self, struct date_tod_value_t, value);
+
+    return &(dv->dt);
+}
+
+/**************************************************************************/
 /* String values                                                          */
 /**************************************************************************/
 int st_string_value_display(

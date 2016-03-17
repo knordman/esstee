@@ -1195,7 +1195,7 @@ static int be_create_bool_temporary(
     }
     
     /* Create a temporary boolean that can hold the result */
-    be->temporary = st_bool_type_create_value_of(NULL, config);
+    be->temporary = st_bool_type_create_temp_value(config);
     if(!be->temporary)
     {
 	errors->memory_error(

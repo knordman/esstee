@@ -110,6 +110,9 @@ struct value_iface_t * st_bool_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config);
 
+struct value_iface_t * st_bool_type_create_temp_value(
+    const struct config_iface_t *config);
+
 int st_bool_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
@@ -252,9 +255,10 @@ void st_date_type_destroy(
 /**************************************************************************/
 struct tod_type_t {
     struct type_iface_t type;
-    unsigned default_hour;
-    unsigned default_minute;
-    unsigned default_second;
+    uint8_t default_hour;
+    uint8_t default_minute;
+    uint8_t default_second;
+    uint8_t default_fractional_second;
 };
 
 struct value_iface_t * st_tod_type_create_value_of(
@@ -271,6 +275,10 @@ int st_tod_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config);
 
+st_bitflag_t st_tod_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config);
+
 void st_tod_type_destroy(
     struct type_iface_t *self);
 
@@ -279,12 +287,13 @@ void st_tod_type_destroy(
 /**************************************************************************/
 struct date_tod_type_t {
     struct type_iface_t type;
-    unsigned default_year;
-    unsigned default_month;
-    unsigned default_day;
-    unsigned default_hour;
-    unsigned default_minute;
-    unsigned default_second;
+    uint64_t default_year;
+    uint8_t default_month;
+    uint8_t default_day;
+    uint8_t default_hour;
+    uint8_t default_minute;
+    uint8_t default_second;
+    uint8_t default_fractional_second;
 };
 
 struct value_iface_t * st_date_tod_type_create_value_of(
@@ -299,6 +308,10 @@ int st_date_tod_type_reset_value_of(
 int st_date_tod_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_date_tod_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 void st_date_tod_type_destroy(

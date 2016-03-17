@@ -252,6 +252,8 @@ struct value_iface_t * st_new_real_literal(
 
     struct real_value_t *rv =
 	CONTAINER_OF(v, struct real_value_t, value);
+
+    ST_SET_FLAGS(rv->class, CONSTANT_VALUE);
     
     rv->num = interpreted * sp;
     rv->value.type_of = NULL;
@@ -497,10 +499,6 @@ struct value_iface_t * st_new_duration_literal(
 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	goto error_free_resources;
     }
-
-    v->type_of = NULL;
-    v->assignable_from = NULL;
-    v->assign = NULL;
     
     free(string);
     return v;
@@ -657,6 +655,13 @@ struct value_iface_t * st_new_date_literal(
 
     if(!v)
     {
+	parser->errors->memory_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
     
@@ -683,68 +688,238 @@ error_free_resources:
     return NULL;
 }
 
+static int find_h_m_s_ms(
+    char *start,
+    char **h,
+    char **m,
+    char **s,
+    char **ms)
+{
+    if(strlen(start) != 11)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    *h = start;
+    start[2] = '\0';
+
+    *m = start + 3;
+    start[5] = '\0';
+
+    *s = start + 6;
+    start[8] = '\0';
+
+    *ms = start + 9;
+    start[11] = '\0';
+
+    return ESSTEE_OK;
+}
+
+static int numberize_tod_strings(
+    struct tod_t *tod,
+    char *h,
+    char *m,
+    char *s,
+    char *fs,
+    const struct st_location_t *string_location,
+    struct parser_t *parser)
+{
+    errno = 0;
+    unsigned long hours = strtoul(h, NULL, 10);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret hours",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    
+    unsigned long minutes = strtoul(m, NULL, 10);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret minutes",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+
+    unsigned long seconds = strtoul(s, NULL, 10);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret seconds",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+
+    unsigned long fractional_seconds = strtoul(fs, NULL, 10);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret fractional seconds",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+
+    if(hours > 23)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "hours must be at most 23",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    else
+    {
+	tod->h = (uint8_t)hours;
+    }
+    
+    if(minutes > 59)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "minutes must be at most 59",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    else
+    {
+	tod->m = (uint8_t)minutes;
+    }
+    
+    if(seconds > 59)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "seconds must be at most 59",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    else
+    {
+	tod->s = (uint8_t)seconds;
+    }
+    
+    if(fractional_seconds > 99)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "fractional seconds must be at most 99",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    else
+    {
+	tod->fs = (uint8_t)fractional_seconds;
+    }
+
+    return ESSTEE_OK;
+}
+
 struct value_iface_t * st_new_tod_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: tod literal */
+    char *start, *h, *m, *s, *ms;
+
+    if(find_start(string, &(start)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    if(find_h_m_s_ms(start, &(h), &(m), &(s), &(ms)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    struct value_iface_t *v
+	= st_tod_type_create_value_of(NULL, parser->config);
+
+    if(!v)
+    {
+	parser->errors->memory_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    struct tod_value_t *tv =
+	CONTAINER_OF(v, struct tod_value_t, value);
+    
+    if(numberize_tod_strings(
+	   &(tv->tod),
+	   h,
+	   m,
+	   s,
+	   ms,
+	   string_location,
+	   parser) == ESSTEE_ERROR)
+    {
+	goto error_free_resources;
+    }
+
+    free(string);
+    return v;
+
+error_free_resources:
+    free(string);
+    /* TODO: determine what to destroy */
     return NULL;
-/* struct literal_t * st_new_tod_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     char *start, *h, *m, *s, *ms; */
-/*     struct tod_literal_t *tl = NULL; */
-
-/*     if(find_start(string, &(start)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(find_h_m_s_ms(start, &(h), &(m), &(s), &(ms)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     tl = (struct tod_literal_t *)malloc(sizeof(struct tod_literal_t)); */
-/*     if(!tl) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(numberize_tod_strings( */
-/* 	   &(tl->h),  */
-/* 	   &(tl->m),  */
-/* 	   &(tl->s),  */
-/* 	   &(tl->ms),  */
-/* 	   h,  */
-/* 	   m,  */
-/* 	   s, */
-/* 	   ms, */
-/* 	   string_location,  */
-/* 	   parser) == ESSTEE_ERROR) */
-/*     { */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     tl->literal.literal_class = TOD_LITERAL; */
-
-/*     free(string); */
-/*     return &(tl->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(tl); */
-/*     return NULL; */
-/* } */    
 }
 
 struct value_iface_t * st_new_date_tod_literal(
@@ -752,91 +927,104 @@ struct value_iface_t * st_new_date_tod_literal(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: date tod literal */
+    char *start, *y, *mon, *d, *h, *min, *s, *ms;
+
+    if(find_start(string, &(start)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    if(strlen(start) != 22)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    if(find_year_month_day(start, &(y), &(mon), &(d)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    if(find_h_m_s_ms(d+3, &(h), &(min), &(s), &(ms)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    struct value_iface_t *v
+	= st_date_tod_type_create_value_of(NULL, parser->config);
+
+    if(!v)
+    {
+	parser->errors->memory_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    struct date_tod_value_t *dv =
+	CONTAINER_OF(v, struct date_tod_value_t, value);
+    
+    if(numberize_date_strings(
+	   &(dv->dt.date),
+	   y,
+	   mon,
+	   d,
+	   string_location,
+	   parser) == ESSTEE_ERROR)
+    {
+	goto error_free_resources;
+    }
+
+    if(numberize_tod_strings(
+	   &(dv->dt.tod),
+	   h,
+	   min,
+	   s,
+	   ms,
+	   string_location,
+	   parser) == ESSTEE_ERROR)
+    {
+	goto error_free_resources;
+    }
+
+    free(string);
+    return v;
+
+error_free_resources:
+    free(string);
+    /* TODO: determine what to destroy */
     return NULL;
-
-/* struct literal_t * st_new_date_tod_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     char *start, *y, *mon, *d, *h, *min, *s, *ms; */
-/*     struct date_tod_literal_t *dtl = NULL; */
-
-/*     if(find_start(string, &(start)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(strlen(start) != 22) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(find_year_month_day(start, &(y), &(mon), &(d)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(find_h_m_s_ms(d+3, &(h), &(min), &(s), &(ms)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     dtl = (struct date_tod_literal_t *)malloc(sizeof(struct date_tod_literal_t)); */
-/*     if(!dtl) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(numberize_date_strings( */
-/* 	   &(dtl->y),  */
-/* 	   &(dtl->mon),  */
-/* 	   &(dtl->d),  */
-/* 	   y,  */
-/* 	   mon,  */
-/* 	   d,  */
-/* 	   string_location, */
-/* 	   parser) == ESSTEE_ERROR) */
-/*     { */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(numberize_tod_strings( */
-/* 	   &(dtl->h),  */
-/* 	   &(dtl->min),  */
-/* 	   &(dtl->s),  */
-/* 	   &(dtl->ms),  */
-/* 	   h,  */
-/* 	   min,  */
-/* 	   s, */
-/* 	   ms, */
-/* 	   string_location,  */
-/* 	   parser) == ESSTEE_ERROR) */
-/*     { */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     dtl->literal.literal_class = DATE_TOD_LITERAL; */
-
-/*     free(string); */
-/*     return &(dtl->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(dtl); */
-/*     return NULL; */
-/* } */
 }
 
 struct value_iface_t * st_new_boolean_literal(
@@ -944,101 +1132,4 @@ struct value_iface_t * st_new_double_string_literal(
 
 
 
-/* static int find_h_m_s_ms( */
-/*     char *start,  */
-/*     char **h,  */
-/*     char **m,  */
-/*     char **s, */
-/*     char **ms) */
-/* { */
-/*     if(strlen(start) != 11) */
-/*     { */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-
-/*     *h = start; */
-/*     start[2] = '\0'; */
-
-/*     *m = start + 3; */
-/*     start[5] = '\0'; */
-
-/*     *s = start + 6; */
-/*     start[8] = '\0'; */
-
-/*     *ms = start + 9; */
-/*     start[11] = '\0'; */
-
-/*     return ESSTEE_OK; */
-/* } */
-
-/* static int numberize_tod_strings( */
-/*     unsigned *nh,  */
-/*     unsigned *nm,  */
-/*     unsigned *ns, */
-/*     unsigned *nms,  */
-/*     char *h,  */
-/*     char *m,  */
-/*     char *s, */
-/*     char *ms,  */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     errno = 0; */
-/*     *nh = (unsigned)(strtoul(h, NULL, 10)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret hour part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     *nm = (unsigned)(strtoul(m, NULL, 10)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret minutes part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     *ns = (unsigned)(strtoul(s, NULL, 10)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret seconds part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     *nms = (unsigned)(strtoul(ms, NULL, 10));	 */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret fractional seconds part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-
-/*     if(*nh > 23) */
-/*     { */
-/* 	NEW_ERROR_AT("hours must be at most 24.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     if(*nm > 59) */
-/*     { */
-/* 	NEW_ERROR_AT("minutes must be at most 59.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     if(*ns > 59) */
-/*     { */
-/* 	NEW_ERROR_AT("seconds must be at most 59.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     if(*nms > 99) */
-/*     { */
-/* 	NEW_ERROR_AT("fractional seconds must be at most 99.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     *nms *= 10; */
-
-/*     return ESSTEE_OK; */
-/* } */
 

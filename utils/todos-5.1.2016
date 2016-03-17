@@ -1,24 +1,3 @@
-DONE date-type-value
-DONE 168 /* TODO: date literal */ ../src/parser/pliterals.c
-DONE 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
-DONE 61 /* TODO: date type create value of */ ../src/elements/types.c
-DONE 62 /* TODO: date type reset value of */ ../src/elements/types.c
-DONE 63 /* TODO: date type can hold */ ../src/elements/types.c
-
-tod-type-value
-169 /* TODO: tod literal */ ../src/parser/pliterals.c
-36 /*TODO: Tod value, determine value interface function */ ../src/elements/values.h
-65 /* TODO: tod type create value of */ ../src/elements/types.c
-66 /* TODO: tod type reset value of */ ../src/elements/types.c
-67 /* TODO: tod type can hold */ ../src/elements/types.c
-
-datetod-type-value
-170 /* TODO: date tod literal */ ../src/parser/pliterals.c
-37 /*TODO: Date tod value, determine value interface function */ ../src/elements/values.h
-69 /* TODO: date tod type create value */ ../src/elements/types.c
-70 /* TODO: date tod type reset value of */ ../src/elements/types.c
-71 /* TODO: date tod type can hold */ ../src/elements/types.c
-
 direct-memory
 21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
 25 /* TODO: return offset into direct memory based on direct address */ ../src/elements/directmemory.c
@@ -203,3 +182,21 @@ DONE expressions
 DONE 22 /*TODO: negative prefix term expression functions */ ../src/elements/expressions.h
 DONE 24 /*TODO: not prefix term expression functions */ ../src/elements/expressions.h
 DONE 23 /*TODO: function invocation term expression functions */ ../src/elements/expressions.h
+DONE date-type-value
+DONE 168 /* TODO: date literal */ ../src/parser/pliterals.c
+DONE 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
+DONE 61 /* TODO: date type create value of */ ../src/elements/types.c
+DONE 62 /* TODO: date type reset value of */ ../src/elements/types.c
+DONE 63 /* TODO: date type can hold */ ../src/elements/types.c
+DONE tod-type-value
+DONE 169 /* TODO: tod literal */ ../src/parser/pliterals.c
+DONE 36 /*TODO: Tod value, determine value interface function */ ../src/elements/values.h
+DONE 65 /* TODO: tod type create value of */ ../src/elements/types.c
+DONE 66 /* TODO: tod type reset value of */ ../src/elements/types.c
+DONE 67 /* TODO: tod type can hold */ ../src/elements/types.c
+DONE datetod-type-value
+DONE 170 /* TODO: date tod literal */ ../src/parser/pliterals.c
+DONE 37 /*TODO: Date tod value, determine value interface function */ ../src/elements/values.h
+DONE 69 /* TODO: date tod type create value */ ../src/elements/types.c
+DONE 70 /* TODO: date tod type reset value of */ ../src/elements/types.c
+DONE 71 /* TODO: date tod type can hold */ ../src/elements/types.c
