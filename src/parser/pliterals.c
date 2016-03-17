@@ -428,35 +428,35 @@ struct value_iface_t * st_new_duration_literal(
 	    goto error_free_resources;
 			
 	case PLITERALS_D:
-	    dv->d = part_content;
+	    dv->duration.d = part_content;
 	    defined |= (1 << 0);
 	    fractions |= is_fraction(part_content, 0);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_H:
-	    dv->h = part_content;
+	    dv->duration.h = part_content;
 	    defined |= (1 << 1);
 	    fractions |= is_fraction(part_content, 1);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_M:
-	    dv->m = part_content;
+	    dv->duration.m = part_content;
 	    defined |= (1 << 2);
 	    fractions |= is_fraction(part_content, 2);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_S:
-	    dv->s = part_content;
+	    dv->duration.s = part_content;
 	    defined |= (1 << 3);
 	    fractions |= is_fraction(part_content, 3);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_MS:
-	    dv->ms = part_content;
+	    dv->duration.ms = part_content;
 	    defined |= (1 << 4);
 	    fractions |= is_fraction(part_content, 4);
 	    parts_defined++;
@@ -510,67 +510,177 @@ error_free_resources:
     return NULL;
 }
 
+static int find_year_month_day(
+    char *start,
+    char **year,
+    char **month,
+    char **day)
+{
+    if(strlen(start) < 10)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    *year = start;
+    start[4] = '\0';
+
+    *month = start + 5;
+    start[7] = '\0';
+
+    *day = start + 8;
+    start[10] = '\0';
+
+    return ESSTEE_OK;
+}
+
+static int numberize_date_strings(
+    struct date_t *date,
+    char *year,
+    char *month,
+    char *day,
+    const struct st_location_t *string_location,
+    struct parser_t *parser)
+{
+    errno = 0;
+    date->y = (uint64_t)(strtoul(year, NULL, 10));
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret year",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+
+    unsigned long nmonth = strtoul(month, NULL, 10);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret month",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    
+    unsigned long nday = strtoul(day, NULL, 10);
+    if(errno != 0)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "cannot interpret day",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+
+    if(nmonth < 1 || nmonth > 12)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "month must be at least 1 and at most 12",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    else
+    {
+	date->m = (uint8_t)nmonth;
+    }
+    
+    if(nday < 1 || nday > 31)
+    {
+	parser->errors->new_issue_at(
+	    parser->errors,
+	    "day must be at least 1 and at most 31",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    string_location);
+	
+	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
+	return ESSTEE_ERROR;
+    }
+    else
+    {
+	date->d = (uint8_t)nday;
+    }
+
+    return ESSTEE_OK;
+}
+
 struct value_iface_t * st_new_date_literal(
     char *string,
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    /* TODO: date literal */
+    char *year, *month, *day, *start;
+
+    if(find_start(string, &(start)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    if(find_year_month_day(start, &(year), &(month), &(day)) == ESSTEE_ERROR)
+    {
+	parser->errors->internal_error(
+	    parser->errors,
+	    __FILE__,
+	    __FUNCTION__,
+	    __LINE__);
+
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+    
+    struct value_iface_t *v
+	= st_date_type_create_value_of(NULL, parser->config);
+
+    if(!v)
+    {
+	goto error_free_resources;
+    }
+    
+    struct date_value_t *dv =
+	CONTAINER_OF(v, struct date_value_t, value);
+
+    if(numberize_date_strings(
+	   &(dv->date),
+	   year,
+	   month,
+	   day,
+	   string_location,
+	   parser) == ESSTEE_ERROR)
+    {
+	goto error_free_resources;
+    }
+
+    free(string);
+    return &(dv->value);
+
+error_free_resources:
+    /* TODO: determine what to destroy */
+    free(string);
     return NULL;
-
-/* struct literal_t * st_new_date_literal( */
-/*     char *string, */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     char *year, *month, *day, *start; */
-/*     struct date_literal_t *dl = NULL; */
-
-/*     if(find_start(string, &(start)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(find_year_month_day(start, &(year), &(month), &(day)) == ESSTEE_ERROR) */
-/*     { */
-/* 	INTERNAL_ERROR(parser->errors); // Flex returning wrong kind of string */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     dl = (struct date_literal_t *)malloc(sizeof(struct date_literal_t)); */
-/*     if(!dl) */
-/*     { */
-/* 	MEMORY_ERROR(parser->errors); */
-/* 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY; */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     if(numberize_date_strings( */
-/* 	   &(dl->y),  */
-/* 	   &(dl->m),  */
-/* 	   &(dl->d),  */
-/* 	   year,  */
-/* 	   month,  */
-/* 	   day,  */
-/* 	   string_location, */
-/* 	   parser) == ESSTEE_ERROR) */
-/*     { */
-/* 	goto error_free_resources; */
-/*     } */
-
-/*     dl->literal.literal_class = DATE_LITERAL; */
-
-/*     free(string); */
-/*     return &(dl->literal); */
-
-/* error_free_resources: */
-/*     free(string); */
-/*     free(dl); */
-/*     return NULL; */
-/* } */    
 }
 
 struct value_iface_t * st_new_tod_literal(
@@ -831,77 +941,7 @@ struct value_iface_t * st_new_double_string_literal(
 
 
 
-/* static int find_year_month_day( */
-/*     char *start,  */
-/*     char **year,  */
-/*     char **month,  */
-/*     char **day) */
-/* { */
-/*     if(strlen(start) < 10) */
-/*     { */
-/* 	return ESSTEE_ERROR; */
-/*     } */
 
-/*     *year = start; */
-/*     start[4] = '\0'; */
-
-/*     *month = start + 5; */
-/*     start[7] = '\0'; */
-
-/*     *day = start + 8; */
-/*     start[10] = '\0'; */
-
-/*     return ESSTEE_OK; */
-/* } */
-
-/* static int numberize_date_strings( */
-/*     unsigned *nyear,  */
-/*     unsigned *nmonth,  */
-/*     unsigned *nday, */
-/*     char *year,  */
-/*     char *month,  */
-/*     char *day,  */
-/*     const struct location_t *string_location, */
-/*     struct parser_t *parser) */
-/* { */
-/*     errno = 0; */
-/*     *nyear = (unsigned)(strtoul(year, NULL, 10)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret year part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     *nmonth = (unsigned)(strtoul(month, NULL, 10)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret month part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     *nday = (unsigned)(strtoul(day, NULL, 10)); */
-/*     if(errno != 0) */
-/*     { */
-/* 	NEW_ERROR_AT("cannot interpret day part.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-
-/*     if(*nmonth < 1 || *nmonth > 12) */
-/*     { */
-/* 	NEW_ERROR_AT("month must be at least 1 and at most 12.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-/*     if(*nday < 1 || *nday > 31) */
-/*     { */
-/* 	NEW_ERROR_AT("day must be at least 1 and at most 31.", parser->errors, string_location);		 */
-/* 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY; */
-/* 	return ESSTEE_ERROR; */
-/*     } */
-
-/*     return ESSTEE_OK; */
-/* } */
 
 
 /* static int find_h_m_s_ms( */

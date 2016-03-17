@@ -48,6 +48,26 @@ st_bitflag_t st_general_value_empty_class(
     return 0;
 }
 
+int st_general_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    int greater = self->greater(self, other_value, config);
+    if(greater == ESSTEE_TRUE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    int lesser = self->lesser(self, other_value, config);
+    if(lesser == ESSTEE_TRUE)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
 /**************************************************************************/
 /* Integer values                                                         */
 /**************************************************************************/
@@ -1625,60 +1645,60 @@ int st_duration_value_display(
 	CONTAINER_OF(self, struct duration_value_t, value);
 
     int total_written_bytes = 0;
-    if(dv->d > 0.0)
+    if(dv->duration.d > 0.0)
     {
 	int written_bytes = snprintf(buffer,
 				     buffer_size,
 				     "%.2fd",
-				     dv->d);
+				     dv->duration.d);
 	CHECK_WRITTEN_BYTES(written_bytes);
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
 	total_written_bytes += written_bytes;
     }
     
-    if(dv->h > 0.0)
+    if(dv->duration.h > 0.0)
     {
 	int written_bytes = snprintf(buffer,
 				     buffer_size,
 				     "%.2fh",
-				     dv->h);
+				     dv->duration.h);
 	CHECK_WRITTEN_BYTES(written_bytes);
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
 	total_written_bytes += written_bytes;
     }
 
-    if(dv->m > 0.0)
+    if(dv->duration.m > 0.0)
     {
 	int written_bytes = snprintf(buffer,
 				     buffer_size,
 				     "%.2fm",
-				     dv->m);
+				     dv->duration.m);
 	CHECK_WRITTEN_BYTES(written_bytes);
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
 	total_written_bytes += written_bytes;
     }
 
-    if(dv->s > 0.0)
+    if(dv->duration.s > 0.0)
     {
 	int written_bytes = snprintf(buffer,
 				     buffer_size,
 				     "%.2fs",
-				     dv->s);
+				     dv->duration.s);
 	CHECK_WRITTEN_BYTES(written_bytes);
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
 	total_written_bytes += written_bytes;
     }
 
-    if(dv->ms > 0.0)
+    if(dv->duration.ms > 0.0)
     {
 	int written_bytes = snprintf(buffer,
 				     buffer_size,
 				     "%.2fms",
-				     dv->ms);
+				     dv->duration.ms);
 	CHECK_WRITTEN_BYTES(written_bytes);
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
@@ -1706,14 +1726,14 @@ int st_duration_value_assign(
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
 
-    const struct duration_value_t *ov =
+    const struct duration_t *ov =
 	new_value->duration(new_value, config);
 
-    dv->d = ov->d;
-    dv->h = ov->h;
-    dv->m = ov->m;
-    dv->s = ov->s;
-    dv->ms = ov->ms;
+    dv->duration.d = ov->d;
+    dv->duration.h = ov->h;
+    dv->duration.m = ov->m;
+    dv->duration.s = ov->s;
+    dv->duration.ms = ov->ms;
 
     return ESSTEE_OK;
 }
@@ -1754,30 +1774,30 @@ int st_duration_value_greater(
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
 
-    const struct duration_value_t *ov =
+    const struct duration_t *ov =
 	other_value->duration(other_value, config);
 
-    if(dv->d > ov->d)
+    if(dv->duration.d > ov->d)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->h > ov->h)
+    if(dv->duration.h > ov->h)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->m > ov->m)
+    if(dv->duration.m > ov->m)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->s > ov->s)
+    if(dv->duration.s > ov->s)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->ms > ov->ms)
+    if(dv->duration.ms > ov->ms)
     {
 	return ESSTEE_TRUE;
     }
@@ -1793,30 +1813,30 @@ int st_duration_value_lesser(
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
 
-    const struct duration_value_t *ov =
+    const struct duration_t *ov =
 	other_value->duration(other_value, config);
 
-    if(dv->d < ov->d)
+    if(dv->duration.d < ov->d)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->h < ov->h)
+    if(dv->duration.h < ov->h)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->m < ov->m)
+    if(dv->duration.m < ov->m)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->s < ov->s)
+    if(dv->duration.s < ov->s)
     {
 	return ESSTEE_TRUE;
     }
 
-    if(dv->ms < ov->ms)
+    if(dv->duration.ms < ov->ms)
     {
 	return ESSTEE_TRUE;
     }
@@ -1824,19 +1844,63 @@ int st_duration_value_lesser(
     return ESSTEE_FALSE;
 }
 
-int st_duration_value_equals(
+const struct duration_t * st_duration_value_duration(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf)
+{
+    struct duration_value_t *dv =
+	CONTAINER_OF(self, struct duration_value_t, value);
+
+    return &(dv->duration);
+}
+
+/**************************************************************************/
+/* Date value                                                             */
+/**************************************************************************/
+int st_date_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct date_value_t *dv =
+	CONTAINER_OF(self, struct date_value_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%" PRIu64 "-%" PRIu8 "-%" PRIu8,
+				 dv->date.y,
+				 dv->date.m,
+				 dv->date.d);
+    CHECK_WRITTEN_BYTES(written_bytes);
+
+    return written_bytes;
+}
+
+int st_date_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config)
+{
+    struct date_value_t *dv =
+	CONTAINER_OF(self, struct date_value_t, value);
+
+    const struct date_t *ov =
+	new_value->date(new_value, config);
+
+    dv->date.y = ov->y;
+    dv->date.m = ov->m;
+    dv->date.d = ov->d;
+
+    return ESSTEE_OK;
+}
+
+int st_date_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config)
 {
-    int greater = st_duration_value_greater(self, other_value, config);
-    if(greater == ESSTEE_TRUE)
-    {
-	return ESSTEE_FALSE;
-    }
-
-    int lesser = st_duration_value_lesser(self, other_value, config);
-    if(lesser == ESSTEE_TRUE)
+    if(!other_value->date)
     {
 	return ESSTEE_FALSE;
     }
@@ -1844,14 +1908,87 @@ int st_duration_value_equals(
     return ESSTEE_TRUE;
 }
 
-const struct duration_value_t * st_duration_value_duration(
+const struct type_iface_t * st_date_value_type_of(
+    const struct value_iface_t *self)
+{
+    struct date_value_t *dv =
+	CONTAINER_OF(self, struct date_value_t, value);
+
+    return dv->type;
+}
+
+void st_date_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: date destructor */
+}
+
+int st_date_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct date_value_t *dv =
+	CONTAINER_OF(self, struct date_value_t, value);
+
+    const struct date_t *ov =
+	other_value->date(other_value, config);
+
+    if(dv->date.y > ov->y)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->date.m > ov->m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->date.d > ov->d)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+int st_date_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config)
+{
+    struct date_value_t *dv =
+	CONTAINER_OF(self, struct date_value_t, value);
+
+    const struct date_t *ov =
+	other_value->date(other_value, config);
+
+    if(dv->date.y < ov->y)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->date.m < ov->m)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    if(dv->date.d < ov->d)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+const struct date_t * st_date_value_date(
     const struct value_iface_t *self,
     const struct config_iface_t *conf)
 {
-    struct duration_value_t *dv =
-	CONTAINER_OF(self, struct duration_value_t, value);
+    struct date_value_t *dv =
+	CONTAINER_OF(self, struct date_value_t, value);
 
-    return dv;
+    return &(dv->date);
 }
 
 /**************************************************************************/

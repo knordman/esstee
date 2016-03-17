@@ -25,8 +25,16 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define TEMPORARY_VALUE (1 << 0)
 #define CONSTANT_VALUE  (1 << 1)
 
+/**************************************************************************/
+/* General value methods                                                  */
+/**************************************************************************/
 st_bitflag_t st_general_value_empty_class(
     const struct value_iface_t *self,
+    const struct config_iface_t *config);
+
+int st_general_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
     const struct config_iface_t *config);
 
 /**************************************************************************/
@@ -322,14 +330,18 @@ const char * st_string_value_string(
 /**************************************************************************/
 /* Duration value                                                         */
 /**************************************************************************/
-struct duration_value_t {
-    struct value_iface_t value;
-    const struct type_iface_t *type;
+struct duration_t {
     double d;
     double h;
     double m;
     double s;
     double ms;
+};
+
+struct duration_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *type;
+    struct duration_t duration;
 };
 
 int st_duration_value_display(
@@ -364,38 +376,75 @@ int st_duration_value_lesser(
     const struct value_iface_t *other_value,
     const struct config_iface_t *config);
 
-int st_duration_value_equals(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
-    const struct config_iface_t *config);
-
-const struct duration_value_t * st_duration_value_duration(
+const struct duration_t * st_duration_value_duration(
     const struct value_iface_t *self,
     const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Date value                                                             */
 /**************************************************************************/
-struct date_value_t {
-    struct value_iface_t value;
-    struct type_iface_t *explicit_type;
-    unsigned y;
-    unsigned m;
-    unsigned d;
+struct date_t {
+    uint64_t y;
+    uint8_t m;
+    uint8_t d;
 };
 
-/* TODO: Date value, determine value interface function */
+struct date_value_t {
+    struct value_iface_t value;
+    const struct type_iface_t *type;
+    struct date_t date;
+};
+
+int st_date_value_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config);
+
+int st_date_value_assign(
+    struct value_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config);
+
+int st_date_value_assigns_and_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct type_iface_t * st_date_value_type_of(
+    const struct value_iface_t *self);
+
+void st_date_value_destroy(
+    struct value_iface_t *self);
+
+int st_date_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+int st_date_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config);
+
+const struct date_t * st_date_value_date(
+    const struct value_iface_t *self,
+    const struct config_iface_t *conf);
 
 /**************************************************************************/
 /* Tod value                                                              */
 /**************************************************************************/
+struct tod_t {
+    uint8_t day;
+    uint8_t hours;
+    uint8_t minutes;
+    uint8_t seconds;
+};
+
 struct tod_value_t {
     struct value_iface_t value;
-    struct type_iface_t *explicit_type;
-    unsigned h;
-    unsigned m;
-    unsigned s;
-    unsigned ms;
+    struct type_iface_t *type;
+    struct tod_t tod;
 };
 
 /* TODO: Tod value, determine value interface function */
@@ -405,14 +454,9 @@ struct tod_value_t {
 /**************************************************************************/
 struct date_tod_value_t {
     struct value_iface_t value;
-    struct type_iface_t *explicit_type;
-    unsigned y;
-    unsigned mon;
-    unsigned d;
-    unsigned h;
-    unsigned min;
-    unsigned s;
-    unsigned ms;
+    struct type_iface_t *type;
+    struct date_t date;
+    struct tod_t tod;
 };
 
 /* TODO: Date tod value, determine value interface function */

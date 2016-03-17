@@ -30,21 +30,17 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define IN_OUT_VAR_CLASS		(1 << 5)
 #define EXTERNAL_VAR_CLASS		(1 << 6)
 #define GLOBAL_VAR_CLASS		(1 << 7)
-
 #define RETAIN_VAR_CLASS		(1 << 8)
 #define CONSTANT_VAR_CLASS		(1 << 9)
 
 struct variable_t {
-
     struct type_iface_t *type;
     struct value_iface_t *value;
     struct direct_address_t *address;
-
     struct st_location_t *identifier_location;
     st_bitflag_t class;
-    
     struct variable_t *prev;
     struct variable_t *next;    
     char *identifier;
-    UT_hash_handle hh; 
+    UT_hash_handle hh;
 };

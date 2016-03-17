@@ -221,9 +221,9 @@ void st_duration_type_destroy(
 /**************************************************************************/
 struct date_type_t {
     struct type_iface_t type;
-    unsigned default_year;
-    unsigned default_month;
-    unsigned default_day;
+    uint64_t default_year;
+    uint8_t default_month;
+    uint8_t default_day;
 };
 
 struct value_iface_t * st_date_type_create_value_of(
@@ -238,6 +238,10 @@ int st_date_type_reset_value_of(
 int st_date_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
+    const struct config_iface_t *config);
+
+st_bitflag_t st_date_type_class(
+    const struct type_iface_t *self,
     const struct config_iface_t *config);
 
 void st_date_type_destroy(

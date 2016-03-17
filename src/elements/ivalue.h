@@ -32,8 +32,13 @@ struct enum_item_t;
 struct type_iface_t;
 struct errors_iface_t;
 struct cursor_t;
-struct systime_iface_t *time;
+struct systime_iface_t;
 struct invoke_parameter_t;
+struct duration_t;
+struct date_t;
+struct tod_t;
+struct array_init_value_t;
+struct struct_init_value_t;
 
 struct value_iface_t {
 
@@ -262,19 +267,19 @@ struct value_iface_t {
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
 
-    const struct duration_value_t * (*duration)(
+    const struct duration_t * (*duration)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
     
-    const struct date_value_t * (*date)(
+    const struct date_t * (*date)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
 
-    const struct tod_value_t * (*tod)(
+    const struct tod_t * (*tod)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
 
-    const struct date_tod_value_t * (*date_tod)(
+    const struct date_tod_t * (*date_tod)(
 	const struct value_iface_t *self,
 	const struct config_iface_t *conf);
 

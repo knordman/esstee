@@ -22,9 +22,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <esstee/flags.h>
 #include <esstee/locations.h>
 
-#define ISSUE_ERROR_CLASS   (1 << 0)
-#define ISSUE_WARNING_CLASS (1 << 1)
-
 struct st_issue_t {
     char *message;
     st_bitflag_t class;

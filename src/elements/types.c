@@ -913,7 +913,7 @@ struct value_iface_t * st_duration_type_create_value_of(
 
     dt->value.greater = st_duration_value_greater;
     dt->value.lesser = st_duration_value_lesser;
-    dt->value.equals = st_duration_value_equals;
+    dt->value.equals = st_general_value_equals;
     dt->value.duration = st_duration_value_duration;
     dt->value.class = st_general_value_empty_class;
 
@@ -934,11 +934,11 @@ int st_duration_type_reset_value_of(
     struct duration_value_t *dv =
 	CONTAINER_OF(value_of, struct duration_value_t, value);
 
-    dv->d = dt->default_d;
-    dv->h = dt->default_h;
-    dv->m = dt->default_m;
-    dv->s = dt->default_s;
-    dv->ms = dt->default_ms;
+    dv->duration.d = dt->default_d;
+    dv->duration.h = dt->default_h;
+    dv->duration.m = dt->default_m;
+    dv->duration.s = dt->default_s;
+    dv->duration.ms = dt->default_ms;
 
     return ESSTEE_OK;
 }
@@ -976,7 +976,30 @@ struct value_iface_t * st_date_type_create_value_of(
     const struct type_iface_t *self,
     const struct config_iface_t *config)
 {
-    /* TODO: date type create value of */
+    struct date_value_t *dt = NULL;
+    ALLOC_OR_JUMP(
+	dt,
+	struct date_value_t,
+	error_free_resources);
+
+    dt->type = self;
+    
+    memset(&(dt->value), 0, sizeof(struct value_iface_t));
+    dt->value.display = st_date_value_display;
+    dt->value.assignable_from = st_date_value_assigns_and_compares;
+    dt->value.comparable_to = st_date_value_assigns_and_compares;
+    dt->value.assign = st_date_value_assign;
+    dt->value.destroy = st_date_value_destroy;
+
+    dt->value.greater = st_date_value_greater;
+    dt->value.lesser = st_date_value_lesser;
+    dt->value.equals = st_general_value_equals;
+    dt->value.date = st_date_value_date;
+    dt->value.class = st_general_value_empty_class;
+
+    return &(dt->value);
+    
+error_free_resources:
     return NULL;
 }
 
@@ -985,8 +1008,17 @@ int st_date_type_reset_value_of(
     struct value_iface_t *value_of,
     const struct config_iface_t *config)
 {
-    /* TODO: date type reset value of */
-    return ESSTEE_FALSE;
+    const struct date_type_t *dt =
+	CONTAINER_OF(self, struct date_type_t, type);
+
+    struct date_value_t *dv =
+	CONTAINER_OF(value_of, struct date_value_t, value);
+
+    dv->date.y = dt->default_year;
+    dv->date.m = dt->default_month;
+    dv->date.d = dt->default_day;
+
+    return ESSTEE_OK;
 }
 
 int st_date_type_can_hold(
@@ -994,8 +1026,19 @@ int st_date_type_can_hold(
     const struct value_iface_t *value,
     const struct config_iface_t *config)
 {
-    /* TODO: date type can hold */
-    return ESSTEE_FALSE;
+    if(!value->date)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
+}
+
+st_bitflag_t st_date_type_class(
+    const struct type_iface_t *self,
+    const struct config_iface_t *config)
+{
+    return DATE_TYPE;
 }
 
 void st_date_type_destroy(

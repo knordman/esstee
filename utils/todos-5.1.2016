@@ -1,9 +1,9 @@
-date-type-value
-168 /* TODO: date literal */ ../src/parser/pliterals.c
-35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
-61 /* TODO: date type create value of */ ../src/elements/types.c
-62 /* TODO: date type reset value of */ ../src/elements/types.c
-63 /* TODO: date type can hold */ ../src/elements/types.c
+DONE date-type-value
+DONE 168 /* TODO: date literal */ ../src/parser/pliterals.c
+DONE 35 /*TODO: Date value, determine value interface function */ ../src/elements/values.h
+DONE 61 /* TODO: date type create value of */ ../src/elements/types.c
+DONE 62 /* TODO: date type reset value of */ ../src/elements/types.c
+DONE 63 /* TODO: date type can hold */ ../src/elements/types.c
 
 tod-type-value
 169 /* TODO: tod literal */ ../src/parser/pliterals.c

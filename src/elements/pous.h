@@ -33,16 +33,11 @@ void st_destroy_header(
 
 struct function_t {    
     struct header_t *header;
-
     struct variable_t output;
-
     struct invoke_iface_t *statements;
-
     struct st_location_t *location;
-
     struct namedreference_iface_t *type_ref_pool;
     struct namedreference_iface_t *var_ref_pool;
-    
     struct function_t *prev;
     struct function_t *next;
     char *identifier;
@@ -54,14 +49,10 @@ void st_destroy_function(
 
 struct program_t {
     struct header_t *header;
-
     struct invoke_iface_t *statements;
-
     struct st_location_t *location;
-
     struct namedreference_iface_t *type_ref_pool;
     struct namedreference_iface_t *var_ref_pool;
-    
     struct program_t *prev;
     struct program_t *next;
     char *identifier;
@@ -74,17 +65,12 @@ void st_destroy_program(
 struct function_block_t {
     struct type_iface_t type;
     struct header_t *header;
-
     struct invoke_iface_t *statements;
-
     struct st_location_t *location;
-
     struct namedreference_iface_t *type_ref_pool;
     struct namedreference_iface_t *var_ref_pool;
-
     struct function_block_t *prev;
     struct function_block_t *next;
     char *identifier;
     UT_hash_handle hh;
 };
-

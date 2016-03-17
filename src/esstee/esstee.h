@@ -20,6 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <esstee/issues.h>
+#include <esstee/elements.h>
 
 #include <stddef.h>
 
@@ -63,6 +64,11 @@ int st_query(
     char *output,
     size_t output_max_len,
     const char *query);
+
+struct st_element_t st_get_element(
+    struct st_t *st,
+    const char *program,
+    const char *identifier);
 
 int st_run_cycle(
     struct st_t *st,
