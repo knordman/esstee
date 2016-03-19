@@ -65,9 +65,8 @@ int st_query(
     size_t output_max_len,
     const char *query);
 
-struct st_element_t st_get_element(
+struct st_element_t * st_get_element(
     struct st_t *st,
-    const char *program,
     const char *identifier);
 
 int st_run_cycle(

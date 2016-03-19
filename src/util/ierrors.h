@@ -27,9 +27,10 @@ struct errors_iface_t {
 
     void (*new_issue)(
 	struct errors_iface_t *self,
-	const char *message,
-	st_bitflag_t issue_class);
-
+	const char *format,
+	st_bitflag_t issue_class,
+	...);
+	
     void (*new_issue_at)(
 	struct errors_iface_t *self,
 	const char *message,
@@ -37,6 +38,11 @@ struct errors_iface_t {
 	int location_count,
 	...);
 
+    const char * (*build_message)(
+	struct errors_iface_t *self,
+	const char *format,
+	...);
+        
     void (*memory_error)(
 	struct errors_iface_t *self,
 	const char *file,
@@ -48,8 +54,27 @@ struct errors_iface_t {
 	const char *file,
 	const char *function,
 	int line);
-    
+
+    const char * (*build_string)(
+	const char *format,
+	...);
+
+    void (*begin_group)(
+	struct errors_iface_t *self);
+
+    void (*set_group_location)(
+	struct errors_iface_t self,
+	int location_count,
+	...);
+
+    void (*ignore_issues)(
+	struct errors_iface_t *self);
+        
     const struct st_issue_t * (*next_issue)(
+	struct errors_iface_t *self,
+	st_bitflag_t issue_class_filter);
+
+    const struct st_issue_t * (*next_issue_and_ignore)(
 	struct errors_iface_t *self,
 	st_bitflag_t issue_class_filter);
 

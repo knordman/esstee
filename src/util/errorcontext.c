@@ -37,6 +37,7 @@ struct errors_iface_t * st_new_error_context(void)
     struct issue_node_t *memory_error = NULL;
     char *internal_error_description = NULL;
     char *memory_error_description = NULL;
+    char *message_buffer = NULL;
     
     ALLOC_OR_JUMP(
 	ec,
@@ -64,6 +65,12 @@ struct errors_iface_t * st_new_error_context(void)
 	char,
 	ALLOC_ISSUE_MAX_LEN,
 	error_free_resources);
+
+    ALLOC_ARRAY_OR_JUMP(
+	message_buffer,
+	char,
+	ALLOC_ISSUE_MAX_LEN,
+	error_free_resources);
     
     internal_error->issue.message = internal_error_description;
     internal_error->issue.class = ISSUE_ERROR_CLASS;
@@ -85,9 +92,11 @@ struct errors_iface_t * st_new_error_context(void)
     ec->issues = NULL;
     ec->error_count = 0;
     ec->error_count_last_check = 0;
+    ec->message_buffer = message_buffer;
     
     ec->errors.new_issue = st_error_context_new_issue;
     ec->errors.new_issue_at = st_error_context_new_issue_at;
+    ec->errors.build_message = st_error_context_build_message;
     ec->errors.memory_error = st_error_context_new_memory_error;
     ec->errors.internal_error = st_error_context_new_internal_error;
     ec->errors.next_issue = st_error_context_next_issue;
@@ -134,16 +143,36 @@ void st_destroy_error_context(
 
 void st_error_context_new_issue(
     struct errors_iface_t *self,
-    const char *message,
-    st_bitflag_t issue_class)
+    const char *format,
+    st_bitflag_t issue_class,
+    ...)
 {
-    struct error_context_t *ec = CONTAINER_OF(self, struct error_context_t, errors);
+    struct error_context_t *ec =
+	CONTAINER_OF(self, struct error_context_t, errors);
 
-    struct issue_node_t *in = NULL;
-    ALLOC_OR_JUMP(in, struct issue_node_t, error_free_resources);
+    va_list ap;
+    va_start(ap, issue_class);
+    int written_bytes = vsnprintf(ec->message_buffer,
+				  ALLOC_ISSUE_MAX_LEN,
+				  format,
+				  ap);
+    if(written_bytes < 1)
+    {
+	goto error_free_resources;
+    }
+    va_end(ap);
     
+    struct issue_node_t *in = NULL;
+    ALLOC_OR_JUMP(
+	in,
+	struct issue_node_t,
+	error_free_resources);
+
     char *issue_message = NULL;
-    STRDUP_OR_JUMP(issue_message, message, error_free_resources);
+    STRDUP_OR_JUMP(
+	issue_message,
+	ec->message_buffer,
+	error_free_resources);
 
     in->issue.message = issue_message;
     in->issue.class = issue_class;
@@ -204,13 +233,38 @@ error_free_resources:
     free(issue_message);
 }
 
+const char * st_error_context_build_message(
+    struct errors_iface_t *self,
+    const char *format,
+    ...)
+{
+    struct error_context_t *ec =
+	CONTAINER_OF(self, struct error_context_t, errors);
+
+    va_list ap;
+    va_start(ap, format);
+    int written_bytes = vsnprintf(ec->message_buffer,
+				  ALLOC_ISSUE_MAX_LEN,
+				  format,
+				  ap);
+    va_end(ap);
+
+    if(written_bytes < 0)
+    {
+	return NULL;
+    }
+    
+    return ec->message_buffer;
+}
+
 void st_error_context_new_memory_error(
     struct errors_iface_t *self,
     const char *file,
     const char *function,
     int line)
 {
-    struct error_context_t *ec = CONTAINER_OF(self, struct error_context_t, errors);
+    struct error_context_t *ec =
+	CONTAINER_OF(self, struct error_context_t, errors);
 
     if(!ec->memory_error_added)
     {
@@ -254,29 +308,30 @@ const struct st_issue_t * st_error_context_next_issue(
     struct errors_iface_t *self,
     st_bitflag_t issue_filter)
 {
-    struct error_context_t *ec = CONTAINER_OF(self, struct error_context_t, errors);
+    struct error_context_t *ec =
+	CONTAINER_OF(self, struct error_context_t, errors);
 
-    static int insert_end_marker = 0;
-
-    if(insert_end_marker)
-    {
-	insert_end_marker = 0;
-	return NULL;
-    }
-    else if(ec->iterator == NULL)
+    if(ec->iterator == NULL || issue_filter != ec->last_filter)
     {
 	ec->iterator = ec->issues;
     }
-    else
+
+    /* Find the first error not returned that matches the filter */
+    for(; ec->iterator != NULL; ec->iterator = ec->iterator->next)
     {
-	if(ec->iterator->next == NULL)
+	if(ec->iterator->returned)
 	{
-	    insert_end_marker = 1;
+	    continue;
 	}
-	ec->iterator = ec->iterator->next;
+
+	if(ST_FLAG_IS_SET(ec->iterator->issue.class, issue_filter))
+	{
+	    ec->iterator->returned = 1;
+	    return &(ec->iterator->issue);
+	}
     }
 
-    return &(ec->iterator->issue);
+    return NULL;
 }
 
 struct errors_iface_t * st_error_context_merge(

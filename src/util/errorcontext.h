@@ -23,7 +23,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 struct issue_node_t {
     struct st_issue_t issue;
-    
+
+    int returned;
     struct issue_node_t *prev;
     struct issue_node_t *next;
 };
@@ -40,8 +41,10 @@ struct error_context_t {
     int memory_error_added;
     int error_count;
     int error_count_last_check;
-    
+
+    char *message_buffer;
     struct issue_node_t *iterator;
+    st_bitflag_t last_filter;
 };
 
 struct errors_iface_t * st_new_error_context(void);
@@ -52,13 +55,19 @@ void st_destroy_error_context(
 void st_error_context_new_issue(
     struct errors_iface_t *self,
     const char *message,
-    st_bitflag_t issue_class);
+    st_bitflag_t issue_class,
+    ...);
 
 void st_error_context_new_issue_at(
     struct errors_iface_t *self,
     const char *message,
     st_bitflag_t issue_class,
     int location_count,    
+    ...);
+
+const char * st_error_context_build_message(
+    struct errors_iface_t *self,
+    const char *format,
     ...);
 
 void st_error_context_new_memory_error(

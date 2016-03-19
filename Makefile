@@ -36,7 +36,8 @@ OBJECTS := 		build/util/errorcontext.o \
 			build/elements/statements.o \
 			build/elements/expressions.o \
 			build/elements/query.o \
-			build/esstee/esstee.o \
+			build/api/esstee.o \
+			build/api/elements.o \
 			build/linker/lpous.o \
 			build/linker/lvariables.o \
 			build/linker/ltypes.o \

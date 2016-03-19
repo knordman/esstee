@@ -81,7 +81,7 @@ struct value_iface_t {
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
 	const struct config_iface_t *config);
-
+    
     /**
      * Determines whether a value can be compared to another value.
      * @param self the "this" pointer.
