@@ -23,52 +23,71 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <esstee/flags.h>
 #include <esstee/issues.h>
 
-struct errors_iface_t {
+struct issues_iface_t {
 
     void (*new_issue)(
-	struct errors_iface_t *self,
+	struct issues_iface_t *self,
 	const char *format,
 	st_bitflag_t issue_class,
 	...);
 	
     void (*new_issue_at)(
-	struct errors_iface_t *self,
+	struct issues_iface_t *self,
 	const char *message,
 	st_bitflag_t issue_class,
 	int location_count,
 	...);
 
     const char * (*build_message)(
-	struct errors_iface_t *self,
+	struct issues_iface_t *self,
 	const char *format,
 	...);
         
     void (*memory_error)(
-	struct errors_iface_t *self,
+	struct issues_iface_t *self,
 	const char *file,
 	const char *function,
 	int line);
 
     void (*internal_error)(
-	struct errors_iface_t *self,
+	struct issues_iface_t *self,
 	const char *file,
 	const char *function,
 	int line);
 
-    const struct st_issue_t * (*next_issue)(
-	struct errors_iface_t *self,
-	st_bitflag_t issue_class_filter);
+    void (*begin_group)(
+	struct issues_iface_t *self);
 
-    struct errors_iface_t * (*merge)(
-	struct errors_iface_t *self,
-	struct errors_iface_t *to_merge);
+    void (*set_group_location)(
+	struct issues_iface_t *self,
+	int location_count,
+	...);
 
-    int (*reset)(
-	struct errors_iface_t *self);
+    void (*ignore_all)(
+	struct issues_iface_t *self);
+        
+    const struct st_issue_t * (*fetch)(
+	struct issues_iface_t *self,
+	st_bitflag_t issue_filter);
 
-    int (*new_error_occured)(
-	struct errors_iface_t *self);
+    const struct st_issue_t * (*fetch_and_ignore)(
+	struct issues_iface_t *self,
+	st_bitflag_t issue_filter);
 
-    int (*error_count)(
-	struct errors_iface_t *self);
+    struct issues_iface_t * (*merge)(
+	struct issues_iface_t *self,
+	struct issues_iface_t *to_merge);
+
+    int (*unfetched_issues)(
+	struct issues_iface_t *self,
+	st_bitflag_t issue_filter);
+
+    int (*count)(
+	struct issues_iface_t *self,
+	st_bitflag_t issue_filter);
+
+    void (*destroy)(
+	struct issues_iface_t *self,
+	st_bitflag_t issue_filter);	
+	
 };
