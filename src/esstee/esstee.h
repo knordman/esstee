@@ -27,7 +27,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct st_t;
 
 struct st_t * st_new_instance(
-    unsigned direct_memory_bytes);
+    size_t direct_memory_bytes);
 
 int st_set_config(
     const char *option,
@@ -48,16 +48,16 @@ int st_load_buffer(
     size_t len, 
     struct st_t *st);
 
+int st_unload_buffer(
+    struct st_t *st,
+    const char *identifier);
+
 int st_link(
     struct st_t *st);
 
 const struct st_location_t * st_start(
     struct st_t *st,
     const char *program);
-
-const struct st_issue_t * st_next_issue(
-    struct st_t *st,
-    st_bitflag_t filter);
 
 int st_query(
     struct st_t *st,
@@ -68,6 +68,15 @@ int st_query(
 struct st_element_t * st_get_element(
     struct st_t *st,
     const char *identifier);
+
+const struct st_issue_t * st_fetch_issue(
+    struct st_t *st,
+    st_bitflag_t filter);
+
+const struct st_issue_t * st_fetch_sub_issue(
+    struct st_t *st,
+    const struct st_issue_t *issue,
+    st_bitflag_t filter);
 
 int st_run_cycle(
     struct st_t *st,

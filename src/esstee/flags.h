@@ -44,11 +44,13 @@ typedef uint64_t st_bitflag_t;
 #define ESSTEE_RUNTIME_ERROR              (1 << 5)
 #define ESSTEE_ARGUMENT_ERROR             (1 << 6)
 #define ESSTEE_CONTEXT_ERROR              (1 << 7)
+#define ESSTEE_TYPE_ERROR                 (1 << 8)
+#define ESSTEE_IO_ERROR                   (1 << 9)
 
-#define ESSTEE_SYNTAX_WARNING             (1 << 8)
+#define ESSTEE_SYNTAX_WARNING            (1 << 10)
 
-#define ESSTEE_FILTER_ANY_ERROR               0xef
-#define ESSTEE_FILTER_ANY_WARNING         (1 << 8)
+#define ESSTEE_FILTER_ANY_ERROR              0x3ff
+#define ESSTEE_FILTER_ANY_WARNING         (1 << 9)
 #define ESSTEE_FILTER_ANY_ISSUE 0xffffffffffffffff
 
 #define ISSUE_ERROR_CLASS                 (1 << 0)

@@ -36,8 +36,8 @@ void st_destroy_array_index(
 /**************************************************************************/
 int st_qualified_identifier_resolve_chain(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct qualified_identifier_t *start_from = qi;
     
@@ -47,7 +47,7 @@ int st_qualified_identifier_resolve_chain(
 	{
 	    if(!(qi->program->header && qi->program->header->variables))
 	    {
-		errors->new_issue_at(errors,
+		issues->new_issue_at(issues,
 				     "program has no variables",
 				     ISSUE_ERROR_CLASS,
 				     1,
@@ -60,7 +60,7 @@ int st_qualified_identifier_resolve_chain(
 	    HASH_FIND_STR(qi->program->header->variables, qi->next->identifier,	found);
 	    if(!found)
 	    {
- 		errors->new_issue_at(errors,
+ 		issues->new_issue_at(issues,
 				     "program has no such variable",
 				     ISSUE_ERROR_CLASS,
 				     1,
@@ -100,8 +100,8 @@ int st_qualified_identifier_resolve_chain(
 	{
 	    if(!itr->variable->value->sub_variable)
 	    {
-		errors->new_issue_at(
-		    errors,
+		issues->new_issue_at(
+		    issues,
 		    "variable does not have any sub-variables",
 		    ISSUE_ERROR_CLASS,
 		    1,
@@ -113,12 +113,13 @@ int st_qualified_identifier_resolve_chain(
 	    struct variable_t *subvar = itr->variable->value->sub_variable(
 		itr->variable->value,
 		itr->next->identifier,
-		config);
+		config,
+		issues);
 
 	    if(subvar == NULL)
 	    {
-		errors->new_issue_at(
-		    errors,
+		issues->new_issue_at(
+		    issues,
 		    "reference to undefined variable",
 		    ISSUE_ERROR_CLASS,
 		    1,
@@ -143,8 +144,8 @@ int st_qualified_identifier_resolve_chain(
 
 int st_qualified_identifier_resolve_array_index(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct qualified_identifier_t *last = qi->last;
     
@@ -152,8 +153,8 @@ int st_qualified_identifier_resolve_array_index(
     {
 	if(!last->variable->value->index)
 	{
-	    errors->new_issue_at(
-		errors,
+	    issues->new_issue_at(
+		issues,
 		"variable is not indexable",
 		ISSUE_ERROR_CLASS,
 		1,
@@ -165,18 +166,11 @@ int st_qualified_identifier_resolve_array_index(
 	struct value_iface_t *array_value = last->variable->value->index(
 	    last->variable->value,
 	    last->array_index,
-	    config);
+	    config,
+	    issues);
 	    
 	if(array_value == NULL)
-	{
-	    errors->new_issue_at(
-		errors,
-		"index out of range for array variable",
-		ISSUE_ERROR_CLASS,
-		2,
-		last->location,
-		last->array_index->location);
-		
+	{		
 	    return ESSTEE_ERROR;
 	}
 
@@ -188,12 +182,12 @@ int st_qualified_identifier_resolve_array_index(
 
 int st_qualified_identifier_verify(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     int chain_resolve = st_qualified_identifier_resolve_chain(qi,
-							      errors,
-							      config);
+							      config,
+							      issues);
     if(chain_resolve != ESSTEE_OK)
     {
 	return chain_resolve;
@@ -203,8 +197,8 @@ int st_qualified_identifier_verify(
     {
 	int array_index_resolve = st_qualified_identifier_resolve_array_index(
 	    qi,
-	    errors,
-	    config);
+	    config,
+	    issues);
 
 	if(array_index_resolve != ESSTEE_OK)
 	{
@@ -218,8 +212,8 @@ int st_qualified_identifier_verify(
 int st_qualified_identifier_step(
     struct qualified_identifier_t *qi,
     struct cursor_t *cursor,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!qi->runtime_constant_reference)
     {
@@ -244,7 +238,7 @@ int st_qualified_identifier_step(
 		/* Push to call stack (to be stepped), when stepping is
 		 * complete, index has been evaluated (=increase state) */
 		qi->invoke_state++;
-		st_switch_current(cursor, &(itr->index_expression->invoke), config);
+		st_switch_current(cursor, &(itr->index_expression->invoke), config, issues);
 		return INVOKE_RESULT_IN_PROGRESS;
 	    }
 	    else
@@ -253,10 +247,10 @@ int st_qualified_identifier_step(
 	    }
 	}
 
-	int array_index_resolve = st_qualified_identifier_resolve_array_index(
-	    qi,
-	    errors,
-	    config);
+	int array_index_resolve =
+	    st_qualified_identifier_resolve_array_index(qi,
+							config,
+							issues);
 
 	if(array_index_resolve != ESSTEE_OK)
 	{
@@ -269,7 +263,8 @@ int st_qualified_identifier_step(
 
 int st_qualified_identifier_reset(
     struct qualified_identifier_t *qi,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     qi->invoke_state = 0;
 
@@ -278,12 +273,14 @@ int st_qualified_identifier_reset(
     {
 	if(itr->index_expression->invoke.step)
 	{
-	    int reset = itr->index_expression->invoke.reset(
-		&(itr->index_expression->invoke), config);
+	    int reset_result = itr->index_expression->invoke.reset(
+		&(itr->index_expression->invoke),
+		config,
+		issues);
 
-	    if(reset != ESSTEE_OK)
+	    if(reset_result != ESSTEE_OK)
 	    {
-		return reset;
+		return reset_result;
 	    }
 	}
     }
@@ -291,17 +288,43 @@ int st_qualified_identifier_reset(
     return ESSTEE_OK;
 }
 
+int st_qualified_identifier_allocate(
+    struct qualified_identifier_t *qi,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *itr = NULL;
+    DL_FOREACH(qi->last->array_index, itr)
+    {
+	if(itr->index_expression->invoke.allocate)
+	{
+	    int allocate_result = itr->index_expression->invoke.allocate(
+		&(itr->index_expression->invoke),
+		issues);
+
+	    if(allocate_result != ESSTEE_OK)
+	    {
+		return allocate_result;
+	    }
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+
 struct qualified_identifier_t * st_clone_qualified_identifier(
-    struct qualified_identifier_t *qi)
+    struct qualified_identifier_t *qi,
+    struct issues_iface_t *issues)
 {
     struct qualified_identifier_t *copy = NULL;
     struct array_index_t *array_index_copy = NULL;
     struct array_index_t *array_index_element_copy = NULL;
     struct expression_iface_t *index_expression_copy = NULL;
     
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct qualified_identifier_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, qi, sizeof(struct qualified_identifier_t));
@@ -321,7 +344,9 @@ struct qualified_identifier_t * st_clone_qualified_identifier(
 	    if(itr->index_expression->clone)
 	    {
 		index_expression_copy = itr->index_expression->clone(
-		    itr->index_expression);
+		    itr->index_expression,
+		    issues);
+
 		if(!index_expression_copy)
 		{
 		    goto error_free_resources;
@@ -362,8 +387,8 @@ void st_destroy_qualified_identifier_clone(
 int st_verify_invoke_parameters(
     struct invoke_parameter_t *parameters,
     const struct variable_t *variables,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     int verified = ESSTEE_OK;
     struct variable_t *found = NULL;
@@ -373,8 +398,8 @@ int st_verify_invoke_parameters(
 	if(!itr->identifier)	/* TODO: process parameters without identifier */
 	{
 	    verified = ESSTEE_ERROR;
-	    errors->new_issue_at(
-		errors,
+	    issues->new_issue_at(
+		issues,
 		"input variables must be referred to by name",
 		ISSUE_ERROR_CLASS,
 		1,
@@ -387,9 +412,13 @@ int st_verify_invoke_parameters(
 	if(!found)
 	{
 	    verified = ESSTEE_ERROR;
-	    errors->new_issue_at(
-		errors,
-		"no such variable defined",
+	    const char *message = issues->build_message(issues,
+							"no variable by name '%s' defined",
+							itr->identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
 		ISSUE_ERROR_CLASS,
 		1,
 		itr->location);
@@ -400,9 +429,13 @@ int st_verify_invoke_parameters(
 	if(!ST_FLAG_IS_SET(found->class, INPUT_VAR_CLASS))
 	{
 	    verified = ESSTEE_ERROR;
-	    errors->new_issue_at(
-		errors,
-		"the variable is not an input variable",
+	    const char *message = issues->build_message(issues,
+							"variable '%s' is not an input variable",
+							itr->identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
 		ISSUE_ERROR_CLASS,
 		1,
 		itr->location);
@@ -415,7 +448,7 @@ int st_verify_invoke_parameters(
 	    int expression_verified = itr->expression->invoke.verify(
 		&(itr->expression->invoke),
 		config,
-		errors);
+		issues);
 	    if(expression_verified != ESSTEE_OK)
 	    {
 		verified = ESSTEE_ERROR;
@@ -427,20 +460,27 @@ int st_verify_invoke_parameters(
 	const struct value_iface_t *assign_value =
 	    itr->expression->return_value(itr->expression);
 
+	issues->begin_group(issues);
 	int variable_assignable = found->value->assignable_from(found->value,
 								assign_value,
-								config);
+								config,
+								issues);
 	
 	if(variable_assignable != ESSTEE_TRUE)
 	{
 	    verified = ESSTEE_ERROR;
-	    errors->new_issue_at(
-		errors,
-		"the input variable cannot be assigned from this value",
-		ISSUE_ERROR_CLASS,
-		1,
-		itr->location);
+
+	    issues->new_issue(
+		issues,
+		"variable '%s' cannot be assigned from given value",
+		ESSTEE_ARGUMENT_ERROR,
+		found->identifier);
+
+	    issues->set_group_location(issues,
+				       1,
+				       itr->location);				       
 	}
+	issues->end_group(issues);
     }
 
     return verified;
@@ -451,7 +491,7 @@ int st_step_invoke_parameters(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct invoke_parameter_t *itr = NULL;
     int skipped = 0;
@@ -471,7 +511,7 @@ int st_step_invoke_parameters(
 	if(itr->expression->invoke.step)
 	{
 	    parameters->invoke_state++;
-	    st_switch_current(cursor, &(itr->expression->invoke), config);
+	    st_switch_current(cursor, &(itr->expression->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	else
@@ -487,7 +527,7 @@ int st_assign_from_invoke_parameters(
     struct invoke_parameter_t *parameters,
     struct variable_t *variables,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct variable_t *found = NULL;
     struct invoke_parameter_t *itr = NULL;
@@ -500,19 +540,13 @@ int st_assign_from_invoke_parameters(
 	    const struct value_iface_t *parameter_value =
 		itr->expression->return_value(itr->expression);
 	    
-	    int assign = found->value->assign(found->value,
-					      parameter_value,
-					      config);
+	    int assign_result = found->value->assign(found->value,
+						     parameter_value,
+						     config,
+						     issues);
 
-	    if(assign != ESSTEE_OK)
+	    if(assign_result != ESSTEE_OK)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "variable assignment from value failed",
-		    ISSUE_ERROR_CLASS,
-		    1,
-		    itr->location);
-
 		return ESSTEE_ERROR;
 	    }
 
@@ -524,17 +558,19 @@ int st_assign_from_invoke_parameters(
 
 int st_reset_invoke_parameters(    
     struct invoke_parameter_t *parameters,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct invoke_parameter_t *itr = NULL;
     DL_FOREACH(parameters, itr)
     {
 	if(itr->expression->invoke.reset)
 	{
-	    int reset_result =
-		itr->expression->invoke.reset(&(itr->expression->invoke),
-					      config);
-	    
+	    int reset_result = itr->expression->invoke.reset(
+		&(itr->expression->invoke),
+		config,
+		issues);
+
 	    if(reset_result != ESSTEE_OK)
 	    {
 		return reset_result;
@@ -547,8 +583,32 @@ int st_reset_invoke_parameters(
     return ESSTEE_OK;
 }
 
+int st_allocate_invoke_parameters(    
+    struct invoke_parameter_t *parameters,
+    struct issues_iface_t *issues)
+{
+    struct invoke_parameter_t *itr = NULL;
+    DL_FOREACH(parameters, itr)
+    {
+	if(itr->expression->invoke.allocate)
+	{
+	    int allocate_result = itr->expression->invoke.allocate(
+		&(itr->expression->invoke),
+		issues);
+
+	    if(allocate_result != ESSTEE_OK)
+	    {
+		return allocate_result;
+	    }
+	}
+    }
+
+    return ESSTEE_OK;    
+}
+
 struct invoke_parameter_t * st_clone_invoke_parameters(    
-    struct invoke_parameter_t *parameters)
+    struct invoke_parameter_t *parameters,
+    struct issues_iface_t *issues)
 {
     struct invoke_parameter_t *parameters_copy = NULL;
     struct invoke_parameter_t *parameter_copy = NULL;
@@ -559,9 +619,10 @@ struct invoke_parameter_t * st_clone_invoke_parameters(
     {
 	parameter_expression_copy = NULL;
 	
-	ALLOC_OR_JUMP(
+	ALLOC_OR_ERROR_JUMP(
 	    parameter_copy,
 	    struct invoke_parameter_t,
+	    issues,
 	    error_free_resources);
 
 	memcpy(parameter_copy, itr, sizeof(struct invoke_parameter_t));
@@ -569,7 +630,7 @@ struct invoke_parameter_t * st_clone_invoke_parameters(
 	if(itr->expression->clone)
 	{
 	    parameter_expression_copy =
-		itr->expression->clone(itr->expression);
+		itr->expression->clone(itr->expression, issues);
 
 	    if(!parameter_expression_copy)
 	    {

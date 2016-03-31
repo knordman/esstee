@@ -22,21 +22,27 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 int st_explicit_literal_type_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!target)
     {
-	errors->new_issue_at(
-	    errors,
-	    "reference to undefined type",
-	    ISSUE_ERROR_CLASS,
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_LINK_ERROR,
 	    1,
 	    location);
+	
 	return ESSTEE_ERROR;
     }
 
@@ -46,43 +52,67 @@ int st_explicit_literal_type_resolved(
     struct value_iface_t *literal =
 	(struct value_iface_t *)referrer;
 
-    int type_can_hold = literal_type->can_hold(literal_type,
-					       literal,
-					       config);
-    if(type_can_hold != ESSTEE_OK)
+    issues->begin_group(issues);
+    int can_hold_result = literal_type->can_hold(literal_type,
+						 literal,
+						 config,
+						 issues);    
+    if(can_hold_result != ESSTEE_TRUE)
     {
-	errors->new_issue_at(
-	    errors,
-	    "type cannot hold literal value",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    location);
-
+	issues->new_issue(issues,
+			  "type '%s' cannot be specified as an explicit type for literal",
+			  ESSTEE_TYPE_ERROR,
+			  literal_type->identifier);
+	
+	issues->set_group_location(issues,
+				   1,
+				   location);
+    }
+    issues->end_group(issues);
+    
+    if(can_hold_result != ESSTEE_TRUE)
+    {
 	return ESSTEE_ERROR;
     }
-
-    int override = literal->override_type(literal, literal_type, config);
-    if(override != ESSTEE_OK)
+    
+    issues->begin_group(issues);
+    int override_result = literal->override_type(literal,
+						 literal_type,
+						 config,
+						 issues);
+    if(override_result != ESSTEE_OK)
     {
-	return override;
+	issues->new_issue(issues,
+			  "type override failed",
+			  ESSTEE_TYPE_ERROR);
+	
+	issues->set_group_location(issues,
+				   1,
+				   location);
     }
+    issues->end_group(issues);
 
+    if(override_result != ESSTEE_OK)
+    {
+	return ESSTEE_ERROR;
+    }
+    
     return ESSTEE_OK;
 }
 
 int st_string_literal_type_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!target)
     {
-	errors->internal_error(
-	    errors,
+	issues->internal_error(
+	    issues,
 	    __FILE__,
 	    __FUNCTION__,
 	    __LINE__);

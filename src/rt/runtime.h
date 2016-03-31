@@ -18,10 +18,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/query.h>
-#include <util/ierrors.h>
+#include <util/iissues.h>
 #include <util/iconfig.h>
 
 int st_evaluate_queries(
     struct query_t *queries,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);

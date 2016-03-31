@@ -24,21 +24,26 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 int st_qualified_identifier_base_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
-    if(ST_FLAG_IS_SET(remark, PROGRAM_IN_QUERY_RESOLVE_REMARK))
+    if(remark == 1)
     {
 	if(!target)
 	{
-	    errors->new_issue_at(
-		errors,
-		"no such program",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"no program '%s' defined",
+		identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_LINK_ERROR,
 		1,
 		location);
 
@@ -54,10 +59,15 @@ int st_qualified_identifier_base_resolved(
     {
 	if(!target)
 	{
-	    errors->new_issue_at(
-		errors,
-		"reference to undefined variable",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"reference to undefined variable '%s'",
+		identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_LINK_ERROR,
 		1,
 		location);
 

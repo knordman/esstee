@@ -49,9 +49,18 @@ static struct option long_options[] = {
 
 static void print_all_errors(struct st_t *st) {
     const struct st_issue_t *i = NULL;
-    while((i = st_next_issue(st, 1)) != NULL)
+    while((i = st_fetch_issue(st, ESSTEE_FILTER_ANY_ISSUE)) != NULL)
     {
 	printf("%s\n", i->message);
+	if(i->has_sub_issues)
+	{
+	    const struct st_issue_t *si = NULL;
+	    while((si = st_fetch_sub_issue(st, i, ESSTEE_FILTER_ANY_ISSUE)) != NULL)
+	    {
+		printf("%s\n", si->message);
+	    }
+	}
+
 	if(i->locations)
 	{
 	    struct st_location_t *itr = NULL;

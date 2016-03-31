@@ -1324,7 +1324,7 @@ void yyerror(
     parser->errors->new_issue_at(
 	parser->errors,
 	description,
-	ISSUE_ERROR_CLASS,
+	ESSTEE_SYNTAX_ERROR,
 	1,
 	location);
 }

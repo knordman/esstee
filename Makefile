@@ -5,7 +5,7 @@
 CXX := 				g++
 CC := 				gcc
 
-CFLAGS :=			-Isrc -Ilib -ggdb3 -Wall -Werror -std=gnu99
+CFLAGS :=			-Isrc -Ilib -ggdb3 -Wall -Werror -std=gnu99 -fPIC
 CXXFLAGS :=			-Isrc -Ilib -ggdb3 -Wall -Werror -std=c++11
 
 LDFLAGS :=			-lm
@@ -14,9 +14,9 @@ LDFLAGS :=			-lm
 #  Target specification
 # ------------------------------------------------------------------------------
 
-OBJECTS := 		build/util/errorcontext.o \
+OBJECTS := 		build/util/issue_context.o \
 			build/util/config.o \
-			build/util/namedrefpool.o \
+			build/util/named_ref_pool.o \
 			build/parser/ptypes.o \
 			build/parser/ppous.o \
 			build/parser/parser.o \
@@ -52,9 +52,21 @@ OBJECTS := 		build/util/errorcontext.o \
 			build/parser/bison.tab.o \
 			build/parser/flex.o
 
-build/program-tester :	build/tests/programs/main.o \
-			$(OBJECTS)
-	$(LINKCC)
+build/lib/libesstee.a : $(OBJECTS)
+	@mkdir -pv $(dir $@)
+	ar rcs $@ $^
+
+build/lib/libesstee.so : SO=.1
+build/lib/libesstee.so : REAL=.1.0.1
+build/lib/libesstee.so : $(OBJECTS)
+	@mkdir -pv $(dir $@)
+	gcc -shared -Wl,-soname,$(notdir $@)$(SO) -o $@$(REAL) $^
+	ln -fs $(abspath $@)$(REAL) $(abspath $@)$(SO)
+	ln -fs $(abspath $@)$(SO) $(abspath $@)
+
+build/program-tester :	build/tests/programs/main.o build/lib/libesstee.a
+	gcc $(LDFLAGS) $^ -o $@
+#	gcc $< $(LDFLAGS) -Lbuild/lib -lesstee -o $@
 
 build/tester : 		build/tests/temp/main.o \
 			$(OBJECTS)

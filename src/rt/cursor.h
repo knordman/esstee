@@ -21,6 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <esstee/locations.h>
 #include <util/iconfig.h>
+#include <util/iissues.h>
 
 struct invoke_iface_t;
 
@@ -36,7 +37,8 @@ struct cursor_t {
 void st_switch_current(
     struct cursor_t *cursor,
     struct invoke_iface_t *switch_to,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
     
 void st_push_return_context(
     struct cursor_t *cursor,

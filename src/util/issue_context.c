@@ -34,7 +34,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct issue_node_t {
     struct st_issue_t issue;
     int new;
-    int hanging;
+    struct issue_node_t *sub_nodes;
     struct issue_node_t *prev;
     struct issue_node_t *next;
 };
@@ -43,10 +43,14 @@ struct issue_context_t {
     struct issues_iface_t issues;
 
     struct issue_node_t *nodes;
+
+    int group_mode;
+    struct issue_node_t *group_nodes;
+    struct st_location_t *group_locations;
+    
     struct issue_node_t *internal_error;
     struct issue_node_t *memory_error;
 
-    int group_mode;
     int internal_error_added;
     int memory_error_added;
     char *message_buffer;
@@ -54,6 +58,24 @@ struct issue_context_t {
     st_bitflag_t last_filter;
 };
 
+static void destroy_issue_nodes(
+    struct issue_node_t *nodes)
+{
+    struct issue_node_t *node_itr = NULL;
+    struct issue_node_t *node_tmp = NULL;
+    DL_FOREACH_SAFE(nodes, node_itr, node_tmp)
+    {
+	struct st_location_t *location_itr = NULL;
+	struct st_location_t *location_tmp = NULL;
+	DL_FOREACH_SAFE(node_itr->issue.locations, location_itr, location_tmp)
+	{
+	    free(location_itr);
+	}
+	
+	free(node_itr->issue.message);
+	free(node_itr);
+    }
+}
 
 static void issue_context_new_issue(
     struct issues_iface_t *self,
@@ -92,9 +114,17 @@ static void issue_context_new_issue(
     in->issue.message = issue_message;
     in->issue.class = issue_class;
     in->issue.locations = NULL;
-    in->hanging = ic->group_mode;
     in->new = 1;
-    DL_APPEND(ic->nodes, in);
+    in->sub_nodes = NULL;
+
+    if(ic->group_mode)
+    {
+	DL_APPEND(ic->group_nodes, in);
+    }
+    else
+    {
+	DL_APPEND(ic->nodes, in);
+    }
 
     return;
 
@@ -122,7 +152,7 @@ static void issue_context_new_issue_at(
     char *issue_message = NULL;
     STRDUP_OR_JUMP(
 	issue_message,
-	ic->message_buffer,
+	message,
 	error_free_resources);
 
     va_list ap;
@@ -152,8 +182,8 @@ static void issue_context_new_issue_at(
     in->issue.message = issue_message;
     in->issue.class = issue_class;
     in->issue.locations = locations;
-    in->hanging = 0;
     in->new = 1;
+    in->sub_nodes = NULL;
     DL_APPEND(ic->nodes, in);
 
     return;
@@ -245,12 +275,8 @@ static void issue_context_begin_group(
     struct issue_context_t *ic =
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
-    struct issue_node_t *itr = NULL;
-    DL_FOREACH(ic->nodes, itr)
-    {
-	itr->hanging = 0;
-    }
-
+    destroy_issue_nodes(ic->group_nodes);
+    ic->group_nodes = NULL;
     ic->group_mode = 1;
 }
 
@@ -262,8 +288,6 @@ static void issue_context_set_group_location(
     struct issue_context_t *ic =
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
-    ic->group_mode = 0;
-    
     va_list ap;
     const struct st_location_t *location = NULL;
     struct st_location_t *locations = NULL;
@@ -274,7 +298,7 @@ static void issue_context_set_group_location(
     va_start(ap, location_count);
     for(int i = 0; i < location_count; i++)
     {
-	location = va_arg(ap, const struct st_location_t *);		
+	location = va_arg(ap, const struct st_location_t *);
 
 	LOCDUP_OR_JUMP(
 	    copy,
@@ -290,28 +314,60 @@ static void issue_context_set_group_location(
     }
     va_end(ap);
 
-    struct issue_node_t *node_itr = NULL;
-    int locations_owner_set = 0;
-    DL_FOREACH(ic->nodes, node_itr)
-    {
-	if(node_itr->hanging)
-	{
-	    node_itr->issue.locations = locations;
-
-	    if(!locations_owner_set)
-	    {
-		node_itr->hanging = 0;
-		locations_owner_set = 1;
-	    }
-	}
-    }
-
+    DL_CONCAT(ic->group_locations, locations);
+    
     return;
     
 error_free_resources:
     DL_FOREACH_SAFE(locations, location_itr, tmp)
     {
 	free(location_itr);
+    }
+}
+
+static void issue_context_end_group(
+    struct issues_iface_t *self)
+{
+    struct issue_context_t *ic =
+	CONTAINER_OF(self, struct issue_context_t, issues);
+
+    ic->group_mode = 0;
+    
+    struct issue_node_t *main_issue = NULL, *itr = NULL;
+    DL_FOREACH(ic->group_nodes, itr)
+    {
+	if(!itr->next)
+	{
+	    main_issue = itr;
+	    break;
+	}
+    }
+    
+    if(!main_issue)
+    {
+	if(ic->group_locations)
+	{
+	    struct st_location_t *location_itr = NULL, *tmp = NULL;
+	    DL_FOREACH_SAFE(ic->group_locations, location_itr, tmp)
+	    {
+		free(location_itr);
+	    }
+	    ic->group_locations = NULL;
+	}
+    }
+    else
+    {
+	DL_DELETE(ic->group_nodes, main_issue);
+	if(ic->group_nodes)
+	{
+	    main_issue->sub_nodes = ic->group_nodes;
+	    main_issue->issue.has_sub_issues = 1;
+	    ic->group_nodes = NULL;
+	}
+	main_issue->issue.locations = ic->group_locations;
+	ic->group_locations = NULL;
+
+	DL_APPEND(ic->nodes, main_issue);	
     }
 }
 
@@ -360,6 +416,35 @@ static const struct st_issue_t * issue_context_fetch(
     return NULL;
 }
 
+static const struct st_issue_t * issue_context_fetch_sub_issue(
+    struct issues_iface_t *self,
+    const struct st_issue_t *issue,
+    st_bitflag_t filter)
+{
+    struct issue_context_t *ic =
+	CONTAINER_OF(self, struct issue_context_t, issues);
+
+    struct issue_node_t *issue_node =
+	CONTAINER_OF(issue, struct issue_node_t, issue);
+
+    struct issue_node_t *itr = NULL;
+    DL_FOREACH(issue_node->sub_nodes, itr)
+    {
+	if(!itr->new)
+	{
+	    continue;
+	}
+	
+	if(ST_FLAG_IS_SET(ic->iterator->issue.class, filter))
+	{
+	    itr->new = 0;
+	    return &(itr->issue);
+	}
+    }
+
+    return NULL;
+}
+    
 static const struct st_issue_t * issue_context_fetch_and_ignore(
     struct issues_iface_t *self,
     st_bitflag_t issue_filter)
@@ -537,6 +622,7 @@ struct issues_iface_t * st_new_issue_context()
     ic->nodes = NULL;
     ic->message_buffer = message_buffer;
     ic->group_mode = 0;
+    ic->group_nodes = NULL;
     
     ic->issues.new_issue = issue_context_new_issue;
     ic->issues.new_issue_at = issue_context_new_issue_at;
@@ -545,8 +631,10 @@ struct issues_iface_t * st_new_issue_context()
     ic->issues.internal_error = issue_context_internal_error;
     ic->issues.begin_group = issue_context_begin_group;
     ic->issues.set_group_location = issue_context_set_group_location;
+    ic->issues.end_group = issue_context_end_group;
     ic->issues.ignore_all = issue_context_ignore_all;
     ic->issues.fetch = issue_context_fetch;
+    ic->issues.fetch_sub_issue = issue_context_fetch_sub_issue;
     ic->issues.fetch_and_ignore = issue_context_fetch_and_ignore;
     ic->issues.merge = issue_context_merge;
     ic->issues.unfetched_issues = issue_context_unfetched_issues;

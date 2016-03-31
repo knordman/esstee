@@ -27,21 +27,27 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 int st_variable_type_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(target == NULL)
     {
-	errors->new_issue_at(
-	    errors,
-	    "reference to undefined type",
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    location);
+
 	return ESSTEE_ERROR;
     }
 

@@ -19,7 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <util/ierrors.h>
+#include <util/iissues.h>
 #include <util/iconfig.h>
 #include <rt/isystime.h>
 #include <rt/cursor.h>
@@ -38,21 +38,27 @@ struct invoke_iface_t {
     int (*verify)(
 	struct invoke_iface_t *self,
 	const struct config_iface_t *config,
-	struct errors_iface_t *errors);
+	struct issues_iface_t *issues);
 
     int (*step)(
 	struct invoke_iface_t *self,
 	struct cursor_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
-	struct errors_iface_t *errors);
+	struct issues_iface_t *issues);
     
     int (*reset)(
 	struct invoke_iface_t *self,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
+    int (*allocate)(
+    	struct invoke_iface_t *self,
+	struct issues_iface_t *issues);
+    
     struct invoke_iface_t * (*clone)(
-    	struct invoke_iface_t *self);
+    	struct invoke_iface_t *self,
+	struct issues_iface_t *issues);
 
     void (*destroy)(
 	struct invoke_iface_t *self);

@@ -107,9 +107,9 @@ struct invoke_iface_t * st_new_assignment_statement_simple(
 	parser->pou_var_ref_pool,
 	var_identifier,
 	sa,
-	NULL,
 	var_location,
-	st_simple_assignment_variable_resolved) != ESSTEE_OK)
+	st_simple_assignment_variable_resolved,
+	parser->errors) != ESSTEE_OK)
     {
 	goto error_free_resources;
     }
@@ -121,6 +121,7 @@ struct invoke_iface_t * st_new_assignment_statement_simple(
     sa->invoke.location = st_assignment_statement_simple_location;
     sa->invoke.step = st_assignment_statement_simple_step;
     sa->invoke.verify = st_assignment_statement_simple_verify;
+    sa->invoke.allocate = st_assignment_statement_simple_allocate;
     sa->invoke.clone = st_assignment_statement_simple_clone;
     sa->invoke.reset = st_assignment_statement_simple_reset;
     
@@ -166,6 +167,7 @@ struct invoke_iface_t * st_new_assignment_statement_qualified(
     qis->invoke.verify = st_assignment_statement_qualified_verify;
     qis->invoke.clone = st_assignment_statement_qualified_clone;
     qis->invoke.reset = st_assignment_statement_qualified_reset;
+    qis->invoke.allocate = st_assignment_statement_qualified_allocate;
 
     qis->lhs = qualified_identifier;
     qis->rhs = assignment;
@@ -204,9 +206,9 @@ struct invoke_iface_t * st_new_invoke_statement(
 	   parser->pou_var_ref_pool,
 	   identifier,
 	   is,
-	   NULL,
 	   identifier_location,
-	   st_invoke_statement_as_variable_resolved) != ESSTEE_OK)
+	   st_invoke_statement_as_variable_resolved,
+	   parser->errors) != ESSTEE_OK)
     {
 	goto error_free_resources;
     }
@@ -215,9 +217,9 @@ struct invoke_iface_t * st_new_invoke_statement(
 	   parser->function_ref_pool,
 	   identifier,
 	   is,
-	   NULL,
 	   identifier_location,
-	   st_invoke_statement_as_func_resolved) != ESSTEE_OK)
+	   st_invoke_statement_as_func_resolved,
+	   parser->errors) != ESSTEE_OK)
     {
 	goto error_free_resources;
     }
@@ -227,6 +229,7 @@ struct invoke_iface_t * st_new_invoke_statement(
     is->invoke.location = st_invoke_statement_location;
     is->invoke.step = st_invoke_statement_step;
     is->invoke.verify = st_invoke_statement_verify;
+    is->invoke.allocate = st_invoke_statement_allocate;
     is->invoke.reset = st_invoke_statement_reset;
     is->invoke.clone = st_invoke_statement_clone;
     is->invoke.destroy = st_invoke_statement_destroy;
@@ -338,6 +341,7 @@ struct invoke_iface_t * st_new_if_statement(
     ifs->invoke.step = st_if_statement_step;
     ifs->invoke.verify = st_if_statement_verify;
     ifs->invoke.reset = st_if_statement_reset;
+    ifs->invoke.allocate = st_if_statement_allocate;
     ifs->invoke.clone = st_if_statement_clone;
     ifs->invoke.destroy = st_if_statement_destroy;
 	
@@ -453,6 +457,7 @@ struct invoke_iface_t * st_new_case_statement(
     cs->invoke.step = st_case_statement_step;
     cs->invoke.verify = st_case_statement_verify;
     cs->invoke.reset = st_case_statement_reset;
+    cs->invoke.allocate = st_case_statement_allocate;
     cs->invoke.clone = st_case_statement_clone;
     cs->invoke.destroy = st_case_statement_destroy;
 
@@ -500,9 +505,9 @@ struct invoke_iface_t * st_new_for_statement(
 	parser->pou_type_ref_pool->add(parser->pou_var_ref_pool,
 				       variable_identifier,
 				       fs,
-				       NULL,
 				       identifier_location,
-				       st_for_statement_variable_resolved);
+				       st_for_statement_variable_resolved,
+				       parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
@@ -526,6 +531,7 @@ struct invoke_iface_t * st_new_for_statement(
     fs->invoke.step = st_for_statement_step;
     fs->invoke.verify = st_for_statement_verify;
     fs->invoke.reset = st_for_statement_reset;
+    fs->invoke.allocate = st_for_statement_allocate;
     fs->invoke.clone = st_for_statement_clone;
     fs->invoke.destroy = st_for_statement_destroy;
 
@@ -568,6 +574,7 @@ struct invoke_iface_t * st_new_while_statement(
     ws->invoke.step = st_while_statement_step;
     ws->invoke.verify = st_while_statement_verify;
     ws->invoke.reset = st_while_statement_reset;
+    ws->invoke.allocate = st_while_statement_allocate;
     ws->invoke.clone = st_while_statement_clone;
     ws->invoke.destroy = st_while_statement_destroy;
       
@@ -609,6 +616,7 @@ struct invoke_iface_t * st_new_repeat_statement(
     ws->invoke.step = st_repeat_statement_step;
     ws->invoke.verify = st_while_statement_verify;
     ws->invoke.reset = st_while_statement_reset;
+    ws->invoke.allocate = st_while_statement_allocate;
     ws->invoke.clone = st_while_statement_clone;
     ws->invoke.destroy = st_while_statement_destroy;
       
@@ -659,6 +667,7 @@ struct invoke_iface_t * st_new_exit_statement(
     ps->invoke.step = st_exit_statement_step;
     ps->invoke.verify = st_pop_statement_verify;
     ps->invoke.reset = st_pop_statement_reset;
+    ps->invoke.allocate = NULL;
     ps->invoke.clone = st_pop_statement_clone;
     ps->invoke.destroy = st_pop_statement_destroy;
 
@@ -697,6 +706,7 @@ struct invoke_iface_t * st_new_return_statement(
     ps->invoke.step = st_return_statement_step;
     ps->invoke.verify = st_pop_statement_verify;
     ps->invoke.reset = st_pop_statement_reset;
+    ps->invoke.allocate = NULL;
     ps->invoke.clone = st_pop_statement_clone;
     ps->invoke.destroy = st_pop_statement_destroy;
 

@@ -19,71 +19,73 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <util/ierrors.h>
 #include <esstee/locations.h>
 #include <util/bitflag.h>
+#include <util/iissues.h>
 #include <util/iconfig.h>
-
-#define PROGRAM_IN_QUERY_RESOLVE_REMARK (1 << 0)
 
 typedef int (*resolved_callback_t)(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
-struct namedreference_iface_t {
+struct named_ref_pool_iface_t {
 
     int (*add_two_step)(
-	struct namedreference_iface_t *self,
+	struct named_ref_pool_iface_t *self,
 	const char *identifier,
 	void *referrer,
-	void *subreferrer,
 	const struct st_location_t *location,
 	resolved_callback_t callback,
-	resolved_callback_t secondary_callback);
-    
+	resolved_callback_t secondary_callback,
+	struct issues_iface_t *issues);
+
     int (*add)(
-	struct namedreference_iface_t *self,
+	struct named_ref_pool_iface_t *self,
 	const char *identifier,
 	void *referrer,
-	void *subreferrer,
 	const struct st_location_t *location,
-	resolved_callback_t callback);
-    
-    int (*commit)(
-	struct namedreference_iface_t *self);
+	resolved_callback_t callback,
+	struct issues_iface_t *issues);
 
-    int (*clear)(
-	struct namedreference_iface_t *self);
+    void (*commit)(
+	struct named_ref_pool_iface_t *self);
+
+    void (*clear)(
+	struct named_ref_pool_iface_t *self);
     
     const char * (*next_unresolved)(
-	struct namedreference_iface_t *self);
-
-    int (*resolve)(
-	struct namedreference_iface_t *self,
-	const char *identifier,
-	void *target);
+	struct named_ref_pool_iface_t *self);
 
     int (*resolve_with_remark)(
-	struct namedreference_iface_t *self,
+	struct named_ref_pool_iface_t *self,
 	const char *identifier,
 	void *target,
 	st_bitflag_t remark);
 
+    int (*resolve)(
+	struct named_ref_pool_iface_t *self,
+	const char *identifier,
+	void *target);
+
     int (*reset_resolved)(
-	struct namedreference_iface_t *self);
-    
+	struct named_ref_pool_iface_t *self);
+
     int (*trigger_resolve_callbacks)(
-	struct namedreference_iface_t *self,
-	struct errors_iface_t *err,
-	const struct config_iface_t *config);
+	struct named_ref_pool_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
-    struct namedreference_iface_t * (*merge)(
-	struct namedreference_iface_t *self,
-	struct namedreference_iface_t *to_merge);
+    struct named_ref_pool_iface_t * (*merge)(
+	struct named_ref_pool_iface_t *self,
+	struct named_ref_pool_iface_t *to_merge);
+
+    void (*destroy)(
+	struct named_ref_pool_iface_t *self);
 
 };
+

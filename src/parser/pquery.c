@@ -66,9 +66,9 @@ int st_new_query_by_identifier(
 	parser->pou_var_ref_pool,
 	qi->identifier,
 	qi,
-	NULL,
 	identifier_location,
-	st_qualified_identifier_base_resolved);
+	st_qualified_identifier_base_resolved,
+	parser->errors);
 
     DL_APPEND(parser->queries, q);
     

@@ -21,6 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/shared.h>
 #include <elements/values.h>
 #include <util/macros.h>
+#include <linker/linker.h>
 
 #include <utlist.h>
 
@@ -31,7 +32,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 int st_empty_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return ESSTEE_OK;
 }
@@ -41,28 +42,31 @@ int st_empty_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return INVOKE_RESULT_FINISHED;
 }
 
 int st_empty_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     return ESSTEE_OK;
 }
 
 struct invoke_iface_t * st_empty_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct empty_statement_t *es =
 	CONTAINER_OF(self, struct empty_statement_t, invoke);
 
     struct empty_statement_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct empty_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, es, sizeof(struct empty_statement_t));
@@ -95,159 +99,73 @@ void st_empty_statement_clone_destroy(
     /* TODO: destructor */
 }
 
-
-/**************************************************************************/
-/* Assignment error helpers                                               */
-/**************************************************************************/
-static int check_assignment_status(
-    int assignment_status,
-    const struct st_location_t *assignment_destination_location,
-    struct errors_iface_t *errors)
-{
-    if(assignment_status == ESSTEE_TYPE_UNDERFLOW)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment causes type underflow",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    assignment_destination_location);
-
-	return INVOKE_RESULT_ERROR;
-    }
-    else if(assignment_status == ESSTEE_TYPE_OVERFLOW)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment causes type overflow",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    assignment_destination_location);
-
-	return INVOKE_RESULT_ERROR;
-    }
-    else if(assignment_status != ESSTEE_OK)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "assignment failed",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    assignment_destination_location);
-
-	return INVOKE_RESULT_ERROR;
-    }
-    
-    return INVOKE_RESULT_FINISHED;
-}
-
-static int check_assignable_from(
-    struct value_iface_t *destination_value,
-    const struct st_location_t *destination_location,
-    const struct value_iface_t *source_value,
-    const struct st_location_t *source_location,
-    const struct config_iface_t *config,
-    struct errors_iface_t *errors)
-{
-    if(!destination_value->assignable_from)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "element cannot be assigned a new value",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    destination_location);
-
-	return ESSTEE_ERROR;
-    }
-    
-    int assignable_result = destination_value->assignable_from(destination_value,
-							       source_value,
-							       config);
-
-    switch(assignable_result)
-    {
-    case ESSTEE_TRUE:
-	break;
-
-    case ESSTEE_TYPE_OVERFLOW:
-	errors->new_issue_at(
-	    errors,
-	    "assignment impossible due to value overflow",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    destination_location,
-	    source_location);
-
-	return ESSTEE_ERROR;
-
-    case ESSTEE_TYPE_UNDERFLOW:
-	errors->new_issue_at(
-	    errors,
-	    "assignment impossible due to value underflow",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    destination_location,
-	    source_location);
-
-	return ESSTEE_ERROR;
-
-    case ESSTEE_TYPE_INCOMPATIBILITY:
-	errors->new_issue_at(
-	    errors,
-	    "assignment impossible due to type incompatibility",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    destination_location,
-	    source_location);
-
-	return ESSTEE_ERROR;
-
-    default:
-	errors->new_issue_at(
-	    errors,
-	    "assignment not possible",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    destination_location,
-	    source_location);
-
-	return ESSTEE_ERROR;
-    }
-    
-    return ESSTEE_OK;
-}
-
 /**************************************************************************/
 /* Simple assignment                                                      */
 /**************************************************************************/
 int st_assignment_statement_simple_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct simple_assignment_statement_t *sa =
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
 
-    int rhs_verified = ESSTEE_OK;
+    int rhs_verify_result = ESSTEE_OK;
     if(sa->rhs->invoke.verify)
     {
-	rhs_verified = sa->rhs->invoke.verify(&(sa->rhs->invoke), config, errors);
+	rhs_verify_result = sa->rhs->invoke.verify(&(sa->rhs->invoke),
+						   config,
+						   issues);
     }
 
-    if(rhs_verified != ESSTEE_OK)
+    if(rhs_verify_result != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
     }
 
     const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
 
-    return check_assignable_from(sa->lhs->value,
-				 sa->lhs_location,
-				 rhs_value,
-				 sa->rhs->invoke.location(&(sa->rhs->invoke)),
-				 config,
-				 errors);
+    if(!sa->lhs->value->assignable_from)
+    {
+	const char *message = issues->build_message(issues,
+						    "variable '%s' cannot be assigned a new value",
+						    ESSTEE_ARGUMENT_ERROR,
+						    sa->lhs->identifier);
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_CONTEXT_ERROR,
+	    1,
+	    sa->lhs_location);
+
+	return ESSTEE_ERROR;
+    }
+
+    issues->begin_group(issues);
+    int assignable_result = sa->lhs->value->assignable_from(sa->lhs->value,
+							    rhs_value,
+							    config,
+							    issues);
+    if(assignable_result != ESSTEE_TRUE)
+    {
+	issues->new_issue(issues,
+			  "assignment of variable '%s' impossible",
+			  ESSTEE_CONTEXT_ERROR,
+			  sa->lhs->identifier);
+
+	issues->set_group_location(issues,
+				   2,
+				   sa->lhs_location,
+				   sa->rhs->invoke.location(&(sa->rhs->invoke)));
+    }
+    issues->end_group(issues);
+    
+    if(assignable_result != ESSTEE_TRUE)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
 }
 
 int st_assignment_statement_simple_step(
@@ -255,27 +173,52 @@ int st_assignment_statement_simple_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct simple_assignment_statement_t *sa =
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
 
-    if(sa->invoke_state == 0 && sa->rhs->invoke.step)
+    switch(sa->invoke_state)
     {
-	sa->invoke_state = 1;
-	st_switch_current(cursor, &(sa->rhs->invoke), config);
-	return INVOKE_RESULT_IN_PROGRESS;
+    case 0:
+	if(sa->rhs->invoke.step)
+	{
+	    sa->invoke_state = 1;
+	    st_switch_current(cursor, &(sa->rhs->invoke), config, issues);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+
+    case 1: {
+	const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
+	
+	issues->begin_group(issues);
+	int assign_result = sa->lhs->value->assign(sa->lhs->value,
+						   rhs_value,
+						   config,
+						   issues);
+
+	if(assign_result != ESSTEE_OK)
+	{
+	    issues->new_issue(issues,
+			      "assignment of variable '%s' failed",
+			      ESSTEE_CONTEXT_ERROR,
+			      sa->lhs->identifier);
+	
+	    issues->set_group_location(issues,
+				       2,
+				       sa->lhs_location,
+				       sa->rhs->invoke.location(&(sa->rhs->invoke)));
+	}
+	issues->end_group(issues);
+
+	if(assign_result != ESSTEE_OK)
+	{
+	    return INVOKE_RESULT_ERROR;
+	}
+    }
     }
 
-    const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
-
-    int assignment_status = sa->lhs->value->assign(sa->lhs->value,
-						   rhs_value,
-						   config);
-
-    return check_assignment_status(assignment_status,
-				   sa->lhs_location,
-				   errors);
+    return INVOKE_RESULT_FINISHED;
 }
 
 const struct st_location_t * st_assignment_statement_simple_location(
@@ -287,8 +230,26 @@ const struct st_location_t * st_assignment_statement_simple_location(
     return sa->location;
 }
 
+int st_assignment_statement_simple_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct simple_assignment_statement_t *sa =
+	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
+
+    if(sa->rhs->invoke.allocate)
+    {
+	return sa->rhs->invoke.allocate(
+	    &(sa->rhs->invoke),
+	    issues);
+    }
+    
+    return ESSTEE_OK;
+}
+
 struct invoke_iface_t * st_assignment_statement_simple_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct simple_assignment_statement_t *sa =
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
@@ -296,21 +257,23 @@ struct invoke_iface_t * st_assignment_statement_simple_clone(
     struct simple_assignment_statement_t *copy = NULL;
     struct expression_iface_t *rhs_copy = NULL;
     
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct simple_assignment_statement_t,
+	issues,
 	error_free_resources);
     
     memcpy(copy, sa, sizeof(struct simple_assignment_statement_t));
 
     if(sa->rhs->clone)
     {
-	ALLOC_OR_JUMP(
+	ALLOC_OR_ERROR_JUMP(
 	    rhs_copy,
 	    struct expression_iface_t,
+	    issues,
 	    error_free_resources);
 
-	rhs_copy = sa->rhs->clone(sa->rhs);
+	rhs_copy = sa->rhs->clone(sa->rhs, issues);
 	if(!rhs_copy)
 	{
 	    goto error_free_resources;
@@ -329,7 +292,8 @@ error_free_resources:
 
 int st_assignment_statement_simple_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct simple_assignment_statement_t *sa =
 	CONTAINER_OF(self, struct simple_assignment_statement_t, invoke);
@@ -338,11 +302,12 @@ int st_assignment_statement_simple_reset(
 
     if(sa->rhs->invoke.reset)
     {
-	int rhs_reset = sa->rhs->invoke.reset(&(sa->rhs->invoke), config);
-
-	if(rhs_reset != ESSTEE_OK)
+	int reset_result = sa->rhs->invoke.reset(&(sa->rhs->invoke),
+						 config,
+						 issues);
+	if(reset_result != ESSTEE_OK)
 	{
-	    return rhs_reset;
+	    return reset_result;
 	}
     }
 
@@ -367,41 +332,83 @@ void st_assignment_statement_simple_clone_destroy(
 int st_assignment_statement_qualified_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int identifier_verified = st_qualified_identifier_verify(qis->lhs,
-							     errors,
-							     config);
-
-    if(identifier_verified != ESSTEE_OK)
+    int identifier_verify_result = st_qualified_identifier_verify(qis->lhs,
+								  config,
+								  issues);
+    if(identifier_verify_result != ESSTEE_OK)
     {
-	return identifier_verified;
+	return identifier_verify_result;
     }
     
-    int rhs_verified = ESSTEE_OK;
+    int rhs_verify_result = ESSTEE_OK;
     if(qis->rhs->invoke.verify)
     {
-	rhs_verified = qis->rhs->invoke.verify(&(qis->rhs->invoke), config, errors);
+	rhs_verify_result = qis->rhs->invoke.verify(&(qis->rhs->invoke),
+						    config,
+						    issues);
     }
-
-    if(rhs_verified != ESSTEE_OK)
+    if(rhs_verify_result != ESSTEE_OK)
     {
-	return rhs_verified;
+	return rhs_verify_result;
     }
 
     if(qis->lhs->runtime_constant_reference)
     {
 	const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
 
-	return check_assignable_from(qis->lhs->target,
-				     qis->lhs->location,
-				     rhs_value,
-				     qis->rhs->invoke.location(&(qis->rhs->invoke)),
-				     config,
-				     errors);
+	if(!qis->lhs->target->assignable_from)
+	{
+	    const char *format = (qis->lhs->last->array_index) ?
+		"element '%s' (with array index) cannot be assigned a new value" :
+		"element '%s' cannot be assigned a new value";
+
+	    const char *message = issues->build_message(
+		issues,
+		format,
+		qis->lhs->last->identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_CONTEXT_ERROR,
+		1,
+		qis->lhs->location);
+
+	    return ESSTEE_ERROR;
+	}
+
+	issues->begin_group(issues);
+	int assignable_result = qis->lhs->target->assignable_from(qis->lhs->target,
+								  rhs_value,
+								  config,
+								  issues);
+	if(assignable_result != ESSTEE_TRUE)
+	{
+	    const char *format = (qis->lhs->last->array_index) ?
+		"assignment of element '%s' (with array index) impossible" :
+		"assignment of element '%s' impossible";
+
+	    issues->new_issue(issues,
+			      format,
+			      ESSTEE_CONTEXT_ERROR,
+			      qis->lhs->last->identifier);
+
+	    issues->set_group_location(issues,
+				       2,
+				       qis->lhs->location,
+				       qis->rhs->invoke.location(&(qis->rhs->invoke)));
+	}
+	issues->end_group(issues);
+
+	if(assignable_result != ESSTEE_TRUE)
+	{
+	    return ESSTEE_ERROR;
+	}
     }
 
     return ESSTEE_OK;
@@ -412,56 +419,125 @@ int st_assignment_statement_qualified_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    if(qis->lhs_invoke_state != INVOKE_RESULT_FINISHED)
+    const struct value_iface_t *rhs_value = NULL;
+    
+    switch(qis->invoke_state)
     {
-	qis->lhs_invoke_state = st_qualified_identifier_step(qis->lhs,
-							     cursor,
-							     errors,
-							     config);
+    case 0: {
+	int identifier_step_result = st_qualified_identifier_step(qis->lhs,
+								  cursor,
+								  config,
+								  issues);
+	if(identifier_step_result != INVOKE_RESULT_FINISHED)
+	{
+	    return identifier_step_result;
+	}
+
+	qis->invoke_state = 1;
     }
 
-    if(qis->lhs_invoke_state != INVOKE_RESULT_FINISHED)
-    {
-	return qis->lhs_invoke_state;
-    }
+    case 1:
+	if(qis->rhs->invoke.step)
+	{
+	    qis->invoke_state = 2;
+	    st_switch_current(cursor, &(qis->rhs->invoke), config, issues);
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
 
-    if(qis->rhs_invoke_state == 0 && qis->rhs->invoke.step)
-    {
-	qis->rhs_invoke_state = 1;
-	st_switch_current(cursor, &(qis->rhs->invoke), config);
-	return INVOKE_RESULT_IN_PROGRESS;
-    }
-    	
-    const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
+    case 2:
+	if(!qis->lhs->runtime_constant_reference)
+	{
+	    if(!qis->lhs->target->assignable_from)
+	    {
+		const char *format = (qis->lhs->last->array_index) ?
+		    "element '%s' (with non-constant array index) cannot be assigned a new value" :
+		    "element '%s' cannot be assigned a new value";
 
-    if(!qis->lhs->runtime_constant_reference)
-    {
-	int lhs_assignable_from_rhs = 
-	    check_assignable_from(qis->lhs->target,
-				  qis->lhs->location,
-				  rhs_value,
-				  qis->rhs->invoke.location(&(qis->rhs->invoke)),
-				  config,
-				  errors);
+		const char *message = issues->build_message(
+		    issues,
+		    format,
+		    qis->lhs->last->identifier);
 
-	if(lhs_assignable_from_rhs != ESSTEE_TRUE)
+		issues->new_issue_at(
+		    issues,
+		    message,
+		    ESSTEE_CONTEXT_ERROR,
+		    1,
+		    qis->lhs->location);
+
+		return INVOKE_RESULT_ERROR;
+	    }
+	}
+
+	rhs_value = qis->rhs->return_value(qis->rhs);
+
+	if(!qis->lhs->runtime_constant_reference)
+	{
+	    issues->begin_group(issues);
+	    int assignable_result = qis->lhs->target->assignable_from(qis->lhs->target,
+								     rhs_value,
+								     config,
+								     issues);
+	    if(assignable_result != ESSTEE_TRUE)
+	    {
+		const char *format = (qis->lhs->last->array_index) ?
+		    "assignment of element '%s' (with non-constant array index) impossible" :
+		    "assignment of element '%s' impossible";
+
+		issues->new_issue(issues,
+				  format,
+				  ESSTEE_CONTEXT_ERROR,
+				  qis->lhs->last->identifier);
+
+		issues->set_group_location(issues,
+					   2,
+					   qis->lhs->location,
+					   qis->rhs->invoke.location(&(qis->rhs->invoke)));
+	    }
+	    issues->end_group(issues);
+
+	    if(assignable_result != ESSTEE_TRUE)
+	    {
+		return INVOKE_RESULT_ERROR;
+	    }
+	}
+
+	issues->begin_group(issues);
+	int assign_result = qis->lhs->target->assign(qis->lhs->target,
+						     rhs_value,
+						     config,
+						     issues);
+
+	if(assign_result != ESSTEE_OK)
+	{
+	    const char *format = (qis->lhs->last->array_index) ?
+		"assignment of element '%s' (with array index) failed" :
+		"assignment of element '%s' failed";
+
+	    issues->new_issue(issues,
+			      format,
+			      ESSTEE_CONTEXT_ERROR,
+			      qis->lhs->last->identifier);
+	
+	    issues->set_group_location(issues,
+				       2,
+				       qis->lhs->location,
+				       qis->rhs->invoke.location(&(qis->rhs->invoke)));
+	}
+	issues->end_group(issues);
+
+	if(assign_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
 	}
     }
-    
-    int assignment_status = qis->lhs->target->assign(qis->lhs->target,
-						     rhs_value,
-						     config);
 
-    return check_assignment_status(assignment_status,
-				   qis->lhs->location,
-				   errors);
+    return INVOKE_RESULT_FINISHED;
 }
 
 const struct st_location_t * st_assignment_statement_qualified_location(
@@ -474,7 +550,8 @@ const struct st_location_t * st_assignment_statement_qualified_location(
 }
 
 struct invoke_iface_t * st_assignment_statement_qualified_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
@@ -483,14 +560,15 @@ struct invoke_iface_t * st_assignment_statement_qualified_clone(
     struct qualified_identifier_t *lhs_copy = NULL;
     struct expression_iface_t *rhs_copy = NULL;
 
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct qualified_assignment_statement_t,
+	issues,
 	error_free_resources);
     
     memcpy(copy, qis, sizeof(struct qualified_assignment_statement_t));
 
-    lhs_copy = st_clone_qualified_identifier(qis->lhs);
+    lhs_copy = st_clone_qualified_identifier(qis->lhs, issues);
 
     if(!lhs_copy)
     {
@@ -506,7 +584,7 @@ struct invoke_iface_t * st_assignment_statement_qualified_clone(
 	    struct expression_iface_t,
 	    error_free_resources);
 
-	rhs_copy = qis->rhs->clone(qis->rhs);
+	rhs_copy = qis->rhs->clone(qis->rhs, issues);
 	if(!rhs_copy)
 	{
 	    goto error_free_resources;
@@ -528,29 +606,63 @@ error_free_resources:
 
 int st_assignment_statement_qualified_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int lhs_reset = st_qualified_identifier_reset(qis->lhs, config);
-    if(lhs_reset != ESSTEE_OK)
+    int id_reset_result = st_qualified_identifier_reset(qis->lhs,
+							config,
+							issues);
+    if(id_reset_result != ESSTEE_OK)
     {
-	return lhs_reset;
+	return id_reset_result;
     }
     
     if(qis->rhs->invoke.reset)
     {
-	int rhs_reset = qis->rhs->invoke.reset(&(qis->rhs->invoke), config);
-
-	if(rhs_reset != ESSTEE_OK)
+	int reset_result = qis->rhs->invoke.reset(&(qis->rhs->invoke),
+						  config,
+						  issues);
+	if(reset_result != ESSTEE_OK)
 	{
-	    return rhs_reset;
+	    return reset_result;
 	}
     }
-    
+
     return ESSTEE_OK;
 }
+
+int st_assignment_statement_qualified_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct qualified_assignment_statement_t *qis =
+	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+
+    int lhs_allocate_result = st_qualified_identifier_allocate(qis->lhs, issues);
+
+    if(lhs_allocate_result != ESSTEE_OK)
+    {
+	return lhs_allocate_result;
+    }
+
+    if(qis->rhs->invoke.allocate)
+    {
+	int rhs_allocate_result = qis->rhs->invoke.allocate(
+	    &(qis->rhs->invoke),
+	    issues);
+
+	if(rhs_allocate_result != ESSTEE_OK)
+	{
+	    return rhs_allocate_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
 
 void st_assignment_statement_qualified_destroy(
     struct invoke_iface_t *self)
@@ -582,7 +694,7 @@ int st_invoke_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
@@ -599,7 +711,7 @@ int st_invoke_statement_step(
 							cursor,
 							time,
 							config,
-							errors);
+							issues);
 	    if(step_result != INVOKE_RESULT_FINISHED)
 	    {
 		return step_result;
@@ -615,7 +727,7 @@ int st_invoke_statement_step(
 						    cursor,
 						    time,
 						    config,
-						    errors);
+						    issues);
 	}
 	else if(is->function)
 	{
@@ -623,7 +735,7 @@ int st_invoke_statement_step(
 	    int assign_result = st_assign_from_invoke_parameters(is->parameters,
 								 is->function->header->variables,
 								 config,
-								 errors);
+								 issues);
 	    if(assign_result != ESSTEE_OK)
 	    {
 		return INVOKE_RESULT_ERROR;
@@ -632,7 +744,7 @@ int st_invoke_statement_step(
 	
     case 2:
 	is->invoke_state = 3;
-	st_switch_current(cursor, is->function->statements, config);
+	st_switch_current(cursor, is->function->statements, config, issues);
 	return INVOKE_RESULT_IN_PROGRESS;
 
     case 3:
@@ -648,53 +760,59 @@ int st_invoke_statement_step(
 int st_invoke_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
-
+    
     if(is->variable)
     {
 	if(is->function)
 	{
-	    errors->new_issue_at(
-		errors,
-		"variable shadows function",
-		ISSUE_WARNING_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"variable '%s' shadows function with same name",
+		is->variable->identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_GENERAL_WARNING_ISSUE,
 		1,
 		is->location);
 	}
 
 	if(!is->variable->value->invoke_step)
 	{
-	    errors->new_issue_at(
-		errors,
-		"variable cannot be invoked",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(issues,
+							"variable '%s' cannot be invoked",
+							is->variable->identifier);	    
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_CONTEXT_ERROR,
 		1,
 		is->location);
 
 	    return ESSTEE_ERROR;
 	}
 
-	int verify = is->variable->value->invoke_verify(
-	    is->variable->value,
-	    is->parameters,
-	    config,
-	    errors);
+	int verify_result = is->variable->value->invoke_verify(is->variable->value,
+							       is->parameters,
+							       config,
+							       issues);
 
-	if(verify != ESSTEE_OK)
+	if(verify_result != ESSTEE_OK)
 	{
-	    return verify;
-	}
-
+	    return verify_result;
+	}	
     }
     else if(is->function)
     {
 	int verify_result = st_verify_invoke_parameters(is->parameters,
-							is->function->header->variables,
-							errors,
-							config);
+							is->function->header->variables,	
+							config,
+							issues);
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -702,9 +820,9 @@ int st_invoke_statement_verify(
     }
     else
     {
-	errors->new_issue_at(
-	    errors,
-	    "no variable or function referenced",
+	issues->new_issue_at(
+	    issues,
+	    "no known variable or function referenced",
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    is->location);
@@ -717,19 +835,20 @@ int st_invoke_statement_verify(
 
 int st_invoke_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
     if(is->variable && is->variable->value->invoke_reset)
     {
-	int reset = 
-	    is->variable->value->invoke_reset(is->variable->value);
-
-	if(reset != ESSTEE_OK)
+        int reset_result = is->variable->value->invoke_reset(is->variable->value,
+							     config,
+							     issues);
+	if(reset_result != ESSTEE_OK)
 	{
-	    return reset;
+	    return reset_result;
 	}
     }
     else if(is->function)
@@ -739,8 +858,8 @@ int st_invoke_statement_reset(
 	{
 	    int reset_result = itr->type->reset_value_of(itr->type,
 							 itr->value,
-							 config);
-
+							 config,
+							 issues);
 	    if(reset_result != ESSTEE_OK)
 	    {
 		return reset_result;
@@ -752,32 +871,45 @@ int st_invoke_statement_reset(
     if(is->parameters)
     {
 	int reset_result = st_reset_invoke_parameters(is->parameters,
-						      config);
+						      config,
+						      issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
 	}
     }
-    
+
     return ESSTEE_OK;
 }
 
+int st_invoke_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+
+    return st_allocate_invoke_parameters(is->parameters, issues);
+}
+
 struct invoke_iface_t * st_invoke_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
     struct invoke_statement_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct invoke_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, is, sizeof(struct invoke_statement_t));
 
     struct invoke_parameter_t *parameters_copy =
-	st_clone_invoke_parameters(is->parameters);
+	st_clone_invoke_parameters(is->parameters, issues);
     if(!parameters_copy)
     {
 	goto error_free_resources;
@@ -827,14 +959,15 @@ static int selector_value_in_case_list(
     const struct value_iface_t *selector,
     struct case_list_element_t *case_list,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct case_list_element_t *itr = NULL;
     DL_FOREACH(case_list, itr)
     {
 	int equals = itr->value->equals(itr->value,
 					selector,
-					config);
+					config,
+					issues);
 
 	if(equals != ESSTEE_FALSE)
 	{
@@ -850,7 +983,7 @@ int st_case_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct case_statement_t *cs =
 	CONTAINER_OF(self, struct case_statement_t, invoke);
@@ -861,7 +994,7 @@ int st_case_statement_step(
 	if(cs->selector->invoke.step)
 	{
 	    cs->invoke_state = 1;
-	    st_switch_current(cursor, &(cs->selector->invoke), config);
+	    st_switch_current(cursor, &(cs->selector->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	
@@ -875,7 +1008,7 @@ int st_case_statement_step(
 	    int selector_in_case_result = selector_value_in_case_list(selector_value,
 								      case_itr->case_list,
 								      config,
-								      errors);
+								      issues);
 	    
 	    if(selector_in_case_result == ESSTEE_TRUE)
 	    {
@@ -890,12 +1023,12 @@ int st_case_statement_step(
 	cs->invoke_state = 2;
 	if(case_itr)
 	{
-	    st_switch_current(cursor, case_itr->statements, config);
+	    st_switch_current(cursor, case_itr->statements, config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	else if(cs->else_statements)
 	{
-	    st_switch_current(cursor, cs->else_statements, config);
+	    st_switch_current(cursor, cs->else_statements, config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
     }
@@ -911,7 +1044,7 @@ int st_case_statement_step(
 int st_case_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct case_statement_t *cs =
 	CONTAINER_OF(self, struct case_statement_t, invoke);
@@ -920,8 +1053,8 @@ int st_case_statement_verify(
     {
 	int verify_result =
 	    cs->selector->invoke.verify(&(cs->selector->invoke),
-					  config,
-					  errors);
+					config,
+					issues);
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -939,20 +1072,27 @@ int st_case_statement_verify(
 	    struct case_list_element_t *case_list_itr = NULL;
 	    DL_FOREACH(case_itr->case_list, case_list_itr)
 	    {
-		int comparable_result
-		    = case_list_itr->value->comparable_to(case_list_itr->value,
-							  selector_value,
-							  config);
-		
+		issues->begin_group(issues);
+		int comparable_result = 
+		    case_list_itr->value->comparable_to(case_list_itr->value,
+							selector_value,
+							config,
+							issues);		
 		if(comparable_result != ESSTEE_TRUE)
 		{
-		    errors->new_issue_at(
-			errors,
-			"values cannot be compared",
-			ISSUE_ERROR_CLASS,
-			2,
-			cs->selector->invoke.location(&(cs->selector->invoke)),
-			case_list_itr->location);
+		    issues->new_issue(issues,
+				      "case selector not comparable to case value",
+				      ESSTEE_CONTEXT_ERROR);
+				      
+		    issues->set_group_location(issues,
+					       2,
+					       case_list_itr->location,
+					       cs->selector->invoke.location(&(cs->selector->invoke)));
+		}
+		issues->end_group(issues);
+
+		if(comparable_result != ESSTEE_TRUE)
+		{
 		    return ESSTEE_ERROR;
 		}
 	    }
@@ -963,7 +1103,7 @@ int st_case_statement_verify(
 	{
 	    int verify_result = statement_itr->verify(statement_itr,
 						      config,
-						      errors);
+						      issues);
 	    if(verify_result != ESSTEE_OK)
 	    {
 		return verify_result;
@@ -976,7 +1116,8 @@ int st_case_statement_verify(
 
 int st_case_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct case_statement_t *cs =
 	CONTAINER_OF(self, struct case_statement_t, invoke);
@@ -985,9 +1126,9 @@ int st_case_statement_reset(
 
     if(cs->selector->invoke.reset)
     {
-	int reset_result
-	    = cs->selector->invoke.reset(&(cs->selector->invoke),
-					   config);
+	int reset_result = cs->selector->invoke.reset(&(cs->selector->invoke),
+						      config,
+						      issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1001,7 +1142,8 @@ int st_case_statement_reset(
 	DL_FOREACH(case_itr->statements, statement_itr)
 	{
 	    int reset_result = statement_itr->reset(statement_itr,
-						    config);
+						    config,
+						    issues);
 	    if(reset_result != ESSTEE_OK)
 	    {
 		return reset_result;
@@ -1013,7 +1155,8 @@ int st_case_statement_reset(
     DL_FOREACH(cs->else_statements, statement_itr)
     {
 	int reset_result = statement_itr->reset(statement_itr,
-						config);
+						config,
+						issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1023,8 +1166,51 @@ int st_case_statement_reset(
     return ESSTEE_OK;
 }
 
+int st_case_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct case_statement_t *cs =
+	CONTAINER_OF(self, struct case_statement_t, invoke);
+
+    if(cs->selector->invoke.allocate)
+    {
+	int allocate_result = cs->selector->invoke.allocate(
+	    &(cs->selector->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    struct case_t *case_itr = NULL;
+    DL_FOREACH(cs->cases, case_itr)
+    {
+	int allocate_result = st_allocate_statements(case_itr->statements,
+						     issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    int else_allocate_result = st_allocate_statements(cs->else_statements,
+						      issues);
+
+    if(else_allocate_result != ESSTEE_OK)
+    {
+	return else_allocate_result;
+    }
+
+    return ESSTEE_OK;
+}
+
 struct invoke_iface_t * st_case_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct case_statement_t *cs =
 	CONTAINER_OF(self, struct case_statement_t, invoke);
@@ -1034,16 +1220,17 @@ struct invoke_iface_t * st_case_statement_clone(
     struct invoke_iface_t *case_statements_copy = NULL;
     struct invoke_iface_t *else_statements_copy = NULL;
     struct case_t *case_itr = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct case_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, cs, sizeof(struct case_statement_t));
 
     if(cs->selector->clone)
     {
-	selector_copy = cs->selector->clone(cs->selector);
+	selector_copy = cs->selector->clone(cs->selector, issues);
 
 	if(!selector_copy)
 	{
@@ -1057,9 +1244,10 @@ struct invoke_iface_t * st_case_statement_clone(
     struct case_t *case_copy = NULL;
     for(case_itr = cs->cases; case_itr != NULL; case_itr = case_itr->next)
     {
-	ALLOC_OR_JUMP(
+	ALLOC_OR_ERROR_JUMP(
 	    case_copy,
 	    struct case_t,
+	    issues,
 	    error_free_resources);
 
 	memcpy(case_copy, case_itr, sizeof(struct case_t));
@@ -1069,7 +1257,8 @@ struct invoke_iface_t * st_case_statement_clone(
 	struct invoke_iface_t *statement_itr = NULL;
 	DL_FOREACH(case_itr->statements, statement_itr)
 	{
-	    struct invoke_iface_t *statement_copy = statement_itr->clone(statement_itr);
+	    struct invoke_iface_t *statement_copy =
+		statement_itr->clone(statement_itr, issues);
 
 	    if(!statement_copy)
 	    {
@@ -1088,7 +1277,7 @@ struct invoke_iface_t * st_case_statement_clone(
     DL_FOREACH(cs->else_statements, statement_itr)
     {
 	struct invoke_iface_t *statement_copy
-	    = statement_itr->clone(statement_itr);
+	    = statement_itr->clone(statement_itr, issues);
 
 	if(!statement_copy)
 	{
@@ -1139,7 +1328,7 @@ int st_if_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct if_statement_t *ifs =
 	CONTAINER_OF(self, struct if_statement_t, invoke);
@@ -1150,7 +1339,7 @@ int st_if_statement_step(
 	if(ifs->condition->invoke.step)
 	{
 	    ifs->invoke_state = 1;
-	    st_switch_current(cursor, &(ifs->condition->invoke), config);
+	    st_switch_current(cursor, &(ifs->condition->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
@@ -1158,23 +1347,25 @@ int st_if_statement_step(
 	const struct value_iface_t *condition_value =
 	    ifs->condition->return_value(ifs->condition);
 
-	int current_condition = condition_value->bool(condition_value, config);
+	int current_condition = condition_value->bool(condition_value,
+						      config,
+						      issues);
 
 	ifs->invoke_state = 2;
 	
 	if(current_condition == ESSTEE_TRUE)
 	{
-	    st_switch_current(cursor, ifs->true_statements, config);
+	    st_switch_current(cursor, ifs->true_statements, config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	else if(ifs->elsif)
 	{
-	    st_switch_current(cursor, &(ifs->elsif->invoke), config);
+	    st_switch_current(cursor, &(ifs->elsif->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	else if(ifs->else_statements)
 	{
-	    st_switch_current(cursor, ifs->else_statements, config);
+	    st_switch_current(cursor, ifs->else_statements, config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
     }
@@ -1190,7 +1381,7 @@ int st_if_statement_step(
 int st_if_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct if_statement_t *ifs =
 	CONTAINER_OF(self, struct if_statement_t, invoke);
@@ -1200,7 +1391,7 @@ int st_if_statement_verify(
 	int condition_verify =
 	    ifs->condition->invoke.verify(&(ifs->condition->invoke),
 					  config,
-					  errors);
+					  issues);
 	if(condition_verify != ESSTEE_OK)
 	{
 	    return condition_verify;
@@ -1212,7 +1403,7 @@ int st_if_statement_verify(
 
     if(!condition_value->bool)
     {
-	errors->new_issue_at(errors,
+	issues->new_issue_at(issues,
 			     "condition cannot be interpreted as true or false",
 			     ISSUE_ERROR_CLASS,
 			     1,
@@ -1223,7 +1414,7 @@ int st_if_statement_verify(
     struct invoke_iface_t *true_itr;
     DL_FOREACH(ifs->true_statements, true_itr)
     {
-	if(true_itr->verify(true_itr, config, errors) != ESSTEE_OK)
+	if(true_itr->verify(true_itr, config, issues) != ESSTEE_OK)
 	{
 	    return ESSTEE_ERROR;
 	}
@@ -1233,14 +1424,14 @@ int st_if_statement_verify(
     {
 	return st_if_statement_verify(&(ifs->elsif->invoke),
 				      config,
-				      errors);
+				      issues);
     }
     else if(ifs->else_statements)
     {
 	struct invoke_iface_t *else_itr;
 	DL_FOREACH(ifs->else_statements, else_itr)
 	{
-	    if(else_itr->verify(else_itr, config, errors) != ESSTEE_OK)
+	    if(else_itr->verify(else_itr, config, issues) != ESSTEE_OK)
 	    {
 		return ESSTEE_ERROR;
 	    }
@@ -1252,7 +1443,8 @@ int st_if_statement_verify(
 
 int st_if_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct if_statement_t *ifs =
 	CONTAINER_OF(self, struct if_statement_t, invoke);
@@ -1261,9 +1453,9 @@ int st_if_statement_reset(
 
     if(ifs->condition->invoke.reset)
     {
-	int reset_result
-	    = ifs->condition->invoke.reset(&(ifs->condition->invoke),
-					   config);
+	int reset_result = ifs->condition->invoke.reset(&(ifs->condition->invoke),
+							config,
+							issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1273,7 +1465,7 @@ int st_if_statement_reset(
     struct invoke_iface_t *true_itr = NULL;
     DL_FOREACH(ifs->true_statements, true_itr)
     {
-	int reset_result = true_itr->reset(true_itr, config);
+	int reset_result = true_itr->reset(true_itr, config, issues);
 
 	if(reset_result != ESSTEE_OK)
 	{
@@ -1283,17 +1475,25 @@ int st_if_statement_reset(
 
     if(ifs->elsif)
     {
-	return ifs->elsif->invoke.reset(&(ifs->elsif->invoke),
-					config);
+	int reset_result = ifs->elsif->invoke.reset(&(ifs->elsif->invoke),
+						    config,
+						    issues);
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
     }
     else if(ifs->else_statements)
     {
 	struct invoke_iface_t *else_itr;
 	DL_FOREACH(ifs->else_statements, else_itr)
 	{
-	    if(else_itr->reset(else_itr, config) != ESSTEE_OK)
+	    int reset_result = else_itr->reset(else_itr,
+					       config,
+					       issues);
+	    if(reset_result != ESSTEE_OK)
 	    {
-		return ESSTEE_ERROR;
+		return reset_result;
 	    }
 	}
     }
@@ -1301,8 +1501,54 @@ int st_if_statement_reset(
     return ESSTEE_OK;
 }
 
+int st_if_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct if_statement_t *ifs =
+	CONTAINER_OF(self, struct if_statement_t, invoke);
+
+    if(ifs->condition->invoke.allocate)
+    {
+	int allocate_result = ifs->condition->invoke.allocate(
+	    &(ifs->condition->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    int true_allocate = st_allocate_statements(ifs->true_statements,
+					       issues);
+    if(true_allocate != ESSTEE_OK)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    if(ifs->elsif)
+    {
+	int allocate_result = ifs->elsif->invoke.allocate(
+	    &(ifs->elsif->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+    else if(ifs->else_statements)
+    {
+	return st_allocate_statements(ifs->else_statements, issues);
+    }
+
+    return ESSTEE_OK;
+}
+
 struct invoke_iface_t * st_if_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct if_statement_t *ifs =
 	CONTAINER_OF(self, struct if_statement_t, invoke);
@@ -1314,16 +1560,17 @@ struct invoke_iface_t * st_if_statement_clone(
     struct invoke_iface_t *destroy_itr = NULL;
     struct invoke_iface_t *tmp = NULL;
     
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct if_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, ifs, sizeof(struct if_statement_t));
 
     if(ifs->condition->clone)
     {
-	condition_copy = ifs->condition->clone(ifs->condition);
+	condition_copy = ifs->condition->clone(ifs->condition, issues);
 
 	if(!condition_copy)
 	{
@@ -1336,7 +1583,7 @@ struct invoke_iface_t * st_if_statement_clone(
     struct invoke_iface_t *true_itr = NULL;
     DL_FOREACH(ifs->true_statements, true_itr)
     {
-	struct invoke_iface_t *statement_copy = true_itr->clone(true_itr);
+	struct invoke_iface_t *statement_copy = true_itr->clone(true_itr, issues);
 
 	if(!statement_copy)
 	{
@@ -1349,7 +1596,7 @@ struct invoke_iface_t * st_if_statement_clone(
     if(ifs->elsif)
     {
 	struct invoke_iface_t *elsif_copy_invoke =
-	    ifs->elsif->invoke.clone(&(ifs->elsif->invoke));
+	    ifs->elsif->invoke.clone(&(ifs->elsif->invoke), issues);
 
 	if(!elsif_copy_invoke)
 	{
@@ -1366,7 +1613,7 @@ struct invoke_iface_t * st_if_statement_clone(
 	struct invoke_iface_t *else_itr;
 	DL_FOREACH(ifs->else_statements, else_itr)
 	{
-	    struct invoke_iface_t *statement_copy = else_itr->clone(else_itr);
+	    struct invoke_iface_t *statement_copy = else_itr->clone(else_itr, issues);
 
 	    if(!statement_copy)
 	    {
@@ -1427,7 +1674,7 @@ int st_while_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct while_statement_t *ws =
 	CONTAINER_OF(self, struct while_statement_t, invoke);
@@ -1443,7 +1690,7 @@ int st_while_statement_step(
 	if(ws->while_expression->invoke.step)
 	{
 	    ws->invoke_state = 2;
-	    st_switch_current(cursor, &(ws->while_expression->invoke), config);
+	    st_switch_current(cursor, &(ws->while_expression->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
@@ -1451,10 +1698,10 @@ int st_while_statement_step(
     default:
 	while_value = ws->while_expression->return_value(ws->while_expression);
 
-	if(while_value->bool(while_value, config) == ESSTEE_TRUE)
+	if(while_value->bool(while_value, config, issues) == ESSTEE_TRUE)
 	{
 	    ws->invoke_state = 1;
-	    st_switch_current(cursor, ws->statements, config);
+	    st_switch_current(cursor, ws->statements, config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
     }
@@ -1467,7 +1714,7 @@ int st_while_statement_step(
 int st_while_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct while_statement_t *ws =
 	CONTAINER_OF(self, struct while_statement_t, invoke);
@@ -1477,7 +1724,7 @@ int st_while_statement_verify(
 	int verify_result =
 	    ws->while_expression->invoke.verify(&(ws->while_expression->invoke),
 						config,
-						errors);
+						issues);
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -1492,31 +1739,21 @@ int st_while_statement_verify(
 	const struct st_location_t *while_expression_location =
 	    ws->while_expression->invoke.location(&(ws->while_expression->invoke));	    
 	
-	errors->new_issue_at(errors,
+	issues->new_issue_at(issues,
 			     "condition cannot be interpreted as true or false",
 			     ISSUE_ERROR_CLASS,
 			     1,
 			     while_expression_location);
 	return ESSTEE_ERROR;
     }
-   
-    struct invoke_iface_t *itr = NULL;
-    DL_FOREACH(ws->statements, itr)
-    {
-	int verify_result = itr->verify(itr, config, errors);
 
-	if(verify_result != ESSTEE_OK)
-	{
-	    return verify_result;
-	}
-    }
-
-    return ESSTEE_OK;
+    return st_verify_statements(ws->statements, config, issues);
 }
 
 int st_while_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct while_statement_t *ws =
 	CONTAINER_OF(self, struct while_statement_t, invoke);
@@ -1525,9 +1762,10 @@ int st_while_statement_reset(
 
     if(ws->while_expression->invoke.reset)
     {
-	int reset_result
-	    = ws->while_expression->invoke.reset(&(ws->while_expression->invoke),
-						 config);
+	int reset_result =
+	    ws->while_expression->invoke.reset(&(ws->while_expression->invoke),
+					       config,
+					       issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1537,7 +1775,7 @@ int st_while_statement_reset(
     struct invoke_iface_t *itr = NULL;
     DL_FOREACH(ws->statements, itr)
     {
-	int reset_result = itr->reset(itr, config);
+	int reset_result = itr->reset(itr, config, issues);
 
 	if(reset_result != ESSTEE_OK)
 	{
@@ -1548,8 +1786,32 @@ int st_while_statement_reset(
     return ESSTEE_OK;
 }
 
+int st_while_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct while_statement_t *ws =
+	CONTAINER_OF(self, struct while_statement_t, invoke);
+
+    if(ws->while_expression->invoke.allocate)
+    {
+	int allocate_result = ws->while_expression->invoke.allocate(
+	    &(ws->while_expression->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    return st_allocate_statements(ws->statements, issues);
+}
+
+
 struct invoke_iface_t * st_while_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct while_statement_t *ws =
 	CONTAINER_OF(self, struct while_statement_t, invoke);
@@ -1558,16 +1820,18 @@ struct invoke_iface_t * st_while_statement_clone(
     struct invoke_iface_t *statements_copy = NULL;
     struct expression_iface_t *while_expression_copy = NULL;
 
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct while_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, ws, sizeof(struct while_statement_t));
 
     if(ws->while_expression->clone)
     {
-	while_expression_copy = ws->while_expression->clone(ws->while_expression);
+	while_expression_copy = ws->while_expression->clone(ws->while_expression,
+							    issues);
 
 	if(!while_expression_copy)
 	{
@@ -1580,7 +1844,7 @@ struct invoke_iface_t * st_while_statement_clone(
     struct invoke_iface_t *itr = NULL;
     DL_FOREACH(ws->statements, itr)
     {
-	struct invoke_iface_t *statement_copy = itr->clone(itr);
+	struct invoke_iface_t *statement_copy = itr->clone(itr, issues);
 
 	if(!statement_copy)
 	{
@@ -1630,7 +1894,7 @@ int st_for_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct for_statement_t *fs =
 	CONTAINER_OF(self, struct for_statement_t, invoke);
@@ -1660,22 +1924,17 @@ int st_for_statement_step(
 	if(fs->from->invoke.step)
 	{
 	    fs->invoke_state = 1;
-	    st_switch_current(cursor, &(fs->from->invoke), config);
+	    st_switch_current(cursor, &(fs->from->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
     case 1:
 	variable_assign_result = fs->variable->value->assign(fs->variable->value,
 							     from_value,
-							     config);
+							     config,
+							     issues);
 	if(variable_assign_result != ESSTEE_OK)
 	{
-	    errors->new_issue_at(
-		errors,
-		"assignment of variable failed",
-		ISSUE_ERROR_CLASS,
-		1,
-		fs->identifier_location);
 	    return INVOKE_RESULT_ERROR;
 	}
 
@@ -1683,38 +1942,32 @@ int st_for_statement_step(
 	if(fs->to->invoke.step)
 	{
 	    fs->invoke_state = 3;
-	    st_switch_current(cursor, &(fs->to->invoke), config);
+	    st_switch_current(cursor, &(fs->to->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
     case 3:
-	if(fs->variable->value->greater(fs->variable->value, to_value, config) == ESSTEE_TRUE)
+	if(fs->variable->value->greater(fs->variable->value, to_value, config, issues) == ESSTEE_TRUE)
 	{
 	    break;
 	}
 	
     case 4: 
 	fs->invoke_state = 5;
-	st_switch_current(cursor, fs->statements, config);
+	st_switch_current(cursor, fs->statements, config, issues);
 	return INVOKE_RESULT_IN_PROGRESS;
 
     case 5:
 	if(fs->increment && fs->increment->invoke.step)
 	{
 	    fs->invoke_state = 6;
-	    st_switch_current(cursor, &(fs->increment->invoke), config);
+	    st_switch_current(cursor, &(fs->increment->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 	
     case 6:
-	if(fs->variable->value->plus(fs->variable->value, increment_value, config) != ESSTEE_OK)
+	if(fs->variable->value->plus(fs->variable->value, increment_value, config, issues) != ESSTEE_OK)
 	{
-	    errors->new_issue_at(
-		errors,
-		"incrementing variable failed",
-		ISSUE_ERROR_CLASS,
-		1,
-		fs->identifier_location);
 	    return INVOKE_RESULT_ERROR;
 	}
 
@@ -1730,7 +1983,7 @@ int st_for_statement_step(
 int st_for_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct for_statement_t *fs =
 	CONTAINER_OF(self, struct for_statement_t, invoke);
@@ -1739,7 +1992,7 @@ int st_for_statement_verify(
     {
 	int verify_result = fs->from->invoke.verify(&(fs->from->invoke),
 						    config,
-						    errors);
+						    issues);
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -1749,8 +2002,8 @@ int st_for_statement_verify(
     if(fs->to->invoke.verify)
     {
 	int verify_result = fs->to->invoke.verify(&(fs->to->invoke),
-						    config,
-						    errors);
+						  config,
+						  issues);
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -1761,7 +2014,7 @@ int st_for_statement_verify(
     {
 	int verify_result = fs->increment->invoke.verify(&(fs->increment->invoke),
 							 config,
-							 errors);
+							 issues);
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -1785,72 +2038,129 @@ int st_for_statement_verify(
     {
 	increment_value = fs->increment->return_value(fs->increment);
     }
-    
-    int var_from_assignable = fs->variable->value->assignable_from(fs->variable->value,
-								   from_value,
-								   config);
-    if(var_from_assignable != ESSTEE_TRUE)
+
+
+    if(!fs->variable->value->assignable_from)
     {
-	errors->new_issue_at(
-	    errors,
-	    "variable cannot be assigned the value of the from expression",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    fs->identifier_location,
-	    fs->from->invoke.location(&(fs->from->invoke)));
+	const char *message = issues->build_message(
+	    issues,
+	    "iteration variable '%s' cannot be assigned a value",
+	    fs->variable->identifier);
+	
+	issues->new_issue_at(issues,
+			     message,
+			     ESSTEE_TYPE_ERROR,
+			     1,
+			     fs->identifier_location);
+
 	return ESSTEE_ERROR;
     }
+    
+    issues->begin_group(issues);
+    int var_from_assignable = fs->variable->value->assignable_from(fs->variable->value,
+								   from_value,
+								   config,
+								   issues);
+    if(var_from_assignable != ESSTEE_TRUE)
+    {
+	issues->new_issue(issues,
+			  "iteration variable '%s' cannot be assigned the from value",
+			  ESSTEE_CONTEXT_ERROR,
+			  fs->variable->identifier);
 
+	issues->set_group_location(issues, 
+				   2,
+				   fs->identifier_location,
+				   fs->from->invoke.location(&(fs->from->invoke)));
+    }
+    issues->end_group(issues);
+
+    if(var_from_assignable != ESSTEE_TRUE)
+    {
+	return ESSTEE_ERROR;
+    }
+    
     const struct type_iface_t *var_type =
 	fs->variable->value->type_of(fs->variable->value);
 
-    int type_can_hold_to_value = var_type->can_hold(var_type, to_value, config);
+    issues->begin_group(issues);
+    int type_can_hold_to_value = var_type->can_hold(var_type,
+						    to_value,
+						    config,
+						    issues);
     if(type_can_hold_to_value != ESSTEE_TRUE)
-    {	
-	errors->new_issue_at(
-	    errors,
-	    "variable cannot hold the to value",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    fs->identifier_location,
-	    fs->to->invoke.location(&(fs->to->invoke)));
+    {
+	issues->new_issue(issues,
+			  "iteration variable '%s' cannot hold the end value",
+			  ESSTEE_TYPE_ERROR,
+			  fs->variable->identifier);
+
+	issues->set_group_location(issues,
+				   2,
+				   fs->identifier_location,
+				   fs->to->invoke.location(&(fs->to->invoke)));
+    }
+    issues->end_group(issues);
+
+    if(type_can_hold_to_value != ESSTEE_TRUE)
+    {
 	return ESSTEE_ERROR;
     }
-    
-    int var_increment_operates =
-	fs->variable->value->operates_with(fs->variable->value, increment_value, config);
+
+    issues->begin_group(issues);
+    int var_increment_operates = fs->variable->value->operates_with(fs->variable->value,
+								    increment_value,
+								    config,
+								    issues);
 
     if(var_increment_operates != ESSTEE_TRUE)
     {
-	errors->new_issue_at(
-	    errors,
-	    "variable value cannot be incremented by value",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    fs->identifier_location);
+	issues->new_issue(issues,
+			  "iteration variable '%s' cannot be incremented as specified",
+			  ESSTEE_CONTEXT_ERROR,
+			  fs->variable->identifier);
+
+	issues->set_group_location(issues,
+				   2,
+				   fs->identifier_location,
+				   fs->increment->invoke.location(&(fs->increment->invoke)));
+    }
+    issues->end_group(issues);
+    
+    if(var_increment_operates != ESSTEE_TRUE)
+    {
 	return ESSTEE_ERROR;
     }
-    
-    int var_to_comparable =
-	fs->variable->value->comparable_to(fs->variable->value,
-					   to_value,
-					   config);
+
+    issues->begin_group(issues);
+    int var_to_comparable = fs->variable->value->comparable_to(fs->variable->value,
+							       to_value,
+							       config,
+							       issues);
+
     if(var_to_comparable != ESSTEE_TRUE)
     {
-	errors->new_issue_at(
-	    errors,
-	    "variable cannot be compared to the value of the to expression",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    fs->identifier_location,
-	    fs->to->invoke.location(&(fs->to->invoke)));
+	issues->new_issue(issues,
+			  "iteration variable '%s' cannot be compared to end value",
+			  ESSTEE_CONTEXT_ERROR,
+			  fs->variable->identifier);
+
+	issues->set_group_location(issues,
+				   2,
+				   fs->identifier_location,
+				   fs->to->invoke.location(&(fs->to->invoke)));
+    }
+    issues->end_group(issues);
+    
+    if(var_to_comparable != ESSTEE_TRUE)
+    {
 	return ESSTEE_ERROR;
     }
 
     struct invoke_iface_t *itr = NULL;
     DL_FOREACH(fs->statements, itr)
     {
-	int verify_result = itr->verify(itr, config, errors);
+	int verify_result = itr->verify(itr, config, issues);
 
 	if(verify_result != ESSTEE_OK)
 	{
@@ -1863,7 +2173,8 @@ int st_for_statement_verify(
 
 int st_for_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct for_statement_t *fs =
 	CONTAINER_OF(self, struct for_statement_t, invoke);
@@ -1873,7 +2184,8 @@ int st_for_statement_reset(
     if(fs->from->invoke.reset)
     {
 	int reset_result = fs->from->invoke.reset(&(fs->from->invoke),
-						  config);
+						  config,
+						  issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1883,7 +2195,8 @@ int st_for_statement_reset(
     if(fs->to->invoke.reset)
     {
 	int reset_result = fs->to->invoke.reset(&(fs->to->invoke),
-						  config);
+						config,
+						issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1893,7 +2206,8 @@ int st_for_statement_reset(
     if(fs->increment && fs->increment->invoke.reset)
     {
 	int reset_result = fs->increment->invoke.reset(&(fs->increment->invoke),
-						       config);
+						       config,
+						       issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1903,8 +2217,9 @@ int st_for_statement_reset(
     struct invoke_iface_t *itr = NULL;
     DL_FOREACH(fs->statements, itr)
     {
-	int reset_result = itr->reset(itr, config);
-	
+	int reset_result = itr->reset(itr,
+				      config,
+				      issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -1914,8 +2229,53 @@ int st_for_statement_reset(
     return ESSTEE_OK;
 }
 
+int st_for_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct for_statement_t *fs =
+	CONTAINER_OF(self, struct for_statement_t, invoke);
+
+    if(fs->from->invoke.allocate)
+    {
+	int allocate_result = fs->from->invoke.allocate(
+	    &(fs->from->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+    
+    if(fs->to->invoke.allocate)
+    {
+	int allocate_result = fs->to->invoke.allocate(&(fs->to->invoke),
+						      issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    if(fs->increment && fs->increment->invoke.allocate)
+    {
+	int allocate_result = fs->increment->invoke.allocate(&(fs->increment->invoke),
+							     issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    return st_allocate_statements(fs->statements, issues);
+}
+
 struct invoke_iface_t * st_for_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct for_statement_t *fs =
 	CONTAINER_OF(self, struct for_statement_t, invoke);
@@ -1927,9 +2287,10 @@ struct invoke_iface_t * st_for_statement_clone(
     struct invoke_iface_t *statements_copy = NULL;
     struct invoke_iface_t *statement_copy = NULL;
     
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct for_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, fs, sizeof(struct for_statement_t));
@@ -1937,7 +2298,7 @@ struct invoke_iface_t * st_for_statement_clone(
     
     if(fs->from->clone)
     {
-	from_copy = fs->from->clone(fs->from);
+	from_copy = fs->from->clone(fs->from, issues);
 
 	if(!from_copy)
 	{
@@ -1949,7 +2310,7 @@ struct invoke_iface_t * st_for_statement_clone(
     
     if(fs->to->clone)
     {
-	to_copy = fs->to->clone(fs->to);
+	to_copy = fs->to->clone(fs->to, issues);
 
 	if(!to_copy)
 	{
@@ -1961,7 +2322,7 @@ struct invoke_iface_t * st_for_statement_clone(
 
     if(fs->increment && fs->increment->clone)
     {
-	increment_copy = fs->increment->clone(fs->increment);
+	increment_copy = fs->increment->clone(fs->increment, issues);
 
 	if(!increment_copy)
 	{
@@ -1974,7 +2335,7 @@ struct invoke_iface_t * st_for_statement_clone(
     struct invoke_iface_t *itr = NULL;
     DL_FOREACH(fs->statements, itr)
     {
-	statement_copy = itr->clone(itr);
+	statement_copy = itr->clone(itr, issues);
 
 	if(!statement_copy)
 	{
@@ -2014,7 +2375,7 @@ int st_repeat_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct while_statement_t *ws =
 	CONTAINER_OF(self, struct while_statement_t, invoke);
@@ -2028,21 +2389,21 @@ int st_repeat_statement_step(
 	
     case 1:
 	ws->invoke_state = 2;
-	st_switch_current(cursor, ws->statements, config);
+	st_switch_current(cursor, ws->statements, config, issues);
 	return INVOKE_RESULT_IN_PROGRESS;
 
     case 2:
 	if(ws->while_expression->invoke.step)
 	{
 	    ws->invoke_state = 3;
-	    st_switch_current(cursor, &(ws->while_expression->invoke), config);
+	    st_switch_current(cursor, &(ws->while_expression->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
     case 3:
 	while_value = ws->while_expression->return_value(ws->while_expression);
 
-	if(while_value->bool(while_value, config) == ESSTEE_FALSE)
+	if(while_value->bool(while_value, config, issues) == ESSTEE_FALSE)
 	{
 	    ws->invoke_state = 1;
 	    return INVOKE_RESULT_IN_PROGRESS;
@@ -2075,7 +2436,7 @@ int st_return_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return st_jump_return(cursor);
 }
@@ -2085,7 +2446,7 @@ int st_exit_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     st_jump_exit(cursor);
     return INVOKE_RESULT_FINISHED;
@@ -2094,28 +2455,31 @@ int st_exit_statement_step(
 int st_pop_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return ESSTEE_OK;
 }
 
 int st_pop_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     return ESSTEE_OK;
 }
 
 struct invoke_iface_t * st_pop_statement_clone(
-    struct invoke_iface_t *self)
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct pop_call_stack_statement_t *ps = 
 	CONTAINER_OF(self, struct pop_call_stack_statement_t, invoke);
 
     struct pop_call_stack_statement_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct pop_call_stack_statement_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, ps, sizeof(struct pop_call_stack_statement_t));

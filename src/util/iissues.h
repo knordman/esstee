@@ -63,6 +63,9 @@ struct issues_iface_t {
 	int location_count,
 	...);
 
+    void (*end_group)(
+	struct issues_iface_t *self);
+
     void (*ignore_all)(
 	struct issues_iface_t *self);
         
@@ -70,6 +73,11 @@ struct issues_iface_t {
 	struct issues_iface_t *self,
 	st_bitflag_t issue_filter);
 
+    const struct st_issue_t * (*fetch_sub_issue)(
+	struct issues_iface_t *self,
+	const struct st_issue_t *issue,
+	st_bitflag_t issue_filter);
+    
     const struct st_issue_t * (*fetch_and_ignore)(
 	struct issues_iface_t *self,
 	st_bitflag_t issue_filter);

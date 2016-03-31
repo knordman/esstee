@@ -72,15 +72,17 @@ const struct st_location_t * st_single_identifier_term_location(
 }
 
 struct expression_iface_t * st_single_identifier_term_clone(
-    struct expression_iface_t *self)
+    struct expression_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct single_identifier_term_t *sit =
 	CONTAINER_OF(self, struct single_identifier_term_t, expression);
 
     struct single_identifier_term_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct single_identifier_term_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, sit, sizeof(struct single_identifier_term_t));
@@ -141,7 +143,7 @@ const struct st_location_t * st_qualified_identifier_term_location(
 int st_qualified_identifier_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -150,8 +152,8 @@ int st_qualified_identifier_term_verify(
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
 
     return st_qualified_identifier_verify(qit->identifier,
-					  errors,
-					  config);
+					  config,
+					  issues);
 }
 
 int st_qualified_identifier_term_step(
@@ -159,7 +161,7 @@ int st_qualified_identifier_term_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -169,13 +171,14 @@ int st_qualified_identifier_term_step(
 
     return st_qualified_identifier_step(qit->identifier,
 					cursor,
-					errors,
-					config);
+					config,
+					issues);
 }
 
 int st_qualified_identifier_term_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -183,10 +186,10 @@ int st_qualified_identifier_term_reset(
     struct qualified_identifier_term_t *qit
 	= CONTAINER_OF(expr, struct qualified_identifier_term_t, expression);
 
-    int reset = st_qualified_identifier_reset(qit->identifier, config);
-    if(reset != ESSTEE_OK)
+    int reset_result = st_qualified_identifier_reset(qit->identifier, config, issues);
+    if(reset_result != ESSTEE_OK)
     {
-	return reset;
+	return reset_result;
     }
 
     return ESSTEE_OK;
@@ -205,7 +208,8 @@ const struct value_iface_t * st_qualified_identifier_term_return_value(
 }
 
 struct expression_iface_t * st_qualified_identifier_term_clone(
-    struct expression_iface_t *self)
+    struct expression_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct qualified_identifier_term_t *qit
 	= CONTAINER_OF(self, struct qualified_identifier_term_t, expression);
@@ -213,14 +217,15 @@ struct expression_iface_t * st_qualified_identifier_term_clone(
     struct qualified_identifier_term_t *copy = NULL;
     struct qualified_identifier_t *identifier_copy = NULL;
 
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct qualified_identifier_term_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, qit, sizeof(struct qualified_identifier_term_t));
 
-    identifier_copy = st_clone_qualified_identifier(qit->identifier);
+    identifier_copy = st_clone_qualified_identifier(qit->identifier, issues);
 
     if(!identifier_copy)
     {
@@ -248,7 +253,7 @@ void st_qualified_identifier_term_destroy(
 static int assign_temporary_and_negate(
     struct negative_prefix_term_t *nt,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     const struct value_iface_t *to_negate_value = 
 	nt->to_negate->return_value(nt->to_negate);
@@ -258,16 +263,17 @@ static int assign_temporary_and_negate(
     
     assign_result = nt->temporary->assign(nt->temporary,
 					  to_negate_value,
-					  config);
+					  config,
+					  issues);
     if(assign_result == ESSTEE_OK)
     {
-	negate_result = nt->temporary->negate(nt->temporary, config);
+	negate_result = nt->temporary->negate(nt->temporary, config, issues);
     }
 
     if(assign_result != ESSTEE_OK || negate_result != ESSTEE_OK)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "expression evaluation failed",
 	    ISSUE_ERROR_CLASS,
 	    1,
@@ -294,11 +300,11 @@ const struct st_location_t * st_negative_prefix_term_location(
 int st_negative_prefix_term_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = st_negative_prefix_term_verify(self,
 						       config,
-						       errors);
+						       issues);
     if(verify_result != ESSTEE_OK)
     {
 	return verify_result;
@@ -310,13 +316,13 @@ int st_negative_prefix_term_constant_verify(
     struct negative_prefix_term_t *nt =
 	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
     
-    return assign_temporary_and_negate(nt, config, errors);
+    return assign_temporary_and_negate(nt, config, issues);
 }
 
 int st_negative_prefix_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -328,7 +334,7 @@ int st_negative_prefix_term_verify(
     {
 	int negate_result = nt->to_negate->invoke.verify(&(nt->to_negate->invoke),
 							 config,
-							 errors);
+							 issues);
 	if(negate_result != ESSTEE_OK)
 	{
 	    return negate_result;
@@ -338,39 +344,17 @@ int st_negative_prefix_term_verify(
     const struct value_iface_t *to_negate_value =
 	nt->to_negate->return_value(nt->to_negate);
 
-    if(!to_negate_value->create_temp_from)
+    if(!to_negate_value->negate)
     {
-	errors->new_issue_at(
-	    errors,
-	    "value cannot be used in an expression",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    nt->to_negate->invoke.location(&(nt->to_negate->invoke)));
-	return ESSTEE_ERROR;
-    }
-    else if(!to_negate_value->negate)
-    {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "value cannot be modified by a minus prefix",
-	    ISSUE_ERROR_CLASS,
+	    ESSTEE_CONTEXT_ERROR,
 	    1,
 	    nt->to_negate->invoke.location(&(nt->to_negate->invoke)));
 	return ESSTEE_ERROR;
     }
-    
-    nt->temporary = to_negate_value->create_temp_from(to_negate_value);
-    if(!nt->temporary)
-    {
-	errors->memory_error(
-	    errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
-	return ESSTEE_ERROR;
-    }
-    
+        
     return ESSTEE_OK;
 }
 
@@ -379,7 +363,7 @@ int st_negative_prefix_term_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -391,12 +375,12 @@ int st_negative_prefix_term_step(
     {
     case 0:
 	nt->invoke_state = 1;
-	st_switch_current(cursor, &(nt->to_negate->invoke), config);
+	st_switch_current(cursor, &(nt->to_negate->invoke), config, issues);
 	return INVOKE_RESULT_IN_PROGRESS;
 
 
     case 1:
-	if(assign_temporary_and_negate(nt, config, errors) == ESSTEE_ERROR)
+	if(assign_temporary_and_negate(nt, config, issues) == ESSTEE_ERROR)
 	{
 	    return INVOKE_RESULT_ERROR;
 	}
@@ -407,7 +391,8 @@ int st_negative_prefix_term_step(
 
 int st_negative_prefix_term_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -418,7 +403,8 @@ int st_negative_prefix_term_reset(
     if(nt->to_negate->invoke.reset)
     {
 	int reset_result = nt->to_negate->invoke.reset(&(nt->to_negate->invoke),
-						       config);
+						       config,
+						       issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -439,27 +425,92 @@ const struct value_iface_t * st_negative_prefix_term_return_value(
     return nt->temporary;
 }
 
+int st_negative_prefix_term_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct negative_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
+
+    if(nt->to_negate->invoke.allocate)
+    {
+	int allocate_result = nt->to_negate->invoke.allocate(
+	    &(nt->to_negate->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    const struct value_iface_t *to_negate_value =
+	nt->to_negate->return_value(nt->to_negate);
+    
+    if(!to_negate_value->create_temp_from)
+    {
+	issues->new_issue_at(
+	    issues,
+	    "value cannot be used in an expression",
+	    ESSTEE_CONTEXT_ERROR,
+	    1,
+	    nt->to_negate->invoke.location(&(nt->to_negate->invoke)));
+	return ESSTEE_ERROR;
+    }
+    
+    nt->temporary = to_negate_value->create_temp_from(to_negate_value, issues);
+    if(!nt->temporary)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}
+
 struct expression_iface_t * st_negative_prefix_term_clone(
-    struct expression_iface_t *self)
+    struct expression_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct negative_prefix_term_t *nt =
 	CONTAINER_OF(self, struct negative_prefix_term_t, expression);
 
     struct negative_prefix_term_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    struct expression_iface_t *to_negate_copy = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct negative_prefix_term_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, nt, sizeof(struct negative_prefix_term_t));
     
-    copy->to_negate = nt->to_negate->clone(nt->to_negate);
+    if(nt->to_negate->clone)
+    {
+	to_negate_copy = nt->to_negate->clone(nt->to_negate, issues);
+
+	if(!to_negate_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->to_negate = to_negate_copy;
+    }
+    else
+    {
+	copy->to_negate = nt->to_negate;
+    }
+
     copy->expression.destroy = st_negative_prefix_term_clone_destroy;
 
     return &(copy->expression);
 
 error_free_resources:
     free(copy);
+    free(to_negate_copy);
     return NULL;
 }
 
@@ -493,7 +544,7 @@ const struct st_location_t * st_function_invocation_term_location(
 int st_function_invocation_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -503,8 +554,8 @@ int st_function_invocation_term_verify(
 
     return st_verify_invoke_parameters(ft->parameters,
 				       ft->function->header->variables,
-				       errors,
-				       config);
+				       config,
+				       issues);
 }
 
 int st_function_invocation_term_step(
@@ -512,7 +563,7 @@ int st_function_invocation_term_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -530,7 +581,7 @@ int st_function_invocation_term_step(
 						    cursor,
 						    time,
 						    config,
-						    errors);
+						    issues);
 	if(step_result != INVOKE_RESULT_FINISHED)
 	{
 	    return step_result;
@@ -540,14 +591,14 @@ int st_function_invocation_term_step(
 	int assign_result = st_assign_from_invoke_parameters(ft->parameters,
 							     ft->function->header->variables,
 							     config,
-							     errors);
+							     issues);
 	if(assign_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
 	}
 	
 	ft->invoke_state = 2;
-	st_switch_current(cursor, ft->function->statements, config);
+	st_switch_current(cursor, ft->function->statements, config, issues);
 	return INVOKE_RESULT_IN_PROGRESS;
     }
 	
@@ -563,7 +614,8 @@ int st_function_invocation_term_step(
 
 int st_function_invocation_term_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -576,7 +628,8 @@ int st_function_invocation_term_reset(
     {
 	int reset_result = itr->type->reset_value_of(itr->type,
 						     itr->value,
-						     config);
+						     config,
+						     issues);
 
 	if(reset_result != ESSTEE_OK)
 	{
@@ -585,7 +638,8 @@ int st_function_invocation_term_reset(
     }
 
     int reset_result = st_reset_invoke_parameters(ft->parameters,
-						  config);
+						  config,
+						  issues);
     if(reset_result != ESSTEE_OK)
     {
 	return reset_result;
@@ -604,21 +658,23 @@ const struct value_iface_t * st_function_invocation_term_return_value(
 }
 
 struct expression_iface_t * st_function_invocation_term_clone(
-    struct expression_iface_t *self)
+    struct expression_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct function_invocation_term_t *ft =
 	CONTAINER_OF(self, struct function_invocation_term_t, expression);
 
     struct function_invocation_term_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct function_invocation_term_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, ft, sizeof(struct function_invocation_term_t));
 
     struct invoke_parameter_t *parameters_copy =
-	st_clone_invoke_parameters(ft->parameters);
+	st_clone_invoke_parameters(ft->parameters, issues);
     if(!parameters_copy)
     {
 	goto error_free_resources;
@@ -651,7 +707,7 @@ void st_function_invocation_clone_destroy(
 static int assign_temporary_and_not(
     struct not_prefix_term_t *nt,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     const struct value_iface_t *to_not_value = 
 	nt->to_not->return_value(nt->to_not);
@@ -661,16 +717,17 @@ static int assign_temporary_and_not(
     
     assign_result = nt->temporary->assign(nt->temporary,
 					  to_not_value,
-					  config);
+					  config,
+					  issues);
     if(assign_result == ESSTEE_OK)
     {
-	not_result = nt->temporary->not(nt->temporary, config);
+	not_result = nt->temporary->not(nt->temporary, config, issues);
     }
 
     if(assign_result != ESSTEE_OK || not_result != ESSTEE_OK)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "expression evaluation failed",
 	    ISSUE_ERROR_CLASS,
 	    1,
@@ -697,11 +754,11 @@ const struct st_location_t * st_not_prefix_term_location(
 int st_not_prefix_term_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = st_not_prefix_term_verify(self,
 						  config,
-						  errors);
+						  issues);
     if(verify_result != ESSTEE_OK)
     {
 	return verify_result;
@@ -713,13 +770,13 @@ int st_not_prefix_term_constant_verify(
     struct not_prefix_term_t *nt =
 	CONTAINER_OF(expr, struct not_prefix_term_t, expression);
     
-    return assign_temporary_and_not(nt, config, errors);
+    return assign_temporary_and_not(nt, config, issues);
 }
 
 int st_not_prefix_term_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -731,7 +788,7 @@ int st_not_prefix_term_verify(
     {
 	int not_result = nt->to_not->invoke.verify(&(nt->to_not->invoke),
 							 config,
-							 errors);
+							 issues);
 	if(not_result != ESSTEE_OK)
 	{
 	    return not_result;
@@ -741,39 +798,17 @@ int st_not_prefix_term_verify(
     const struct value_iface_t *to_not_value =
 	nt->to_not->return_value(nt->to_not);
 
-    if(!to_not_value->create_temp_from)
+    if(!to_not_value->negate)
     {
-	errors->new_issue_at(
-	    errors,
-	    "value cannot be used in an expression",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    nt->to_not->invoke.location(&(nt->to_not->invoke)));
-	return ESSTEE_ERROR;
-    }
-    else if(!to_not_value->negate)
-    {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "value cannot be modified by a not prefix",
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    nt->to_not->invoke.location(&(nt->to_not->invoke)));
 	return ESSTEE_ERROR;
     }
-    
-    nt->temporary = to_not_value->create_temp_from(to_not_value);
-    if(!nt->temporary)
-    {
-	errors->memory_error(
-	    errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
-	return ESSTEE_ERROR;
-    }
-    
+        
     return ESSTEE_OK;
 }
 
@@ -782,7 +817,7 @@ int st_not_prefix_term_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -794,11 +829,11 @@ int st_not_prefix_term_step(
     {
     case 0:
 	nt->invoke_state = 1;
-	st_switch_current(cursor, &(nt->to_not->invoke), config);
+	st_switch_current(cursor, &(nt->to_not->invoke), config, issues);
 	return INVOKE_RESULT_IN_PROGRESS;
 
     case 1:
-	if(assign_temporary_and_not(nt, config, errors) == ESSTEE_ERROR)
+	if(assign_temporary_and_not(nt, config, issues) == ESSTEE_ERROR)
 	{
 	    return INVOKE_RESULT_ERROR;
 	}
@@ -807,9 +842,55 @@ int st_not_prefix_term_step(
     return INVOKE_RESULT_FINISHED;
 }
 
+int st_not_prefix_term_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct not_prefix_term_t *nt =
+	CONTAINER_OF(expr, struct not_prefix_term_t, expression);
+
+    if(nt->to_not->invoke.allocate)
+    {
+	int allocate_result = nt->to_not->invoke.allocate(
+	    &(nt->to_not->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    const struct value_iface_t *to_not_value =
+	nt->to_not->return_value(nt->to_not);
+    
+    if(!to_not_value->create_temp_from)
+    {
+	issues->new_issue_at(
+	    issues,
+	    "value cannot be used in an expression",
+	    ESSTEE_CONTEXT_ERROR,
+	    1,
+	    nt->to_not->invoke.location(&(nt->to_not->invoke)));
+	return ESSTEE_ERROR;
+    }
+    
+    nt->temporary = to_not_value->create_temp_from(to_not_value, issues);
+    if(!nt->temporary)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return ESSTEE_OK;
+}
+
 int st_not_prefix_term_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *expr
 	= CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -820,7 +901,8 @@ int st_not_prefix_term_reset(
     if(nt->to_not->invoke.reset)
     {
 	int reset_result = nt->to_not->invoke.reset(&(nt->to_not->invoke),
-						       config);
+						    config,
+						    issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
@@ -842,26 +924,46 @@ const struct value_iface_t * st_not_prefix_term_return_value(
 }
 
 struct expression_iface_t * st_not_prefix_term_clone(
-    struct expression_iface_t *self)
+    struct expression_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct not_prefix_term_t *nt =
 	CONTAINER_OF(self, struct not_prefix_term_t, expression);
 
     struct not_prefix_term_t *copy = NULL;
-    ALLOC_OR_JUMP(
+    struct expression_iface_t *to_not_copy = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct not_prefix_term_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, nt, sizeof(struct not_prefix_term_t));
+
+    if(nt->to_not->clone)
+    {
+	to_not_copy = nt->to_not->clone(nt->to_not, issues);
+
+	if(!to_not_copy)
+	{
+	    goto error_free_resources;
+	}
+
+	copy->to_not = to_not_copy;
+    }
+    else
+    {
+	copy->to_not = nt->to_not;
+    }
     
-    copy->to_not = nt->to_not->clone(nt->to_not);
     copy->expression.destroy = st_negative_prefix_term_clone_destroy;
 
     return &(copy->expression);
 
 error_free_resources:
     free(copy);
+    free(to_not_copy);
     return NULL;
 }
 
@@ -883,17 +985,19 @@ void st_not_prefix_term_clone_destroy(
 typedef int (*binary_operation_t)(
     struct value_iface_t *,
     const struct value_iface_t *,
-    const struct config_iface_t *);
+    const struct config_iface_t *,
+    struct issues_iface_t *);
 
 typedef int (*binary_comparison_t)(
     const struct value_iface_t *,
     const struct value_iface_t *,
-    const struct config_iface_t *);
+    const struct config_iface_t *,
+    struct issues_iface_t *);
 
 static int be_verify_operands(
     struct binary_expression_t *be,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     /* Verify right and left expressions */
     int left_operand_verification = ESSTEE_OK;
@@ -903,7 +1007,7 @@ static int be_verify_operands(
 	    = be->left_operand->invoke.verify(
 		&(be->left_operand->invoke),
 		config,
-		errors);
+		issues);
     }
     if(left_operand_verification != ESSTEE_OK)
     {
@@ -917,7 +1021,7 @@ static int be_verify_operands(
 	    = be->right_operand->invoke.verify(
 		&(be->right_operand->invoke),
 		config,
-		errors);
+		issues);
     }
     if(right_operand_verification != ESSTEE_OK)
     {
@@ -932,7 +1036,7 @@ static int be_step_operands(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     switch(be->invoke_state)
     {
@@ -940,7 +1044,7 @@ static int be_step_operands(
 	if(be->left_operand->invoke.step)
 	{
 	    be->invoke_state = 1;
-	    st_switch_current(cursor, &(be->left_operand->invoke), config);
+	    st_switch_current(cursor, &(be->left_operand->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
@@ -948,7 +1052,7 @@ static int be_step_operands(
 	if(be->right_operand->invoke.step)
 	{
 	    be->invoke_state = 2;
-	    st_switch_current(cursor, &(be->right_operand->invoke), config);
+	    st_switch_current(cursor, &(be->right_operand->invoke), config, issues);
 	    return INVOKE_RESULT_IN_PROGRESS;
 	}
 
@@ -963,52 +1067,28 @@ static int be_step_operands(
 /* Binary expressions producing a new value */
 static int be_create_cloned_temporary(
     struct binary_expression_t *be,
-    const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     const struct value_iface_t *left_value
 	= be->left_operand->return_value(be->left_operand);
-    const struct value_iface_t *right_value
-	= be->right_operand->return_value(be->right_operand);
-    
-    if(!left_value->operates_with)
+
+    if(!left_value->create_temp_from)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "value cannot be used in an expression",
-	    ISSUE_ERROR_CLASS,
+	    ESSTEE_CONTEXT_ERROR,
 	    1,
 	    be->left_operand->invoke.location(&(be->left_operand->invoke)));
 
 	return ESSTEE_ERROR;
     }
 
-    int left_operates_with_right
-	= left_value->operates_with(left_value, right_value, config);
-
-    if(left_operates_with_right != ESSTEE_TRUE)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "left value does not support the operation using the right value",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
-	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
-
-	return ESSTEE_ERROR;	
-    }
     
     /* Create a temporary value for the operation result*/
-    be->temporary = left_value->create_temp_from(left_value);
+    be->temporary = left_value->create_temp_from(left_value, issues);
     if(!be->temporary)
     {
-	errors->memory_error(
-	    errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	return ESSTEE_ERROR;
     }
 
@@ -1019,15 +1099,15 @@ static int be_do_operation(
     struct binary_expression_t *be,
     size_t operation_offset,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
-   const struct value_iface_t *left_value =
+    const struct value_iface_t *left_value =
 	be->left_operand->return_value(be->left_operand);
 
-    if(be->temporary->assign(be->temporary, left_value, config) != ESSTEE_OK)
+    if(be->temporary->assign(be->temporary, left_value, config, issues) != ESSTEE_OK)
     {
-	errors->internal_error(
-	    errors,
+	issues->internal_error(
+	    issues,
 	    __FILE__,
 	    __FUNCTION__,
 	    __LINE__);
@@ -1040,10 +1120,10 @@ static int be_do_operation(
     binary_operation_t *operation
 	= (binary_operation_t *)(((char *)be->temporary) + operation_offset);
     
-    if((*operation)(be->temporary, right_value, config) != ESSTEE_OK)
+    if((*operation)(be->temporary, right_value, config, issues) != ESSTEE_OK)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "expression evaluation failed",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -1061,14 +1141,14 @@ static int be_verify(
     const char *not_supported_message,
     size_t operation_offset,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
     struct binary_expression_t *be =
 	CONTAINER_OF(e, struct binary_expression_t, expression);
 
-    if(be_verify_operands(be, config, errors) != ESSTEE_OK)
+    if(be_verify_operands(be, config, issues) != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
     }
@@ -1081,8 +1161,8 @@ static int be_verify(
 
     if(!operation)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    not_supported_message,
 	    ISSUE_ERROR_CLASS,
 	    1,
@@ -1091,11 +1171,33 @@ static int be_verify(
 	return ESSTEE_ERROR;
     }
 
-    if(be_create_cloned_temporary(be, config, errors) != ESSTEE_OK)
+    const struct value_iface_t *right_value =
+	be->right_operand->return_value(be->right_operand);
+    
+    issues->begin_group(issues);
+    int left_operates_with_right
+	= left_value->operates_with(left_value, right_value, config, issues);
+
+    if(left_operates_with_right != ESSTEE_TRUE)
+    {
+	issues->new_issue(
+	    issues,
+	    "left value does not support the operation using the right value",
+	    ESSTEE_CONTEXT_ERROR);
+
+	issues->set_group_location(
+	    issues,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
+	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
+    }
+    issues->end_group(issues);
+
+    if(left_operates_with_right != ESSTEE_TRUE)
     {
 	return ESSTEE_ERROR;
     }
-
+    
     return ESSTEE_OK;
 }
 
@@ -1104,13 +1206,13 @@ static int be_constant_verify(
     const char *not_supported_message,
     size_t operation_offset,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = be_verify(self,
 				  not_supported_message,
 				  operation_offset,
 				  config,
-				  errors);
+				  issues);
     if(verify_result != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
@@ -1121,7 +1223,7 @@ static int be_constant_verify(
     struct binary_expression_t *be =
 	CONTAINER_OF(e, struct binary_expression_t, expression);
     
-    return be_do_operation(be, operation_offset, config, errors);
+    return be_do_operation(be, operation_offset, config, issues);
 }
 
 static int be_step(
@@ -1130,7 +1232,7 @@ static int be_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -1141,13 +1243,13 @@ static int be_step(
 					     cursor,
 					     time,
 					     config,
-					     errors);
+					     issues);
     if(inner_step_result != INVOKE_RESULT_FINISHED)
     {
 	return inner_step_result;
     }
 
-    if(be_do_operation(be, operation_offset, config, errors) != ESSTEE_OK)
+    if(be_do_operation(be, operation_offset, config, issues) != ESSTEE_OK)
     {
 	return INVOKE_RESULT_ERROR;
     }
@@ -1158,52 +1260,12 @@ static int be_step(
 /* Binary expressions producing true/false (comparisons) */
 static int be_create_bool_temporary(
     struct binary_expression_t *be,
-    const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
-    const struct value_iface_t *left_value
-	= be->left_operand->return_value(be->left_operand);
-    const struct value_iface_t *right_value
-	= be->right_operand->return_value(be->right_operand);
-    
-    if(!left_value->comparable_to)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "value cannot be compared",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    be->left_operand->invoke.location(&(be->left_operand->invoke)));
-
-	return ESSTEE_ERROR;
-    }
-
-    int left_comparable_to_right
-	= left_value->comparable_to(left_value, right_value, config);
-
-    if(left_comparable_to_right != ESSTEE_TRUE)
-    {
-	errors->new_issue_at(
-	    errors,
-	    "left value is not comparable to the right value",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
-	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
-
-	return ESSTEE_ERROR;	
-    }
-    
     /* Create a temporary boolean that can hold the result */
-    be->temporary = st_bool_type_create_temp_value(config);
+    be->temporary = st_bool_type_create_temp_value(issues);
     if(!be->temporary)
     {
-	errors->memory_error(
-	    errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	return ESSTEE_ERROR;
     }
 
@@ -1214,28 +1276,20 @@ static int be_do_comparison(
     struct binary_expression_t *be,
     size_t operation_offset,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     const struct value_iface_t *left_value =
 	be->left_operand->return_value(be->left_operand);
     const struct value_iface_t *right_value =
 	be->right_operand->return_value(be->right_operand);
 
-    binary_comparison_t comparison
-	= (binary_comparison_t)(((char *)left_value) + operation_offset);
+    binary_comparison_t *comparison
+	= (binary_comparison_t *)(((char *)left_value) + operation_offset);
 
-    int result = comparison(left_value, right_value, config);
+    int result = (*comparison)(left_value, right_value, config, issues);
 
     if(result == ESSTEE_ERROR)
     {
-	errors->new_issue_at(
-	    errors,
-	    "expression evaluation failed",
-	    ISSUE_ERROR_CLASS,
-	    2,
-	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
-	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
-
 	return ESSTEE_ERROR;
     }
     else if(result == ESSTEE_TRUE)
@@ -1255,14 +1309,14 @@ static int be_comparison_verify(
     const char *not_supported_message,
     size_t operation_offset,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
     struct binary_expression_t *be =
 	CONTAINER_OF(e, struct binary_expression_t, expression);
 
-    if(be_verify_operands(be, config, errors) != ESSTEE_OK)
+    if(be_verify_operands(be, config, issues) != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
     }
@@ -1270,13 +1324,13 @@ static int be_comparison_verify(
     const struct value_iface_t *left_value =
 	be->left_operand->return_value(be->left_operand);
 
-    binary_comparison_t comparison
-	= (binary_comparison_t)(((char *)left_value) + operation_offset);
+    binary_comparison_t *comparison
+	= (binary_comparison_t *)(((char *)left_value) + operation_offset);
 
     if(!comparison)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    not_supported_message,
 	    ISSUE_ERROR_CLASS,
 	    1,
@@ -1285,10 +1339,33 @@ static int be_comparison_verify(
 	return ESSTEE_ERROR;
     }
 
-    if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)
+    const struct value_iface_t *right_value
+	= be->right_operand->return_value(be->right_operand);
+    
+    issues->begin_group(issues);
+    int left_comparable_to_right
+	= left_value->comparable_to(left_value, right_value, config, issues);
+
+    if(left_comparable_to_right != ESSTEE_TRUE)
+    {
+	issues->new_issue(
+	    issues,
+	    "left value is not comparable to the right value",
+	    ESSTEE_CONTEXT_ERROR);
+
+	issues->set_group_location(
+	    issues,
+	    2,
+	    be->left_operand->invoke.location(&(be->left_operand->invoke)),
+	    be->right_operand->invoke.location(&(be->right_operand->invoke)));
+    }
+    issues->end_group(issues);
+
+    if(left_comparable_to_right != ESSTEE_TRUE)
     {
 	return ESSTEE_ERROR;
     }
+    
 
     return ESSTEE_OK;
 }
@@ -1298,13 +1375,13 @@ static int be_comparison_constant_verify(
     const char *not_supported_message,
     size_t operation_offset,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = be_comparison_verify(self,
 					     not_supported_message,
 					     operation_offset,
 					     config,
-					     errors);
+					     issues);
     if(verify_result != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
@@ -1315,7 +1392,7 @@ static int be_comparison_constant_verify(
     struct binary_expression_t *be =
 	CONTAINER_OF(e, struct binary_expression_t, expression);
     
-    return be_do_comparison(be, operation_offset, config, errors);
+    return be_do_comparison(be, operation_offset, config, issues);
 }
 
 static int be_comparison_step(
@@ -1324,7 +1401,7 @@ static int be_comparison_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -1335,13 +1412,13 @@ static int be_comparison_step(
 					     cursor,
 					     time,
 					     config,
-					     errors);
+					     issues);
     if(inner_step_result != INVOKE_RESULT_FINISHED)
     {
 	return inner_step_result;
     }
 
-    if(be_do_comparison(be, operation_offset, config, errors) != ESSTEE_OK)
+    if(be_do_comparison(be, operation_offset, config, issues) != ESSTEE_OK)
     {
 	return INVOKE_RESULT_ERROR;
     }
@@ -1363,7 +1440,8 @@ const struct st_location_t * st_binary_expression_location(
 
 int st_binary_expression_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -1376,7 +1454,7 @@ int st_binary_expression_reset(
     if(be->left_operand->invoke.reset)
     {
 	int left_reset = be->left_operand->invoke.reset(
-	    &(be->left_operand->invoke), config);
+	    &(be->left_operand->invoke), config, issues);
 
 	if(left_reset != ESSTEE_OK)
 	{
@@ -1387,7 +1465,7 @@ int st_binary_expression_reset(
     if(be->right_operand->invoke.reset)
     {
 	int right_reset = be->right_operand->invoke.reset(
-	    &(be->right_operand->invoke), config);
+	    &(be->right_operand->invoke), config, issues);
 
 	if(right_reset != ESSTEE_OK)
 	{
@@ -1396,6 +1474,80 @@ int st_binary_expression_reset(
     }
 
     return ESSTEE_OK;
+}
+
+int st_binary_expression_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    if(be->left_operand->invoke.allocate)
+    {
+	int allocate_result = be->left_operand->invoke.allocate(
+	    &(be->left_operand->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    if(be->right_operand->invoke.allocate)
+    {
+	int allocate_result = be->right_operand->invoke.allocate(
+	    &(be->right_operand->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    return be_create_cloned_temporary(be, issues);
+}
+
+int st_binary_expression_allocate_bool(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct binary_expression_t *be =
+	CONTAINER_OF(e, struct binary_expression_t, expression);
+
+    if(be->left_operand->invoke.allocate)
+    {
+	int allocate_result = be->left_operand->invoke.allocate(
+	    &(be->left_operand->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    if(be->right_operand->invoke.allocate)
+    {
+	int allocate_result = be->right_operand->invoke.allocate(
+	    &(be->right_operand->invoke),
+	    issues);
+
+	if(allocate_result != ESSTEE_OK)
+	{
+	    return allocate_result;
+	}
+    }
+
+    return be_create_bool_temporary(be, issues);
 }
 
 const struct value_iface_t * st_binary_expression_return_value(
@@ -1408,7 +1560,8 @@ const struct value_iface_t * st_binary_expression_return_value(
 }
 
 struct expression_iface_t * st_binary_expression_clone(
-    struct expression_iface_t *self)
+    struct expression_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct binary_expression_t *be =
 	CONTAINER_OF(self, struct binary_expression_t, expression);
@@ -1417,16 +1570,17 @@ struct expression_iface_t * st_binary_expression_clone(
     struct expression_iface_t *left_copy = NULL;
     struct expression_iface_t *right_copy = NULL;
     
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	copy,
 	struct binary_expression_t,
+	issues,
 	error_free_resources);
 
     memcpy(copy, be, sizeof(struct binary_expression_t));
 
     if(be->left_operand->clone)
     {
-	left_copy = be->left_operand->clone(be->left_operand);
+	left_copy = be->left_operand->clone(be->left_operand, issues);
 	if(!left_copy)
 	{
 	    goto error_free_resources;
@@ -1437,7 +1591,7 @@ struct expression_iface_t * st_binary_expression_clone(
 
     if(be->right_operand->clone)
     {
-	right_copy = be->right_operand->clone(be->right_operand);
+	right_copy = be->right_operand->clone(be->right_operand, issues);
 	if(!right_copy)
 	{
 	    goto error_free_resources;
@@ -1473,25 +1627,25 @@ void st_binary_expression_clone_destroy(
 int st_xor_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
 		     "value does not support the xor operation",
 		     offsetof(struct value_iface_t, xor),
 		     config,
-		     errors);    
+			      issues);    
 }
 
 int st_xor_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the xor operation",
 		     offsetof(struct value_iface_t, xor),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_xor_expression_step(
@@ -1499,39 +1653,39 @@ int st_xor_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {    
     return be_step(self,
 		   offsetof(struct value_iface_t, xor),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* and */
 int st_and_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
-		     "value does not support the and operation",
-		     offsetof(struct value_iface_t, and),
-		     config,
-		     errors);    
+			      "value does not support the and operation",
+			      offsetof(struct value_iface_t, and),
+			      config,
+			      issues);    
 }
 
 int st_and_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the and operation",
 		     offsetof(struct value_iface_t, and),
 		     config,
-		     errors);    
+		     issues);    
 }
 
 int st_and_expression_step(
@@ -1539,38 +1693,38 @@ int st_and_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, and),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 int st_or_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
-		     "value does not support the or operation",
-		     offsetof(struct value_iface_t, or),
-		     config,
-		     errors);    
+			      "value does not support the or operation",
+			      offsetof(struct value_iface_t, or),
+			      config,
+			      issues);    
 }
 
 int st_or_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the or operation",
 		     offsetof(struct value_iface_t, or),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_or_expression_step(
@@ -1578,39 +1732,39 @@ int st_or_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, or),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* plus */
 int st_plus_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
-		     "value does not support the + operation",
-		     offsetof(struct value_iface_t, plus),
-		     config,
-		     errors);    
+			      "value does not support the + operation",
+			      offsetof(struct value_iface_t, plus),
+			      config,
+			      issues);    
 }
 
 int st_plus_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the + operation",
 		     offsetof(struct value_iface_t, plus),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_plus_expression_step(
@@ -1618,39 +1772,39 @@ int st_plus_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, plus),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* minus */
 int st_minus_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
 			      "value does not support the - operation",
 			      offsetof(struct value_iface_t, minus),
 			      config,
-			      errors);
+			      issues);
 }
 
 int st_minus_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the - operation",
 		     offsetof(struct value_iface_t, minus),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_minus_expression_step(
@@ -1658,39 +1812,39 @@ int st_minus_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, minus),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* multiply */
 int st_multiply_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
 			      "value does not support the * operation",
 			      offsetof(struct value_iface_t, multiply),
 			      config,
-			      errors);
+			      issues);
 }
 
 int st_multiply_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the * operation",
 		     offsetof(struct value_iface_t, multiply),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_multiply_expression_step(
@@ -1698,39 +1852,39 @@ int st_multiply_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, multiply),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* divide */
 int st_division_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
 			      "value does not support the / operation",
 			      offsetof(struct value_iface_t, divide),
 			      config,
-			      errors);
+			      issues);
 }
 
 int st_division_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the / operation",
 		     offsetof(struct value_iface_t, divide),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_division_expression_step(
@@ -1738,39 +1892,39 @@ int st_division_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, divide),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* greater */
 int st_greater_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_constant_verify(self,
 					 "value does not support the > operation",
 					 offsetof(struct value_iface_t, greater),
 					 config,
-					 errors);
+					 issues);
 }
 
 int st_greater_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_verify(self,
 				"value does not support the > operation",
 				offsetof(struct value_iface_t, greater),
 				config,
-				errors);
+				issues);
 }
 
 int st_greater_expression_step(
@@ -1778,40 +1932,40 @@ int st_greater_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_step(self,
 			      offsetof(struct value_iface_t, greater),
 			      cursor,
 			      time,
 			      config,
-			      errors);
+			      issues);
 }
 
 /* lesser */
 int st_lesser_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_constant_verify(self,
 					 "value does not support the > operation",
 					 offsetof(struct value_iface_t, lesser),
 					 config,
-					 errors);
+					 issues);
 }
 
 
 int st_lesser_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_verify(self,
 				"value does not support the > operation",
 				offsetof(struct value_iface_t, lesser),
 				config,
-				errors);
+				issues);
 }
 
 int st_lesser_expression_step(
@@ -1819,40 +1973,40 @@ int st_lesser_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_step(self,
 			      offsetof(struct value_iface_t, lesser),
 			      cursor,
 			      time,
 			      config,
-			      errors);
+			      issues);
 }
 
 /* equals */
 int st_equals_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_constant_verify(self,
-					 "value does not support the > operation",
+					 "value does not support the = operation",
 					 offsetof(struct value_iface_t, equals),
 					 config,
-					 errors);
+					 issues);
 
 }
 
 int st_equals_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_verify(self,
 				"value does not support the = operation",
 				offsetof(struct value_iface_t, equals),
 				config,
-				errors);
+				issues);
 }
 
 int st_equals_expression_step(
@@ -1860,28 +2014,28 @@ int st_equals_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_step(self,
 			      offsetof(struct value_iface_t, equals),
 			      cursor,
 			      time,
 			      config,
-			      errors);
+			      issues);
 }
 
 /* greater or equals */
 int st_gequals_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =				       
 	CONTAINER_OF(self, struct expression_iface_t, invoke);	
     struct binary_expression_t *be =				
 	CONTAINER_OF(e, struct binary_expression_t, expression);	
 									
-    if(be_verify_operands(be, config, errors) != ESSTEE_OK)		
+    if(be_verify_operands(be, config, issues) != ESSTEE_OK)		
     {								
 	return ESSTEE_ERROR;					
     }								
@@ -1891,8 +2045,8 @@ int st_gequals_expression_verify(
 
     if(!left_value->equals || !left_value->greater)
     {								
-	errors->new_issue_at(					
-	    errors,							
+	issues->new_issue_at(					
+	    issues,							
 	    "value does not support the >= operation",
 	    ISSUE_ERROR_CLASS,			
 	    1,							
@@ -1901,22 +2055,17 @@ int st_gequals_expression_verify(
 	return ESSTEE_ERROR;
     }								
 
-    if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)		
-    {								
-	return ESSTEE_ERROR;					
-    }								
-
     return ESSTEE_OK;
 }
 
 int st_gequals_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = st_gequals_expression_verify(self,
 						     config,
-						     errors);
+						     issues);
     if(verify_result != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
@@ -1933,7 +2082,10 @@ int st_gequals_expression_constant_verify(
 	be->left_operand->return_value(be->right_operand);
     
     int error_encountered = 0;
-    int greater_comparison = left_value->greater(left_value, right_value, config);
+    int greater_comparison = left_value->greater(left_value,
+						 right_value,
+						 config,
+						 issues);
     if(greater_comparison == ESSTEE_ERROR)
     {
 	error_encountered = 1;
@@ -1944,7 +2096,10 @@ int st_gequals_expression_constant_verify(
     }
     else
     {
-	int equal_comparison = left_value->equals(left_value, right_value, config);
+	int equal_comparison = left_value->equals(left_value,
+						  right_value,
+						  config,
+						  issues);
 
 	if(equal_comparison == ESSTEE_ERROR)
 	{
@@ -1962,8 +2117,8 @@ int st_gequals_expression_constant_verify(
 
     if(error_encountered)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "unable to compare values by >=",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -1981,7 +2136,7 @@ int st_gequals_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -1992,7 +2147,7 @@ int st_gequals_expression_step(
 					     cursor,
 					     time,
 					     config,
-					     errors);
+					     issues);
     if(inner_step_result != INVOKE_RESULT_FINISHED)
     {
 	return inner_step_result;
@@ -2004,7 +2159,10 @@ int st_gequals_expression_step(
 	be->left_operand->return_value(be->right_operand);
     
     int error_encountered = 0;
-    int greater_comparison = left_value->greater(left_value, right_value, config);
+    int greater_comparison = left_value->greater(left_value,
+						 right_value,
+						 config,
+						 issues);
     if(greater_comparison == ESSTEE_ERROR)
     {
 	error_encountered = 1;
@@ -2015,7 +2173,10 @@ int st_gequals_expression_step(
     }
     else
     {
-	int equal_comparison = left_value->equals(left_value, right_value, config);
+	int equal_comparison = left_value->equals(left_value,
+						  right_value,
+						  config,
+						  issues);
 
 	if(equal_comparison == ESSTEE_ERROR)
 	{
@@ -2033,8 +2194,8 @@ int st_gequals_expression_step(
 
     if(error_encountered)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "unable to compare values by >=",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -2051,14 +2212,14 @@ int st_gequals_expression_step(
 int st_lequals_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =				       
 	CONTAINER_OF(self, struct expression_iface_t, invoke);	
     struct binary_expression_t *be =				
 	CONTAINER_OF(e, struct binary_expression_t, expression);	
 									
-    if(be_verify_operands(be, config, errors) != ESSTEE_OK)		
+    if(be_verify_operands(be, config, issues) != ESSTEE_OK)		
     {								
 	return ESSTEE_ERROR;					
     }								
@@ -2068,8 +2229,8 @@ int st_lequals_expression_verify(
 
     if(!left_value->equals || !left_value->lesser)
     {								
-	errors->new_issue_at(					
-	    errors,							
+	issues->new_issue_at(					
+	    issues,							
 	    "value does not support the <= operation",
 	    ISSUE_ERROR_CLASS,			
 	    1,							
@@ -2078,22 +2239,17 @@ int st_lequals_expression_verify(
 	return ESSTEE_ERROR;
     }								
 
-    if(be_create_bool_temporary(be, config, errors) != ESSTEE_OK)		
-    {								
-	return ESSTEE_ERROR;			
-    }								
-
     return ESSTEE_OK;
 }
 
 int st_lequals_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = st_gequals_expression_verify(self,
 						     config,
-						     errors);
+						     issues);
     if(verify_result != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
@@ -2110,7 +2266,10 @@ int st_lequals_expression_constant_verify(
 	be->left_operand->return_value(be->right_operand);
     
     int error_encountered = 0;
-    int lesser_comparison = left_value->lesser(left_value, right_value, config);
+    int lesser_comparison = left_value->lesser(left_value,
+					       right_value,
+					       config,
+					       issues);
     if(lesser_comparison == ESSTEE_ERROR)
     {
 	error_encountered = 1;
@@ -2121,7 +2280,10 @@ int st_lequals_expression_constant_verify(
     }
     else
     {
-	int equal_comparison = left_value->equals(left_value, right_value, config);
+	int equal_comparison = left_value->equals(left_value,
+						  right_value,
+						  config,
+						  issues);
 
 	if(equal_comparison == ESSTEE_ERROR)
 	{
@@ -2139,8 +2301,8 @@ int st_lequals_expression_constant_verify(
 
     if(error_encountered)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "unable to compare values by <=",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -2158,7 +2320,7 @@ int st_lequals_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -2169,7 +2331,7 @@ int st_lequals_expression_step(
 					     cursor,
 					     time,
 					     config,
-					     errors);
+					     issues);
     if(inner_step_result != INVOKE_RESULT_FINISHED)
     {
 	return inner_step_result;
@@ -2181,7 +2343,10 @@ int st_lequals_expression_step(
 	be->left_operand->return_value(be->right_operand);
 
     int error_encountered = 0;
-    int lesser_comparison = left_value->lesser(left_value, right_value, config);
+    int lesser_comparison = left_value->lesser(left_value,
+					       right_value,
+					       config,
+					       issues);
     if(lesser_comparison == ESSTEE_ERROR)
     {
 	error_encountered = 1;
@@ -2192,7 +2357,10 @@ int st_lequals_expression_step(
     }
     else
     {
-	int equal_comparison = left_value->equals(left_value, right_value, config);
+	int equal_comparison = left_value->equals(left_value,
+						  right_value,
+						  config,
+						  issues);
 
 	if(equal_comparison == ESSTEE_ERROR)
 	{
@@ -2210,8 +2378,8 @@ int st_lequals_expression_step(
 
     if(error_encountered)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "unable to compare values by <=",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -2228,23 +2396,23 @@ int st_lequals_expression_step(
 int st_nequals_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_verify(self,
 				"value does not support the <> operation",
 				offsetof(struct value_iface_t, equals),
 				config,
-				errors);
+				issues);
 }
 
 int st_nequals_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int verify_result = st_nequals_expression_verify(self,
 						     config,
-						     errors);
+						     issues);
     if(verify_result != ESSTEE_OK)
     {
 	return ESSTEE_ERROR;
@@ -2260,11 +2428,11 @@ int st_nequals_expression_constant_verify(
     const struct value_iface_t *right_value =
 	be->right_operand->return_value(be->right_operand);
 
-    int comparison = left_value->equals(left_value, right_value, config);
+    int comparison = left_value->equals(left_value, right_value, config, issues);
     if(comparison == ESSTEE_ERROR)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "unable to compare values by <>",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -2290,7 +2458,7 @@ int st_nequals_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct expression_iface_t *e =
 	CONTAINER_OF(self, struct expression_iface_t, invoke);
@@ -2298,7 +2466,7 @@ int st_nequals_expression_step(
     struct binary_expression_t *be =
 	CONTAINER_OF(e, struct binary_expression_t, expression);
 
-    int operand_step_result = be_step_operands(be, cursor, time, config, errors);
+    int operand_step_result = be_step_operands(be, cursor, time, config, issues);
     if(operand_step_result != INVOKE_RESULT_FINISHED)
     {
 	return operand_step_result;
@@ -2309,11 +2477,11 @@ int st_nequals_expression_step(
     const struct value_iface_t *right_value =
 	be->right_operand->return_value(be->right_operand);
 
-    int comparison = left_value->equals(left_value, right_value, config);
+    int comparison = left_value->equals(left_value, right_value, config, issues);
     if(comparison == ESSTEE_ERROR)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "unable to compare values by <>",
 	    ISSUE_ERROR_CLASS,
 	    2,
@@ -2338,25 +2506,25 @@ int st_nequals_expression_step(
 int st_mod_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
 			      "value does not support the modulus operation",
 			      offsetof(struct value_iface_t, modulus),
 			      config,
-			      errors);
+			      issues);
 }
 
 int st_mod_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_comparison_verify(self,
 				"value does not support the modulus operation",
 				offsetof(struct value_iface_t, modulus),
 				config,
-				errors);
+				issues);
 }
 
 int st_mod_expression_step(
@@ -2364,39 +2532,39 @@ int st_mod_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, modulus),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }
 
 /* power */
 int st_power_expression_constant_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_constant_verify(self,
 			      "value does not support the to power operation",
 			      offsetof(struct value_iface_t, to_power),
 			      config,
-			      errors);
+			      issues);
 }
 
 int st_power_expression_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_verify(self,
 		     "value does not support the to power operation",
 		     offsetof(struct value_iface_t, to_power),
 		     config,
-		     errors);
+		     issues);
 }
 
 int st_power_expression_step(
@@ -2404,12 +2572,12 @@ int st_power_expression_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     return be_step(self,
 		   offsetof(struct value_iface_t, to_power),
 		   cursor,
 		   time,
 		   config,
-		   errors);
+		   issues);
 }

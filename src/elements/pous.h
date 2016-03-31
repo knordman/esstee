@@ -36,8 +36,8 @@ struct function_t {
     struct variable_t output;
     struct invoke_iface_t *statements;
     struct st_location_t *location;
-    struct namedreference_iface_t *type_ref_pool;
-    struct namedreference_iface_t *var_ref_pool;
+    struct named_ref_pool_iface_t *type_ref_pool;
+    struct named_ref_pool_iface_t *var_ref_pool;
     struct function_t *prev;
     struct function_t *next;
     char *identifier;
@@ -51,8 +51,8 @@ struct program_t {
     struct header_t *header;
     struct invoke_iface_t *statements;
     struct st_location_t *location;
-    struct namedreference_iface_t *type_ref_pool;
-    struct namedreference_iface_t *var_ref_pool;
+    struct named_ref_pool_iface_t *type_ref_pool;
+    struct named_ref_pool_iface_t *var_ref_pool;
     struct program_t *prev;
     struct program_t *next;
     char *identifier;
@@ -67,8 +67,8 @@ struct function_block_t {
     struct header_t *header;
     struct invoke_iface_t *statements;
     struct st_location_t *location;
-    struct namedreference_iface_t *type_ref_pool;
-    struct namedreference_iface_t *var_ref_pool;
+    struct named_ref_pool_iface_t *type_ref_pool;
+    struct named_ref_pool_iface_t *var_ref_pool;
     struct function_block_t *prev;
     struct function_block_t *next;
     char *identifier;

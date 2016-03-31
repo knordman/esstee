@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2015 Kristian Nordman
+Copyright (C) 2016 Kristian Nordman
 
 This file is part of esstee. 
 
@@ -17,23 +17,31 @@ You should have received a copy of the GNU General Public License
 along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
+#include <esstee/elements.h>
 #include <elements/ivalue.h>
-#include <elements/iinvoke.h>
 #include <util/iissues.h>
+#include <util/iconfig.h>
+#include <util/macros.h>
 
-struct expression_iface_t {
+#include <uthash.h>
 
-    struct invoke_iface_t invoke;
-    
-    const struct value_iface_t * (*return_value)(
-	struct expression_iface_t *self);
-
-    struct expression_iface_t * (*clone)(
-	struct expression_iface_t *self,
-	struct issues_iface_t *issues);
-    
-    void (*destroy)(
-	struct expression_iface_t *self);
+struct element_node_context_t {
+    struct issues_iface_t *issues;
+    const struct config_iface_t *config;
 };
+
+struct element_node_t {
+    struct st_element_t element;
+    const struct element_node_context_t *context;
+    struct value_iface_t *value;
+
+    struct element_node_t *sub_nodes;
+
+    char *identifier;
+    UT_hash_handle hh;
+};
+
+struct element_node_t * st_new_element_node(
+    const char *identifier,
+    struct value_iface_t *value,
+    const struct element_node_context_t *context);
