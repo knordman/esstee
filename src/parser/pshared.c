@@ -25,6 +25,9 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <utlist.h>
 
 
+/**************************************************************************/
+/* Array index                                                            */
+/**************************************************************************/
 struct array_index_t * st_append_new_array_index(
     struct array_index_t *index_list,
     struct expression_iface_t *index_expression,
@@ -99,6 +102,9 @@ struct invoke_parameter_t * st_append_invoke_parameter(
     return parameter_group;
 }
 
+/**************************************************************************/
+/* Qualified identifier                                                   */
+/**************************************************************************/
 struct qualified_identifier_t * st_new_inner_reference(
     char *identifier,
     struct qualified_identifier_t *outer,
@@ -190,6 +196,7 @@ struct qualified_identifier_t * st_new_qualified_identifier_inner_ref(
 	parser->errors,
 	error_free_resources);
 
+    qi->runtime_constant_reference = 1;
     qi->location = l;
     qi->identifier = identifier;
     qi->array_index = NULL;
@@ -200,9 +207,9 @@ struct qualified_identifier_t * st_new_qualified_identifier_inner_ref(
 	parser->pou_var_ref_pool,
 	qi->identifier,
 	qi,
-	NULL,
 	location_identifier,
-	st_qualified_identifier_base_resolved);
+	st_qualified_identifier_base_resolved,
+	parser->errors);
 
     qi->last = inner_reference->last;
     qi->runtime_constant_reference = inner_reference->runtime_constant_reference;
@@ -256,9 +263,9 @@ struct qualified_identifier_t * st_new_qualified_identifier_array_index(
 	parser->pou_var_ref_pool,
 	qi->identifier,
 	qi,
-	NULL,
 	location_identifier,
-	st_qualified_identifier_base_resolved);
+	st_qualified_identifier_base_resolved,
+	parser->errors);
 
     struct array_index_t *itr = NULL;
     DL_FOREACH(array_index, itr)

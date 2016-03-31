@@ -22,10 +22,9 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/ivalue.h>
 #include <util/iconfig.h>
 #include <util/bitflag.h>
+#include <util/iissues.h>
 
 #include <uthash.h>
-
-struct value_iface_t;
 
 struct type_iface_t {
 
@@ -34,26 +33,29 @@ struct type_iface_t {
     
     struct value_iface_t * (*create_value_of)(
 	const struct type_iface_t *self,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*reset_value_of)(
 	const struct type_iface_t *self,
 	struct value_iface_t *value_of,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     int (*can_hold)(
     	const struct type_iface_t *self,
 	const struct value_iface_t *value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     int (*compatible)(
 	const struct type_iface_t *self,
 	const struct type_iface_t *other_type,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     st_bitflag_t (*class)(
-	const struct type_iface_t *self,
-	const struct config_iface_t *config);
+	const struct type_iface_t *self);
     
     void (*destroy)(
 	struct type_iface_t *self);

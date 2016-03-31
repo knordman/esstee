@@ -23,12 +23,12 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 int st_single_identifier_variable_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct single_identifier_term_t *sit
 	= (struct single_identifier_term_t *)referrer;
@@ -62,21 +62,27 @@ int st_single_identifier_variable_resolved(
 
 int st_function_invocation_term_function_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(target == NULL)
     {
-	errors->new_issue_at(
-	    errors,
-	    "reference to undefined function",
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined function '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    location);
+	
 	return ESSTEE_ERROR;
     }
     

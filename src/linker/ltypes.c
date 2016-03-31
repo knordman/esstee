@@ -35,14 +35,14 @@ static struct type_iface_t * resolve_ancestor(
     struct type_chain_entry_t *children,
     void *parent,
     const struct st_location_t *error_location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     /* Check if parent is defined */
     if(!parent)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "reference to undefined type",
 	    ISSUE_ERROR_CLASS,
 	    1,
@@ -60,10 +60,15 @@ static struct type_iface_t * resolve_ancestor(
     {
 	if(child->type == parent_type)
 	{
-	    errors->new_issue_at(
-		errors,
-		"circular reference",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"circular reference found while resolving type '%s'",
+		parent_type->identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_CONTEXT_ERROR,
 		1,
 		error_location);
 
@@ -71,8 +76,7 @@ static struct type_iface_t * resolve_ancestor(
 	}
     }
 
-    st_bitflag_t parent_type_class = parent_type->class(parent_type,
-						   config);
+    st_bitflag_t parent_type_class = parent_type->class(parent_type);
     
     if(ST_FLAG_IS_SET(parent_type_class, DERIVED_TYPE))
     {
@@ -101,8 +105,8 @@ static struct type_iface_t * resolve_ancestor(
 	return resolve_ancestor(children,
 				next_parent,
 				error_location,
-				errors,
-				config);
+				config,
+				issues);
     }
 
     return parent_type;
@@ -110,12 +114,12 @@ static struct type_iface_t * resolve_ancestor(
     
 int st_derived_type_parent_name_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct derived_type_t *dt =
 	(struct derived_type_t *)referrer;
@@ -128,12 +132,12 @@ int st_derived_type_parent_name_resolved(
 
 int st_derived_type_resolve_ancestor(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct derived_type_t *dt =
 	(struct derived_type_t *)referrer;
@@ -147,8 +151,8 @@ int st_derived_type_resolve_ancestor(
     struct type_iface_t *ancestor = resolve_ancestor(children,
 						     target,
 						     location,
-						     errors,
-						     config);
+						     config,
+						     issues);
 
     if(!ancestor)
     {
@@ -161,29 +165,31 @@ int st_derived_type_resolve_ancestor(
     {
 	if(!ancestor->can_hold)
 	{
-	    errors->new_issue_at(
-		errors,
-		"type cannot be assigned a new default value",
+	    const char *message = issues->build_message(
+		issues,
+		"type '%s' cannot have a default value",
+		dt->type.identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
 		ISSUE_ERROR_CLASS,
 		1,
 		dt->default_value_location);
 
 	    return ESSTEE_ERROR;
 	}
-	
-	int ancestor_can_hold_default_value =
-	    ancestor->can_hold(ancestor, dt->default_value, config);
 
+	issues->begin_group(issues);
+	int ancestor_can_hold_default_value =
+	    ancestor->can_hold(ancestor, dt->default_value, config, issues);
+	issues->set_group_location(issues,
+				   1,
+				   dt->default_value_location);
+	
 	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
 	{
-	    errors->new_issue_at(
-		errors,
-		"incompatible default value",
-		ISSUE_ERROR_CLASS,
-		1,
-		dt->default_value_location);
-	    
-	    return ancestor_can_hold_default_value;
+	    return ESSTEE_ERROR;
 	}
     }
     
@@ -192,12 +198,12 @@ int st_derived_type_resolve_ancestor(
 
 int st_subrange_type_storage_type_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_type_t *st =
 	(struct subrange_type_t *)referrer;
@@ -209,37 +215,45 @@ int st_subrange_type_storage_type_resolved(
 
 int st_subrange_type_storage_type_check(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_type_t *st =
 	(struct subrange_type_t *)referrer;
 
     if(!st->subranged_type)
     {
-	errors->new_issue_at(
-	    errors,
-	    "reference to undefined type",
-	    ISSUE_ERROR_CLASS,
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_TYPE_ERROR,
 	    1,
 	    location);
+
 	return ESSTEE_ERROR;
     }
     
     int subranged_type_can_hold_min =
 	st->subranged_type->can_hold(st->subranged_type,
 				     st->subrange->min,
-				     config);
+				     config,
+				     issues);
+    
     if(subranged_type_can_hold_min != ESSTEE_TRUE)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "the subranged type cannot hold the minimum value",
-	    ISSUE_ERROR_CLASS,
+	    ESSTEE_TYPE_ERROR,
 	    2,
 	    location,
 	    st->subrange->min_location);
@@ -249,13 +263,14 @@ int st_subrange_type_storage_type_check(
     int subranged_type_can_hold_max =
 	st->subranged_type->can_hold(st->subranged_type,
 				     st->subrange->max,
-				     config);
+				     config,
+				     issues);
     if(subranged_type_can_hold_max != ESSTEE_TRUE)
     {
-	errors->new_issue_at(
-	    errors,
+	issues->new_issue_at(
+	    issues,
 	    "the subranged type cannot hold the maximum value",
-	    ISSUE_ERROR_CLASS,
+	    ESSTEE_TYPE_ERROR,
 	    2,
 	    location,
 	    st->subrange->max_location);
@@ -267,12 +282,12 @@ int st_subrange_type_storage_type_check(
 
 int st_array_type_arrayed_type_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct array_type_t *st =
 	(struct array_type_t *)referrer;
@@ -284,24 +299,30 @@ int st_array_type_arrayed_type_resolved(
 
 int st_array_type_arrayed_type_check(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct array_type_t *at =
 	(struct array_type_t *)referrer;
 
     if(!at->arrayed_type)
     {
-	errors->new_issue_at(
-	    errors,
-	    "reference to undefined type",
-	    ISSUE_ERROR_CLASS,
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_TYPE_ERROR,
 	    1,
 	    location);
+
 	return ESSTEE_ERROR;
     }
     
@@ -310,8 +331,8 @@ int st_array_type_arrayed_type_check(
 	return st_array_type_check_array_initializer(at->ranges,
 						     at->default_value,
 						     at->arrayed_type,
-						     errors,
-						     config);
+						     config,
+						     issues);
     }
     
     return ESSTEE_OK;
@@ -319,21 +340,27 @@ int st_array_type_arrayed_type_check(
 
 int st_struct_element_type_name_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!target)
     {
-	errors->new_issue_at(
-	    errors,
-	    "reference to undefined type",
-	    ISSUE_ERROR_CLASS,
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_TYPE_ERROR,
 	    1,
 	    location);
+
 	return ESSTEE_ERROR;
     }
 
@@ -348,12 +375,12 @@ int st_struct_element_type_name_resolved(
 int st_check_function_block_type_refs(
     struct function_block_t *fb,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct variable_t *itr = NULL;
     DL_FOREACH(fb->header->variables, itr)
     {
-	st_bitflag_t type_class = itr->type->class(itr->type, config);
+	st_bitflag_t type_class = itr->type->class(itr->type);
 
 	if(ST_FLAG_IS_SET(type_class, FB_TYPE))
 	{
@@ -373,19 +400,25 @@ int st_check_function_block_type_refs(
 	    HASH_FIND_STR(ref_fb->header->variables, itr->identifier, found);
 	    if(found && itr == found)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "variable cannot have its container type as type",
-		    ISSUE_ERROR_CLASS,
+		const char *message = issues->build_message(
+		    issues,
+		    "variable '%s' cannot have its container type as type",
+		    itr->identifier);
+	
+		issues->new_issue_at(
+		    issues,
+		    message,
+		    ESSTEE_TYPE_ERROR,
 		    1,
 		    itr->identifier_location);
+
 		return ESSTEE_ERROR;
 	    }
 	    
 	    struct variable_t *vitr = NULL;
 	    DL_FOREACH(ref_fb->header->variables, vitr)
 	    {
-		st_bitflag_t fb_var_type_class = vitr->type->class(vitr->type, config);
+		st_bitflag_t fb_var_type_class = vitr->type->class(vitr->type);
 
 		if(ST_FLAG_IS_SET(fb_var_type_class, FB_TYPE))
 		{
@@ -400,12 +433,13 @@ int st_check_function_block_type_refs(
 
 		    if(fb_var_type == &(fb->type))
 		    {
-			errors->new_issue_at(
-			    errors,
+			issues->new_issue_at(
+			    issues,
 			    "circular reference",
 			    ISSUE_ERROR_CLASS,
 			    1,
 			    itr->identifier_location);
+			
 			return ESSTEE_ERROR;
 		    }
 		}

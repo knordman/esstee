@@ -66,9 +66,9 @@ int st_new_function_pou(
 	parser->global_type_ref_pool,
 	return_type_identifier,
 	f,
-	NULL,
 	type_identifier_location,
-	st_function_return_type_resolved);
+	st_function_return_type_resolved,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {

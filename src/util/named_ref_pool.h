@@ -19,21 +19,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <elements/ivalue.h>
-#include <elements/iinvoke.h>
+#include <util/inamed_ref_pool.h>
 #include <util/iissues.h>
 
-struct expression_iface_t {
-
-    struct invoke_iface_t invoke;
-    
-    const struct value_iface_t * (*return_value)(
-	struct expression_iface_t *self);
-
-    struct expression_iface_t * (*clone)(
-	struct expression_iface_t *self,
-	struct issues_iface_t *issues);
-    
-    void (*destroy)(
-	struct expression_iface_t *self);
-};
+struct named_ref_pool_iface_t * st_new_named_ref_pool(
+    struct issues_iface_t *issues);

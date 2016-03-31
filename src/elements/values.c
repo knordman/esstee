@@ -42,8 +42,7 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
     } while(0)
 
 st_bitflag_t st_general_value_empty_class(
-    const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct value_iface_t *self)
 {
     return 0;
 }
@@ -51,15 +50,16 @@ st_bitflag_t st_general_value_empty_class(
 int st_general_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
-    int greater = self->greater(self, other_value, config);
+    int greater = self->greater(self, other_value, config, issues);
     if(greater == ESSTEE_TRUE)
     {
 	return ESSTEE_FALSE;
     }
 
-    int lesser = self->lesser(self, other_value, config);
+    int lesser = self->lesser(self, other_value, config, issues);
     if(lesser == ESSTEE_TRUE)
     {
 	return ESSTEE_FALSE;
@@ -89,14 +89,15 @@ int st_integer_value_display(
 int st_integer_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     if(!ST_FLAG_IS_SET(iv->class, TEMPORARY_VALUE))
     {
-	int type_can_hold = iv->type->can_hold(iv->type, new_value, config);
+	int type_can_hold = iv->type->can_hold(iv->type, new_value, config, issues);
 
 	if(type_can_hold != ESSTEE_TRUE)
 	{
@@ -104,7 +105,7 @@ int st_integer_value_assign(
 	}
     }
 
-    iv->num = new_value->integer(new_value, config);
+    iv->num = new_value->integer(new_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -112,10 +113,16 @@ int st_integer_value_assign(
 int st_integer_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->integer)
     {
+	issues->new_issue(
+	    issues,
+	    "new value cannot be interpreted as an integer",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -127,16 +134,14 @@ int st_integer_value_assignable_from(
 	return ESSTEE_TRUE;
     }
     
-    st_bitflag_t other_value_class =
-	other_value->class(other_value, config);
+    st_bitflag_t other_value_class = other_value->class(other_value);
 
-    int not_temp_or_constant =
-	!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE)
-	|| ST_FLAG_IS_SET(other_value_class, CONSTANT_VALUE);
-    
-    if(not_temp_or_constant)
+    if(ST_FLAG_IS_SET(other_value_class, CONSTANT_VALUE))
     {
-	int type_can_hold = iv->type->can_hold(iv->type, other_value, config);
+	int type_can_hold = iv->type->can_hold(iv->type,
+					       other_value,
+					       config,
+					       issues);
 
 	if(type_can_hold != ESSTEE_TRUE)
 	{
@@ -149,7 +154,10 @@ int st_integer_value_assignable_from(
 		other_value->type_of(other_value);
 
 	    int types_compatible =
-		iv->type->compatible(iv->type, other_value_type, config);
+		iv->type->compatible(iv->type,
+				     other_value_type,
+				     config,
+				     issues);
 
 	    if(types_compatible != ESSTEE_TRUE)
 	    {
@@ -164,10 +172,16 @@ int st_integer_value_assignable_from(
 int st_integer_value_compares_and_operates(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 { 
     if(!other_value->integer)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as an integer",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -179,8 +193,7 @@ int st_integer_value_compares_and_operates(
 	return ESSTEE_TRUE;
     }
 
-    st_bitflag_t other_value_class =
-	other_value->class(other_value, config);
+    st_bitflag_t other_value_class = other_value->class(other_value);
     
     if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
@@ -189,8 +202,10 @@ int st_integer_value_compares_and_operates(
 	    const struct type_iface_t *other_value_type =
 		other_value->type_of(other_value);
 
-	    int types_compatible =
-		iv->type->compatible(iv->type, other_value_type, config);
+	    int types_compatible = iv->type->compatible(iv->type,
+							other_value_type,
+							config,
+							issues);
 
 	    if(types_compatible != ESSTEE_TRUE)
 	    {
@@ -212,15 +227,17 @@ const struct type_iface_t * st_integer_value_type_of(
 }
 
 struct value_iface_t * st_integer_value_create_temp_from(
-    const struct value_iface_t *self)
+    const struct value_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     struct integer_value_t *clone = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	clone,
 	struct integer_value_t,
+	issues,
 	error_free_resources);
 
     memcpy(clone, iv, sizeof(struct integer_value_t));
@@ -231,9 +248,9 @@ struct value_iface_t * st_integer_value_create_temp_from(
     /* Temporary has no type */
     clone->type = NULL;
 
-    /* Temporary is assignable (might be cloned from literal) */
+    /* Temporary is assignable */
     clone->value.assign = st_integer_value_assign;
-
+    
     ST_SET_FLAGS(clone->class, TEMPORARY_VALUE);
     
     return &(clone->value);
@@ -251,12 +268,13 @@ void st_integer_value_destroy(
 int st_integer_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    if(iv->num > other_value->integer(other_value, config))
+    if(iv->num > other_value->integer(other_value, config, issues))
     {
 	return ESSTEE_TRUE;
     }
@@ -267,12 +285,13 @@ int st_integer_value_greater(
 int st_integer_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    if(iv->num < other_value->integer(other_value, config))
+    if(iv->num < other_value->integer(other_value, config, issues))
     {
 	return ESSTEE_TRUE;
     }
@@ -283,12 +302,13 @@ int st_integer_value_lesser(
 int st_integer_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    if(iv->num == other_value->integer(other_value, config))
+    if(iv->num == other_value->integer(other_value, config, issues))
     {
 	return ESSTEE_TRUE;
     }
@@ -298,7 +318,8 @@ int st_integer_value_equals(
 
 int st_integer_value_negate(
     const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
@@ -311,12 +332,13 @@ int st_integer_value_negate(
 int st_integer_value_plus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    iv->num += other_value->integer(other_value, config);
+    iv->num += other_value->integer(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -324,12 +346,13 @@ int st_integer_value_plus(
 int st_integer_value_minus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    iv->num -= other_value->integer(other_value, config);
+    iv->num -= other_value->integer(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -337,12 +360,13 @@ int st_integer_value_minus(
 int st_integer_value_multiply(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    iv->num *= other_value->integer(other_value, config);
+    iv->num *= other_value->integer(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -350,16 +374,22 @@ int st_integer_value_multiply(
 int st_integer_value_divide(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t other_value_num = other_value->integer(other_value, config);
+    int64_t other_value_num = other_value->integer(other_value, config, issues);
 
     if(other_value_num == 0)
     {
-	return ESSTEE_DIVISION_BY_ZERO;
+	issues->new_issue(
+	    issues,
+	    "division by zero",
+	    ESSTEE_ARGUMENT_ERROR);
+
+	return ESSTEE_ERROR;
     }
     
     iv->num /= other_value_num;
@@ -370,12 +400,13 @@ int st_integer_value_divide(
 int st_integer_value_modulus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    iv->num %= other_value->integer(other_value, config);
+    iv->num %= other_value->integer(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -383,18 +414,23 @@ int st_integer_value_modulus(
 int st_integer_value_to_power(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     long double dnum = (long double)iv->num;
-    long double exp = (long double)other_value->integer(other_value, config);
+    long double exp = (long double)other_value->integer(other_value, config, issues);
 
     errno = 0;
     long double result = powl(dnum, exp);
     if(errno != 0)
     {
+	issues->new_issue(issues,
+			  "evaluation of power expression failed",
+			  ESSTEE_ARGUMENT_ERROR);
+	
 	return ESSTEE_ERROR;
     }
     
@@ -405,7 +441,8 @@ int st_integer_value_to_power(
 
 int64_t st_integer_value_integer(
     const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
@@ -414,8 +451,7 @@ int64_t st_integer_value_integer(
 }
 
 st_bitflag_t st_integer_value_class(
-    const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct value_iface_t *self)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
@@ -460,10 +496,16 @@ int st_bool_value_display(
 int st_bool_value_assigns_compares_operates(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->bool)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as a boolean",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
     
@@ -473,12 +515,13 @@ int st_bool_value_assigns_compares_operates(
 int st_bool_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    if(new_value->bool(new_value, config) == ESSTEE_TRUE)
+    if(new_value->bool(new_value, config, issues) == ESSTEE_TRUE)
     {
 	iv->num = 1;
     }
@@ -491,15 +534,17 @@ int st_bool_value_assign(
 }
 
 struct value_iface_t * st_bool_value_create_temp_from(
-    const struct value_iface_t *self)
+    const struct value_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
     struct integer_value_t *clone = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	clone,
 	struct integer_value_t,
+	issues,
 	error_free_resources);
 
     memcpy(clone, iv, sizeof(struct integer_value_t));
@@ -524,9 +569,10 @@ error_free_resources:
 int st_bool_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
-    if(self->bool(self, config) == other_value->bool(other_value, config))
+    if(self->bool(self, config, issues) == other_value->bool(other_value, config, issues))
     {
 	return ESSTEE_TRUE;
     }
@@ -536,7 +582,8 @@ int st_bool_value_equals(
 
 int st_bool_value_bool(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
@@ -551,7 +598,8 @@ int st_bool_value_bool(
 
 int st_bool_value_not(
     const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
@@ -564,12 +612,13 @@ int st_bool_value_not(
 int st_bool_value_xor(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
+    int64_t ov = (other_value->bool(other_value, config, issues) == ESSTEE_TRUE) ? 1 : 0;
 
     iv->num ^= ov;
     
@@ -579,12 +628,13 @@ int st_bool_value_xor(
 int st_bool_value_and(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
+    int64_t ov = (other_value->bool(other_value, config, issues) == ESSTEE_TRUE) ? 1 : 0;
     
     iv->num &= ov;
     
@@ -594,12 +644,13 @@ int st_bool_value_and(
 int st_bool_value_or(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
 
-    int64_t ov = (other_value->bool(other_value, config) == ESSTEE_TRUE) ? 1 : 0;
+    int64_t ov = (other_value->bool(other_value, config, issues) == ESSTEE_TRUE) ? 1 : 0;
 
     iv->num |= ov;
     
@@ -609,7 +660,8 @@ int st_bool_value_or(
 int st_integer_literal_override_type(
     const struct value_iface_t *self,
     const struct type_iface_t *type,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct integer_value_t *iv =
 	CONTAINER_OF(self, struct integer_value_t, value);
@@ -641,14 +693,15 @@ int st_real_value_display(
 int st_real_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
     if(!ST_FLAG_IS_SET(rv->class, TEMPORARY_VALUE))
     {
-	int type_can_hold = rv->type->can_hold(rv->type, new_value, config);
+	int type_can_hold = rv->type->can_hold(rv->type, new_value, config, issues);
 
 	if(type_can_hold != ESSTEE_TRUE)
 	{
@@ -656,7 +709,7 @@ int st_real_value_assign(
 	}
     }
 
-    rv->num = new_value->real(new_value, config);
+    rv->num = new_value->real(new_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -664,10 +717,16 @@ int st_real_value_assign(
 int st_real_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->real)
     {
+	issues->new_issue(
+	    issues,
+	    "new value cannot be interpreted as a float number",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -679,12 +738,14 @@ int st_real_value_assignable_from(
 	return ESSTEE_TRUE;
     }
     
-    st_bitflag_t other_value_class =
-	other_value->class(other_value, config);
+    st_bitflag_t other_value_class = other_value->class(other_value);
     
     if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
-	int type_can_hold = rv->type->can_hold(rv->type, other_value, config);
+	int type_can_hold = rv->type->can_hold(rv->type,
+					       other_value,
+					       config,
+					       issues);
 
 	if(type_can_hold != ESSTEE_TRUE)
 	{
@@ -696,8 +757,10 @@ int st_real_value_assignable_from(
 	    const struct type_iface_t *other_value_type =
 		other_value->type_of(other_value);
 
-	    int types_compatible =
-		rv->type->compatible(rv->type, other_value_type, config);
+	    int types_compatible = rv->type->compatible(rv->type,
+							other_value_type,
+							config,
+							issues);
 
 	    if(types_compatible != ESSTEE_TRUE)
 	    {
@@ -712,10 +775,16 @@ int st_real_value_assignable_from(
 int st_real_value_compares_and_operates(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 { 
     if(!other_value->real)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as a float number",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -727,8 +796,7 @@ int st_real_value_compares_and_operates(
 	return ESSTEE_TRUE;
     }
 
-    st_bitflag_t other_value_class =
-	other_value->class(other_value, config);
+    st_bitflag_t other_value_class = other_value->class(other_value);
     
     if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
@@ -737,9 +805,10 @@ int st_real_value_compares_and_operates(
 	    const struct type_iface_t *other_value_type =
 		other_value->type_of(other_value);
 
-	    int types_compatible =
-		rv->type->compatible(rv->type, other_value_type, config);
-
+	    int types_compatible = rv->type->compatible(rv->type,
+							other_value_type,
+							config,
+							issues);
 	    if(types_compatible != ESSTEE_TRUE)
 	    {
 		return types_compatible;
@@ -760,15 +829,17 @@ const struct type_iface_t * st_real_value_type_of(
 }
 
 struct value_iface_t * st_real_value_create_temp_from(
-    const struct value_iface_t *self)
+    const struct value_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
     struct real_value_t *clone = NULL;
-    ALLOC_OR_JUMP(
+    ALLOC_OR_ERROR_JUMP(
 	clone,
 	struct real_value_t,
+	issues,
 	error_free_resources);
 
     memcpy(clone, rv, sizeof(struct real_value_t));
@@ -793,12 +864,13 @@ void st_real_value_destroy(
 int st_real_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    if(rv->num > other_value->real(other_value, config))
+    if(rv->num > other_value->real(other_value, config, issues))
     {
 	return ESSTEE_TRUE;
     }
@@ -809,12 +881,13 @@ int st_real_value_greater(
 int st_real_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    if(rv->num < other_value->real(other_value, config))
+    if(rv->num < other_value->real(other_value, config, issues))
     {
 	return ESSTEE_TRUE;
     }
@@ -825,12 +898,13 @@ int st_real_value_lesser(
 int st_real_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    double other_value_num = other_value->real(other_value, config);
+    double other_value_num = other_value->real(other_value, config, issues);
 
     if(!(rv->num > other_value_num + 1e-4) && !(rv->num < other_value_num - 1e-4))
     {
@@ -842,7 +916,8 @@ int st_real_value_equals(
 
 int st_real_value_negate(
     const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
@@ -855,12 +930,13 @@ int st_real_value_negate(
 int st_real_value_plus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    rv->num += other_value->real(other_value, config);
+    rv->num += other_value->real(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -868,12 +944,13 @@ int st_real_value_plus(
 int st_real_value_minus(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    rv->num -= other_value->real(other_value, config);
+    rv->num -= other_value->real(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -881,12 +958,13 @@ int st_real_value_minus(
 int st_real_value_multiply(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    rv->num *= other_value->real(other_value, config);
+    rv->num *= other_value->real(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -894,12 +972,13 @@ int st_real_value_multiply(
 int st_real_value_divide(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
-    rv->num /= other_value->real(other_value, config);
+    rv->num /= other_value->real(other_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -907,18 +986,23 @@ int st_real_value_divide(
 int st_real_value_to_power(
     struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
 
     double dnum = rv->num;
-    double exp = other_value->real(other_value, config);
+    double exp = other_value->real(other_value, config, issues);
 
     errno = 0;
     double result = pow(dnum, exp);
     if(errno != 0)
     {
+	issues->new_issue(issues,
+			  "evaluation of power expression failed",
+			  ESSTEE_ARGUMENT_ERROR);
+	
 	return ESSTEE_ERROR;
     }
     
@@ -929,7 +1013,8 @@ int st_real_value_to_power(
 
 double st_real_value_real(
     const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
@@ -938,8 +1023,7 @@ double st_real_value_real(
 }
 
 st_bitflag_t st_real_value_class(
-    const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct value_iface_t *self)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
@@ -950,7 +1034,8 @@ st_bitflag_t st_real_value_class(
 int st_real_literal_override_type(
     const struct value_iface_t *self,
     const struct type_iface_t *type,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct real_value_t *rv =
 	CONTAINER_OF(self, struct real_value_t, value);
@@ -992,21 +1077,25 @@ int st_enum_value_display(
 int st_enum_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct enum_value_t *ev =
 	CONTAINER_OF(self, struct enum_value_t, value);
 
     int type_can_hold = ev->type->can_hold(ev->type,
 					   new_value,
-					   config);
+					   config,
+					   issues);
 
     if(type_can_hold != ESSTEE_TRUE)
     {
 	return type_can_hold;
     }
     
-    ev->constant = new_value->enumeration(new_value, config);
+    ev->constant = new_value->enumeration(new_value,
+					  config,
+					  issues);
 
     return ESSTEE_OK;
 }
@@ -1023,10 +1112,16 @@ const struct type_iface_t * st_enum_value_type_of(
 int st_enum_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->enumeration)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as an enumerated value",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -1035,7 +1130,10 @@ int st_enum_value_assigns_and_compares(
 
     /* Check that the enumeration of the other value is present by the
      * values defined by the type */
-    int type_can_hold = ev->type->can_hold(ev->type, other_value, config);
+    int type_can_hold = ev->type->can_hold(ev->type,
+					   other_value,
+					   config,
+					   issues);
 
     if(type_can_hold != ESSTEE_TRUE)
     {
@@ -1046,12 +1144,19 @@ int st_enum_value_assigns_and_compares(
      * that the group is the same as the self group. Inline enum
      * values do not have any values group, since they lack a
      * reference to their type. */
-    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value,
+									  config,
+									  issues);
 
     if(other_value_enum->group)
     {
 	if(ev->constant->group != other_value_enum->group)
 	{
+	    issues->new_issue(
+		issues,
+		"enums are not part of the same enum type",
+		ESSTEE_TYPE_ERROR);
+	    
 	    return ESSTEE_FALSE;
 	}
     }
@@ -1068,12 +1173,16 @@ void st_enum_value_destroy(
 int st_enum_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct enum_value_t *ev =
 	CONTAINER_OF(self, struct enum_value_t, value);
 
-    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+    const struct enum_item_t *other_value_enum =
+	other_value->enumeration(other_value,
+				 config,
+				 issues);
     
     if(strcmp(ev->constant->identifier, other_value_enum->identifier) == 0)
     {
@@ -1085,7 +1194,8 @@ int st_enum_value_equals(
 
 const struct enum_item_t * st_enum_value_enumeration(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct enum_value_t *ev =
 	CONTAINER_OF(self, struct enum_value_t, value);
@@ -1114,21 +1224,23 @@ int st_subrange_value_display(
 int st_subrange_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
     int type_can_hold = sv->type->can_hold(sv->type,
 					   new_value,
-					   config);
+					   config,
+					   issues);
 	
     if(type_can_hold != ESSTEE_TRUE)
     {
 	return type_can_hold;
     }
 
-    return sv->current->assign(sv->current, new_value, config);
+    return sv->current->assign(sv->current, new_value, config, issues);
 }
 
 const struct type_iface_t * st_subrange_value_type_of(
@@ -1143,22 +1255,27 @@ const struct type_iface_t * st_subrange_value_type_of(
 int st_subrange_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->integer)
     {
+	issues->new_issue(
+	    issues,
+	    "the new value cannot be interpreted as an integer",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
     
-    st_bitflag_t other_value_class =
-	other_value->class(other_value, config);
+    st_bitflag_t other_value_class = other_value->class(other_value);
     
     if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
 	struct subrange_value_t *sv =
 	    CONTAINER_OF(self, struct subrange_value_t, value);
 	
-	int type_can_hold = sv->type->can_hold(sv->type, other_value, config);
+	int type_can_hold = sv->type->can_hold(sv->type, other_value, config, issues);
 
 	if(type_can_hold != ESSTEE_TRUE)
 	{
@@ -1171,7 +1288,7 @@ int st_subrange_value_assignable_from(
 		other_value->type_of(other_value);
 
 	    int types_compatible =
-		sv->type->compatible(sv->type, other_value_type, config);
+		sv->type->compatible(sv->type, other_value_type, config, issues);
 
 	    if(types_compatible != ESSTEE_TRUE)
 	    {
@@ -1186,15 +1303,20 @@ int st_subrange_value_assignable_from(
 int st_subrange_value_compares_and_operates(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->integer)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as an integer",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
     
-    st_bitflag_t other_value_class =
-	other_value->class(other_value, config);
+    st_bitflag_t other_value_class = other_value->class(other_value);
     
     if(!ST_FLAG_IS_SET(other_value_class, TEMPORARY_VALUE))
     {
@@ -1207,7 +1329,7 @@ int st_subrange_value_compares_and_operates(
 		other_value->type_of(other_value);
 
 	    int types_compatible =
-		sv->type->compatible(sv->type, other_value_type, config);
+		sv->type->compatible(sv->type, other_value_type, config, issues);
 
 	    if(types_compatible != ESSTEE_TRUE)
 	    {
@@ -1220,45 +1342,49 @@ int st_subrange_value_compares_and_operates(
 }
 
 struct value_iface_t * st_subrange_value_create_temp_from(
-    const struct value_iface_t *self)
+    const struct value_iface_t *self,
+    struct issues_iface_t *issues)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
     
-    return sv->current->create_temp_from(sv->current);
+    return sv->current->create_temp_from(sv->current, issues);
 }
 
 int st_subrange_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    return sv->current->greater(sv->current, other_value, config);
+    return sv->current->greater(sv->current, other_value, config, issues);
 }
 
 int st_subrange_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    return sv->current->lesser(sv->current, other_value, config);
+    return sv->current->lesser(sv->current, other_value, config, issues);
 }
 
 int st_subrange_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    return sv->current->equals(sv->current, other_value, config);
+    return sv->current->equals(sv->current, other_value, config, issues);
 }
 
 void st_subrange_value_destroy(
@@ -1269,17 +1395,20 @@ void st_subrange_value_destroy(
 
 int64_t st_subrange_value_integer(
     const struct value_iface_t *self,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_value_t *sv =
 	CONTAINER_OF(self, struct subrange_value_t, value);
 
-    return sv->current->integer(sv->current, config);
+    return sv->current->integer(sv->current, config, issues);
 }
 
+/**************************************************************************/
+/* Array value                                                            */
+/**************************************************************************/
 const struct array_init_value_t * st_array_init_value(
-    const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct value_iface_t *self)
 {
     struct array_init_value_t *av =
 	CONTAINER_OF(self, struct array_init_value_t, value);
@@ -1287,18 +1416,16 @@ const struct array_init_value_t * st_array_init_value(
     return av;
 }
 
-/**************************************************************************/
-/* Array value                                                            */
-/**************************************************************************/
 int st_array_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     const struct array_value_t *av =
 	CONTAINER_OF(self, struct array_value_t, value);
 
-    int type_can_hold = av->type->can_hold(av->type, other_value, config);
+    int type_can_hold = av->type->can_hold(av->type, other_value, config, issues);
 
     if(type_can_hold != ESSTEE_TRUE)
     {
@@ -1311,13 +1438,16 @@ int st_array_value_assignable_from(
 int st_array_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     const struct array_value_t *av =
 	CONTAINER_OF(self, struct array_value_t, value);
 
-    int elements_assigned =
-	st_array_type_assign_default_value(av->elements, new_value, config);
+    int elements_assigned = st_array_type_assign_default_value(av->elements,
+							       new_value,
+							       config,
+							       issues);
 
     if(elements_assigned <= 0)
     {
@@ -1389,7 +1519,8 @@ const struct type_iface_t * st_array_value_type_of(
 struct value_iface_t * st_array_value_index(
     struct value_iface_t *self,
     struct array_index_t *array_index,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     const struct array_value_t *av =
     	CONTAINER_OF(self, struct array_value_t, value);
@@ -1406,45 +1537,75 @@ struct value_iface_t * st_array_value_index(
 
 	if(!range_itr)
 	{
+	    issues->new_issue_at(
+		issues,
+		"index out of range",
+		ESSTEE_ARGUMENT_ERROR,
+		1,
+		array_index->location);
+
 	    return NULL;
 	}
 	
 	if(!index_value->integer)
 	{
+	    issues->new_issue_at(
+		issues,
+		"only integer indices are supported",
+		ESSTEE_ARGUMENT_ERROR,
+		1,
+		array_index->location);
+
 	    return NULL;
 	}
 
 	int index_too_small =
 	    range_itr->subrange->min->greater(range_itr->subrange->min,
-							   index_value,
-							   config);
+					      index_value,
+					      config,
+					      issues);
 	if(index_too_small != ESSTEE_FALSE)
 	{
+	    issues->new_issue_at(
+		issues,
+		"index out of range (smaller than minimum)",
+		ESSTEE_ARGUMENT_ERROR,
+		1,
+		array_index->location);
+
 	    return NULL;
 	}
 
 	int index_too_large =
 	    range_itr->subrange->max->lesser(range_itr->subrange->max,
-							       index_value,
-							       config);
+					     index_value,
+					     config,
+					     issues);
 	if(index_too_large != ESSTEE_FALSE)
 	{
+	    issues->new_issue_at(
+		issues,
+		"index out of range (larger than maximum)",
+		ESSTEE_ARGUMENT_ERROR,
+		1,
+		array_index->location);
+
 	    return NULL;
 	}
 
-	int64_t index_num = index_value->integer(index_value, config);
-	int64_t min_index_num = range_itr->subrange->min->integer(
-	    range_itr->subrange->min,
-	    config);
+	int64_t index_num = index_value->integer(index_value, config, issues);
+	int64_t min_index_num =
+	    range_itr->subrange->min->integer(range_itr->subrange->min,
+					      config,
+					      issues);
 	
 	size_t multiplier = 1;
 	if(range_itr->next)
 	{
-	    multiplier = 0;
 	    const struct array_range_t *ritr = NULL;
 	    DL_FOREACH(range_itr->next, ritr)
 	    {
-		multiplier += ritr->entries;
+		multiplier *= ritr->entries;
 	    }
 	}
 	
@@ -1453,6 +1614,18 @@ struct value_iface_t * st_array_value_index(
 	range_itr = range_itr->next;
     }
 
+    if(range_itr)
+    {
+	issues->new_issue_at(
+	    issues,
+	    "missing array indices",
+	    ESSTEE_ARGUMENT_ERROR,
+	    1,
+	    array_index->location);
+
+	return NULL;
+    }
+    
     return av->elements[elements_offset];
 }    
 
@@ -1550,12 +1723,13 @@ const struct type_iface_t * st_struct_value_type_of(
 int st_struct_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     const struct struct_value_t *sv =
 	CONTAINER_OF(self, struct struct_value_t, value);
 
-    int type_can_hold = sv->type->can_hold(sv->type, other_value, config);
+    int type_can_hold = sv->type->can_hold(sv->type, other_value, config, issues);
 
     if(type_can_hold != ESSTEE_TRUE)
     {
@@ -1568,13 +1742,14 @@ int st_struct_value_assignable_from(
 int st_struct_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     const struct struct_value_t *sv =
 	CONTAINER_OF(self, struct struct_value_t, value);
 
     const struct struct_init_value_t *isv =
-	new_value->struct_init_value(new_value, config);
+	new_value->struct_init_value(new_value);
 
     struct struct_element_init_t *itr = NULL;
     for(itr = isv->init_table; itr != NULL; itr = itr->hh.next)
@@ -1583,10 +1758,19 @@ int st_struct_value_assign(
 	HASH_FIND_STR(sv->elements, itr->element_identifier, found);
 	if(!found)
 	{
+	    issues->internal_error(
+		issues,
+		__FILE__,
+		__FUNCTION__,
+		__LINE__);
+	    
 	    return ESSTEE_ERROR;
 	}
 
-	int assign_result = found->value->assign(found->value, itr->element_default_value, config);
+	int assign_result = found->value->assign(found->value,
+						 itr->element_default_value,
+						 config,
+						 issues);
 	if(assign_result != ESSTEE_OK)
 	{
 	    return assign_result;
@@ -1611,20 +1795,30 @@ void st_struct_init_value_destroy(
 struct variable_t * st_struct_value_sub_variable(
     struct value_iface_t *self,
     const char *identifier,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     const struct struct_value_t *sv =
 	CONTAINER_OF(self, struct struct_value_t, value);
 
     struct variable_t *found = NULL;
     HASH_FIND_STR(sv->elements, identifier, found);
+    if(!found)
+    {
+	issues->new_issue(
+	    issues,
+	    "struct has no member '%s'",
+	    ESSTEE_ARGUMENT_ERROR,
+	    identifier);
 
+	return NULL;
+    }
+    
     return found;
 }
 
 const struct struct_init_value_t * st_struct_init_value(
-    const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct value_iface_t *self)
 {
     const struct struct_init_value_t *isv =
 	CONTAINER_OF(self, struct struct_init_value_t, value);
@@ -1721,13 +1915,14 @@ int st_duration_value_display(
 int st_duration_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
 
     const struct duration_t *ov =
-	new_value->duration(new_value, config);
+	new_value->duration(new_value, config, issues);
 
     dv->duration.d = ov->d;
     dv->duration.h = ov->h;
@@ -1741,10 +1936,16 @@ int st_duration_value_assign(
 int st_duration_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->duration)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as a duration",
+	    ESSTEE_ARGUMENT_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -1769,13 +1970,14 @@ void st_duration_value_destroy(
 int st_duration_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
 
     const struct duration_t *ov =
-	other_value->duration(other_value, config);
+	other_value->duration(other_value, config, issues);
 
     if(dv->duration.d > ov->d)
     {
@@ -1808,13 +2010,14 @@ int st_duration_value_greater(
 int st_duration_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
 
     const struct duration_t *ov =
-	other_value->duration(other_value, config);
+	other_value->duration(other_value, config, issues);
 
     if(dv->duration.d < ov->d)
     {
@@ -1846,7 +2049,8 @@ int st_duration_value_lesser(
 
 const struct duration_t * st_duration_value_duration(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct duration_value_t *dv =
 	CONTAINER_OF(self, struct duration_value_t, value);
@@ -1880,13 +2084,14 @@ int st_date_value_display(
 int st_date_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_value_t *dv =
 	CONTAINER_OF(self, struct date_value_t, value);
 
     const struct date_t *ov =
-	new_value->date(new_value, config);
+	new_value->date(new_value, config, issues);
 
     dv->date.y = ov->y;
     dv->date.m = ov->m;
@@ -1898,10 +2103,16 @@ int st_date_value_assign(
 int st_date_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->date)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as a date",
+	    ESSTEE_ARGUMENT_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -1926,13 +2137,14 @@ void st_date_value_destroy(
 int st_date_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_value_t *dv =
 	CONTAINER_OF(self, struct date_value_t, value);
 
     const struct date_t *ov =
-	other_value->date(other_value, config);
+	other_value->date(other_value, config, issues);
 
     if(dv->date.y > ov->y)
     {
@@ -1955,13 +2167,14 @@ int st_date_value_greater(
 int st_date_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_value_t *dv =
 	CONTAINER_OF(self, struct date_value_t, value);
 
     const struct date_t *ov =
-	other_value->date(other_value, config);
+	other_value->date(other_value, config, issues);
 
     if(dv->date.y < ov->y)
     {
@@ -1983,7 +2196,8 @@ int st_date_value_lesser(
 
 const struct date_t * st_date_value_date(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_value_t *dv =
 	CONTAINER_OF(self, struct date_value_t, value);
@@ -2018,13 +2232,14 @@ int st_tod_value_display(
 int st_tod_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct tod_value_t *tv =
 	CONTAINER_OF(self, struct tod_value_t, value);
 
     const struct tod_t *ov =
-	new_value->tod(new_value, config);
+	new_value->tod(new_value, config, issues);
 
     tv->tod.h = ov->h;
     tv->tod.m = ov->m;
@@ -2037,10 +2252,16 @@ int st_tod_value_assign(
 int st_tod_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->tod)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as a tod",
+	    ESSTEE_ARGUMENT_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -2065,13 +2286,14 @@ void st_tod_value_destroy(
 int st_tod_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct tod_value_t *tv =
 	CONTAINER_OF(self, struct tod_value_t, value);
 
     const struct tod_t *ov =
-	other_value->tod(other_value, config);
+	other_value->tod(other_value, config, issues);
 
     if(tv->tod.h > ov->h)
     {
@@ -2099,13 +2321,14 @@ int st_tod_value_greater(
 int st_tod_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct tod_value_t *tv =
 	CONTAINER_OF(self, struct tod_value_t, value);
 
     const struct tod_t *ov =
-	other_value->tod(other_value, config);
+	other_value->tod(other_value, config, issues);
 
     if(tv->tod.h < ov->h)
     {
@@ -2132,7 +2355,8 @@ int st_tod_value_lesser(
 
 const struct tod_t * st_tod_value_tod(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct tod_value_t *tv =
 	CONTAINER_OF(self, struct tod_value_t, value);
@@ -2178,13 +2402,14 @@ int st_date_tod_value_display(
 int st_date_tod_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_tod_value_t *dv =
 	CONTAINER_OF(self, struct date_tod_value_t, value);
 
     const struct date_tod_t *ov =
-	new_value->date_tod(new_value, config);
+	new_value->date_tod(new_value, config, issues);
 
     dv->dt.date.y = ov->date.y;
     dv->dt.date.m = ov->date.m;
@@ -2200,10 +2425,16 @@ int st_date_tod_value_assign(
 int st_date_tod_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->date_tod)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as a date tod",
+	    ESSTEE_ARGUMENT_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -2228,13 +2459,14 @@ void st_date_tod_value_destroy(
 int st_date_tod_value_greater(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_tod_value_t *dv =
 	CONTAINER_OF(self, struct date_tod_value_t, value);
 
     const struct date_tod_t *ov =
-	other_value->date_tod(other_value, config);
+	other_value->date_tod(other_value, config, issues);
 
     if(dv->dt.date.y > ov->date.y)
     {
@@ -2277,13 +2509,14 @@ int st_date_tod_value_greater(
 int st_date_tod_value_lesser(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_tod_value_t *dv =
 	CONTAINER_OF(self, struct date_tod_value_t, value);
 
     const struct date_tod_t *ov =
-	other_value->date_tod(other_value, config);
+	other_value->date_tod(other_value, config, issues);
 
     if(dv->dt.date.y < ov->date.y)
     {
@@ -2325,7 +2558,8 @@ int st_date_tod_value_lesser(
 
 const struct date_tod_t * st_date_tod_value_tod(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct date_tod_value_t *dv =
 	CONTAINER_OF(self, struct date_tod_value_t, value);
@@ -2356,12 +2590,13 @@ int st_string_value_display(
 int st_string_value_assign(
     struct value_iface_t *self,
     const struct value_iface_t *new_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct string_value_t *sv =
 	CONTAINER_OF(self, struct string_value_t, value);
 
-    sv->str = new_value->string(new_value, config);
+    sv->str = new_value->string(new_value, config, issues);
 
     return ESSTEE_OK;
 }
@@ -2369,12 +2604,13 @@ int st_string_value_assign(
 int st_string_value_assigns_and_compares(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct string_value_t *sv =
 	CONTAINER_OF(self, struct string_value_t, value);
 
-    return sv->type->can_hold(sv->type, other_value, config);
+    return sv->type->can_hold(sv->type, other_value, config, issues);
 }
 
 const struct type_iface_t * st_string_value_type_of(
@@ -2401,12 +2637,13 @@ void st_string_literal_value_destroy(
 int st_string_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct string_value_t *sv =
 	CONTAINER_OF(self, struct string_value_t, value);
 
-    const char *other_string = other_value->string(other_value, config);
+    const char *other_string = other_value->string(other_value, config, issues);
 
     if(strcmp(sv->str, other_string) == 0)
     {
@@ -2418,7 +2655,8 @@ int st_string_value_equals(
 
 const char * st_string_value_string(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct string_value_t *sv =
 	CONTAINER_OF(self, struct string_value_t, value);
@@ -2505,13 +2743,22 @@ void st_function_block_value_destroy(
 struct variable_t * st_function_block_value_sub_variable(
     struct value_iface_t *self,
     const char *identifier,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct function_block_value_t *fv =
 	CONTAINER_OF(self, struct function_block_value_t, value);
 
     struct variable_t *found = NULL;
     HASH_FIND_STR(fv->variables, identifier, found);
+    if(!found)
+    {
+	issues->new_issue(
+	    issues,
+	    "function block has no variable '%s'",
+	    ESSTEE_ARGUMENT_ERROR,
+	    identifier);
+    }
 
     return found;
 }
@@ -2522,7 +2769,7 @@ int st_function_block_value_invoke_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct function_block_value_t *fbv =
 	CONTAINER_OF(self, struct function_block_value_t, value);
@@ -2535,7 +2782,7 @@ int st_function_block_value_invoke_step(
     int input_assign = st_assign_from_invoke_parameters(parameters,
 							fbv->variables,
 							config,
-							errors);
+							issues);
     if(input_assign != ESSTEE_OK)
     {
 	return INVOKE_RESULT_ERROR;
@@ -2543,7 +2790,7 @@ int st_function_block_value_invoke_step(
 
     fbv->invoke_state = 1;
     
-    st_switch_current(cursor, fbv->statements, config);
+    st_switch_current(cursor, fbv->statements, config, issues);
 
     return INVOKE_RESULT_IN_PROGRESS;
 }
@@ -2552,25 +2799,21 @@ int st_function_block_value_invoke_verify(
     struct value_iface_t *self,
     struct invoke_parameter_t *parameters,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct function_block_value_t *fbv =
 	CONTAINER_OF(self, struct function_block_value_t, value);
 
-    int parameters_verify = st_verify_invoke_parameters(parameters,
-							fbv->variables,
-							errors,
-							config);
-    if(parameters_verify != ESSTEE_OK)
-    {
-	return parameters_verify;
-    }
-
-    return st_verify_statements(fbv->statements, config, errors);
+    return st_verify_invoke_parameters(parameters,
+				       fbv->variables,
+				       config,
+				       issues);
 }
 
 int st_function_block_value_invoke_reset(
-    struct value_iface_t *self)
+    struct value_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct function_block_value_t *fbv =
 	CONTAINER_OF(self, struct function_block_value_t, value);
@@ -2611,10 +2854,16 @@ int st_inline_enum_value_display(
 int st_inline_enum_value_comparable_to(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(!other_value->enumeration)
     {
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as an enumerated value",
+	    ESSTEE_TYPE_ERROR);
+
 	return ESSTEE_FALSE;
     }
 
@@ -2624,12 +2873,13 @@ int st_inline_enum_value_comparable_to(
 int st_inline_enum_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct inline_enum_value_t *ie
 	= CONTAINER_OF(self, struct inline_enum_value_t, value);
 
-    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config);
+    const struct enum_item_t *other_value_enum = other_value->enumeration(other_value, config, issues);
     
     if(strcmp(ie->data.identifier, other_value_enum->identifier) == 0)
     {
@@ -2641,7 +2891,8 @@ int st_inline_enum_value_equals(
 
 const struct enum_item_t * st_inline_enum_value_enumeration(
     const struct value_iface_t *self,
-    const struct config_iface_t *conf)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct inline_enum_value_t *ie
 	= CONTAINER_OF(self, struct inline_enum_value_t, value);
@@ -2658,11 +2909,17 @@ void st_inline_enum_value_destroy(
 int st_subrange_case_value_comparable_to(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(other_value->integer)
     {
-	return ESSTEE_TRUE;
+	issues->new_issue(
+	    issues,
+	    "the other value cannot be interpreted as an integer",
+	    ESSTEE_TYPE_ERROR);
+
+	return ESSTEE_FALSE;
     }
 
     return ESSTEE_FALSE;
@@ -2671,7 +2928,8 @@ int st_subrange_case_value_comparable_to(
 int st_subrange_case_value_equals(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct subrange_case_value_t *sv =
 	CONTAINER_OF(self, struct subrange_case_value_t, value);
@@ -2679,7 +2937,8 @@ int st_subrange_case_value_equals(
 
     int min_greater_than_other = sv->subrange->min->greater(sv->subrange->min,
 							    other_value,
-							    config);
+							    config,
+							    issues);
     if(min_greater_than_other == ESSTEE_TRUE)
     {
 	return ESSTEE_FALSE;
@@ -2687,7 +2946,8 @@ int st_subrange_case_value_equals(
     
     int max_lesser_than_other = sv->subrange->max->lesser(sv->subrange->max,
 							  other_value,
-							  config);
+							  config,
+							  issues);
     if(max_lesser_than_other == ESSTEE_TRUE)
     {
 	return ESSTEE_FALSE;

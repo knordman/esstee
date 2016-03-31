@@ -33,8 +33,26 @@ typedef uint64_t st_bitflag_t;
 #define ESSTEE_TYPE_UNDERFLOW                 -12
 #define ESSTEE_TYPE_INCOMPATIBILITY           -13
 
-#define ESSTEE_ISSUE_ERROR                (1 << 0)
-#define ESSTEE_ISSUE_WARNING              (1 << 1)
+#define ESSTEE_GENERAL_ERROR_ISSUE        (1 << 0)
+#define ESSTEE_GENERAL_WARNING_ISSUE      (1 << 1)
+
+#define ESSTEE_INTERNAL_ERROR             (1 << 0)
+#define ESSTEE_MEMORY_ERROR               (1 << 1)
+#define ESSTEE_SYNTAX_ERROR               (1 << 2)
+#define ESSTEE_PARSE_ERROR                (1 << 3)
+#define ESSTEE_LINK_ERROR                 (1 << 4)
+#define ESSTEE_RUNTIME_ERROR              (1 << 5)
+#define ESSTEE_ARGUMENT_ERROR             (1 << 6)
+#define ESSTEE_CONTEXT_ERROR              (1 << 7)
+#define ESSTEE_TYPE_ERROR                 (1 << 8)
+#define ESSTEE_IO_ERROR                   (1 << 9)
+
+#define ESSTEE_SYNTAX_WARNING            (1 << 10)
+
+#define ESSTEE_FILTER_ANY_ERROR              0x3ff
+#define ESSTEE_FILTER_ANY_WARNING         (1 << 9)
+#define ESSTEE_FILTER_ANY_ISSUE 0xffffffffffffffff
+
 #define ISSUE_ERROR_CLASS                 (1 << 0)
 #define ISSUE_WARNING_CLASS               (1 << 1)
 

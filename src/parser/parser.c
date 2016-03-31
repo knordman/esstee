@@ -18,7 +18,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <parser/parser.h>
-#include <util/namedrefpool.h>	/* Implementation of namedreference_iface */
+#include <util/named_ref_pool.h>
 #include <util/macros.h>
     
 
@@ -35,11 +35,11 @@ int st_parser_reset(struct parser_t *parser)
     parser->scanner_options.query_mode_start = 0;
     parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 
-    parser->global_type_ref_pool = st_new_named_ref_pool();
-    parser->global_var_ref_pool = st_new_named_ref_pool();
-    parser->function_ref_pool = st_new_named_ref_pool();
-    parser->pou_type_ref_pool = st_new_named_ref_pool();
-    parser->pou_var_ref_pool = st_new_named_ref_pool();
+    parser->global_type_ref_pool = st_new_named_ref_pool(parser->errors);
+    parser->global_var_ref_pool = st_new_named_ref_pool(parser->errors);
+    parser->function_ref_pool = st_new_named_ref_pool(parser->errors);
+    parser->pou_type_ref_pool = st_new_named_ref_pool(parser->errors);
+    parser->pou_var_ref_pool = st_new_named_ref_pool(parser->errors);
 
     parser->loop_level = 0;
     
@@ -58,8 +58,8 @@ int st_parser_reset(struct parser_t *parser)
 int st_reset_parser_pou_refs(
     struct parser_t *parser)
 {
-    parser->pou_type_ref_pool = st_new_named_ref_pool();
-    parser->pou_var_ref_pool = st_new_named_ref_pool();
+    parser->pou_type_ref_pool = st_new_named_ref_pool(parser->errors);
+    parser->pou_var_ref_pool = st_new_named_ref_pool(parser->errors);
 
     if(!(parser->pou_type_ref_pool && parser->pou_var_ref_pool))
     {
@@ -88,6 +88,10 @@ struct compilation_unit_t * st_parse_file(
     fp = fopen(path, "r");
     if(!fp)
     {
+	parser->errors->new_issue(parser->errors,
+				  "unable to open file '%s'",
+				  ESSTEE_IO_ERROR,
+				  path);
 	goto error_free_resources;
     }
 
@@ -110,10 +114,11 @@ struct compilation_unit_t * st_parse_file(
 	parser->errors,
 	error_free_resources);
 
+    parser->active_buffer = source_path;
     yy_switch_to_buffer(yy_buffer, parser->yyscanner);
     yyparse(parser->yyscanner, parser);
 
-    if(parser->errors->new_error_occured(parser->errors) == ESSTEE_TRUE)
+    if(parser->errors->count(parser->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
     {
 	goto error_free_resources;
     }

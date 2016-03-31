@@ -57,31 +57,37 @@ struct qualified_identifier_t {
 
 int st_qualified_identifier_resolve_chain(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_qualified_identifier_resolve_array_index(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_qualified_identifier_verify(
     struct qualified_identifier_t *qi,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_qualified_identifier_step(
     struct qualified_identifier_t *qi,
     struct cursor_t *cursor,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_qualified_identifier_reset(
     struct qualified_identifier_t *qi,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_qualified_identifier_allocate(
+    struct qualified_identifier_t *qi,
+    struct issues_iface_t *issues);
 
 struct qualified_identifier_t * st_clone_qualified_identifier(
-    struct qualified_identifier_t *qi);
+    struct qualified_identifier_t *qi,
+    struct issues_iface_t *issues);
 
 void st_destroy_qualified_identifier(
     struct qualified_identifier_t *qi);
@@ -104,28 +110,34 @@ struct invoke_parameter_t {
 int st_verify_invoke_parameters(
     struct invoke_parameter_t *parameters,
     const struct variable_t *variables,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_step_invoke_parameters(
     struct invoke_parameter_t *parameters,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *issues);
 
 int st_assign_from_invoke_parameters(
     struct invoke_parameter_t *parameters,
     struct variable_t *variables,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *issues);
     
 int st_reset_invoke_parameters(    
     struct invoke_parameter_t *parameters,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_allocate_invoke_parameters(    
+    struct invoke_parameter_t *parameters,
+    struct issues_iface_t *issues);
 
 struct invoke_parameter_t * st_clone_invoke_parameters(    
-    struct invoke_parameter_t *parameters);
+    struct invoke_parameter_t *parameters,
+    struct issues_iface_t *issues);
 
 void st_destroy_invoke_parameters(
     struct invoke_parameter_t *parameters);

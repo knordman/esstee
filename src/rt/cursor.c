@@ -26,10 +26,11 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 void st_switch_current(
     struct cursor_t *cursor,
     struct invoke_iface_t *switch_to,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     /* Prepare a new run of the invoke switched to */
-    switch_to->reset(switch_to, config);
+    switch_to->reset(switch_to, config, issues);
     
     DL_PREPEND2(cursor->call_stack,
 		cursor->current,

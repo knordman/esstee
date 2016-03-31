@@ -26,8 +26,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/statements.h>
 #include <elements/query.h>
 #include <elements/shared.h>
-#include <util/ierrors.h>
-#include <util/inamedreference.h>
+#include <util/iissues.h>
+#include <util/inamed_ref_pool.h>
 #include <util/bitflag.h>
 #include <util/iconfig.h>
 #include <parser/scanneroptions.h>
@@ -55,17 +55,17 @@ struct parser_t {
     struct dmem_iface_t *direct_memory;
     const struct config_iface_t *config;
     
-    struct namedreference_iface_t *global_type_ref_pool;
-    struct namedreference_iface_t *global_var_ref_pool;    
-    struct namedreference_iface_t *function_ref_pool;
-    struct namedreference_iface_t *pou_type_ref_pool;
-    struct namedreference_iface_t *pou_var_ref_pool;
+    struct named_ref_pool_iface_t *global_type_ref_pool;
+    struct named_ref_pool_iface_t *global_var_ref_pool;    
+    struct named_ref_pool_iface_t *function_ref_pool;
+    struct named_ref_pool_iface_t *pou_type_ref_pool;
+    struct named_ref_pool_iface_t *pou_var_ref_pool;
 
     int loop_level;
     
     struct query_t *queries;
     int error_strategy;
-    struct errors_iface_t *errors;
+    struct issues_iface_t *errors;
 };
 
 struct compilation_unit_t {
@@ -77,9 +77,9 @@ struct compilation_unit_t {
     struct function_block_t *function_blocks; /* List of defined function block types */
     struct program_t *programs;		      /* List of defined programs */
 
-    struct namedreference_iface_t *global_type_ref_pool;
-    struct namedreference_iface_t *global_var_ref_pool;    
-    struct namedreference_iface_t *function_ref_pool;
+    struct named_ref_pool_iface_t *global_type_ref_pool;
+    struct named_ref_pool_iface_t *global_var_ref_pool;    
+    struct named_ref_pool_iface_t *function_ref_pool;
     
     UT_hash_handle hh;
 };

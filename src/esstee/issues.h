@@ -25,5 +25,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct st_issue_t {
     char *message;
     st_bitflag_t class;
+    int has_sub_issues;
     struct st_location_t *locations;
 };

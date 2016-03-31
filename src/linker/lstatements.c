@@ -23,21 +23,27 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 int st_simple_assignment_variable_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(target == NULL)
     {
-	errors->new_issue_at(
-	    errors,
-	    "undefined variable",
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined variable '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    location);
+	
 	return ESSTEE_ERROR;
     }
     
@@ -51,12 +57,12 @@ int st_simple_assignment_variable_resolved(
 
 int st_invoke_statement_as_variable_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct invoke_statement_t *is =
 	(struct invoke_statement_t *)referrer;
@@ -68,12 +74,12 @@ int st_invoke_statement_as_variable_resolved(
 
 int st_invoke_statement_as_func_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     struct invoke_statement_t *is =
 	(struct invoke_statement_t *)referrer;
@@ -85,21 +91,27 @@ int st_invoke_statement_as_func_resolved(
 
 int st_for_statement_variable_resolved(
     void *referrer,
-    void *subreferrer,
     void *target,
     st_bitflag_t remark,
+    const char *identifier,
     const struct st_location_t *location,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config)
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
 {
     if(target == NULL)
     {
-	errors->new_issue_at(
-	    errors,
-	    "undefined variable",
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined variable '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    location);
+
 	return ESSTEE_ERROR;
     }
     
@@ -110,4 +122,4 @@ int st_for_statement_variable_resolved(
 
     return ESSTEE_OK;
 }
-	
+

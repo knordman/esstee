@@ -27,7 +27,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 int st_evaluate_queries(
     struct query_t *queries,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct query_t *itr = NULL;
     DL_FOREACH(queries, itr)
@@ -49,26 +49,23 @@ int st_evaluate_queries(
 		    &(query_cursor),
 		    NULL,		/* What to do with time here, functions that have fbs */
 		    config,
-		    errors);
+		    issues);
 	    }
 
 	    const struct value_iface_t *rhs_value = itr->new_value->return_value(itr->new_value);
 
-	    int assignment_status = itr->qi->target->assign(
-		itr->qi->target,
-		rhs_value,
-		config);
+	    issues->begin_group(issues);
+	    int assignment_status = itr->qi->target->assign(itr->qi->target,
+							    rhs_value,
+							    config,
+							    issues);
+	    issues->set_group_location(issues,
+				       2,
+				       itr->qi->location,
+				       itr->new_value->invoke.location(&(itr->new_value->invoke)));
 
 	    if(assignment_status != ESSTEE_OK)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "assignment failed",
-		    ISSUE_ERROR_CLASS,
-		    2,
-		    itr->qi->location,
-		    itr->new_value->invoke.location(&(itr->new_value->invoke)));
-
 		return ESSTEE_ERROR;
 	    }
 	}

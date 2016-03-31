@@ -93,9 +93,9 @@ struct expression_iface_t * st_new_single_identifier_term(
 	parser->pou_var_ref_pool,
 	identifier,
 	sit,
-	NULL,
 	location,
-	st_single_identifier_variable_resolved);
+	st_single_identifier_variable_resolved,
+	parser->errors);
 
     if(var_ref_add_result != ESSTEE_OK)
     {
@@ -109,6 +109,7 @@ struct expression_iface_t * st_new_single_identifier_term(
     sit->expression.invoke.verify = NULL;
     sit->expression.invoke.step = NULL;
     sit->expression.invoke.location = st_single_identifier_term_location;
+    sit->expression.invoke.allocate = NULL;
 
     sit->expression.return_value = NULL;
     sit->expression.destroy = st_single_identifier_term_destroy;
@@ -151,6 +152,7 @@ struct expression_iface_t * st_new_qualified_identifier_term(
 
     qt->expression.invoke.verify = st_qualified_identifier_term_verify;
     qt->expression.invoke.step = st_qualified_identifier_term_step;
+    qt->expression.invoke.allocate = NULL;
     qt->expression.invoke.reset = st_qualified_identifier_term_reset;
 
     qt->invoke_state = 0;
@@ -207,9 +209,9 @@ struct expression_iface_t * st_new_function_invocation_term(
 	parser->function_ref_pool,
 	function_identifier,
 	ft,
-	NULL,
 	location,
-	st_function_invocation_term_function_resolved);
+	st_function_invocation_term_function_resolved,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
@@ -223,6 +225,7 @@ struct expression_iface_t * st_new_function_invocation_term(
     ft->expression.invoke.location = st_function_invocation_term_location;
     ft->expression.invoke.step = st_function_invocation_term_step;
     ft->expression.invoke.verify = st_function_invocation_term_verify;
+    ft->expression.invoke.allocate = NULL;
     ft->expression.invoke.reset = st_function_invocation_term_reset;
     ft->expression.invoke.clone = NULL;
     ft->expression.invoke.destroy = NULL;
@@ -278,6 +281,7 @@ struct expression_iface_t * st_new_negate_term(
     }
     
     nt->expression.invoke.location = st_negative_prefix_term_location;
+    nt->expression.invoke.allocate = st_negative_prefix_term_allocate;
     nt->expression.invoke.clone = NULL;
     nt->expression.invoke.destroy = NULL;
     nt->expression.return_value = st_negative_prefix_term_return_value;
@@ -336,6 +340,7 @@ struct expression_iface_t * st_new_not_term(
     }
     
     nt->expression.invoke.location = st_not_prefix_term_location;
+    nt->expression.invoke.allocate = st_not_prefix_term_allocate;
     nt->expression.invoke.clone = NULL;
     nt->expression.invoke.destroy = NULL;
     nt->expression.return_value = st_not_prefix_term_return_value;
@@ -365,18 +370,21 @@ static struct expression_iface_t * new_binary_expression(
     int (*verify_constant_function)(
 	struct invoke_iface_t *self,
 	const struct config_iface_t *config,
-	struct errors_iface_t *errors),
+	struct issues_iface_t *errors),
     int (*verify_function)(
 	struct invoke_iface_t *self,
 	const struct config_iface_t *config,
-	struct errors_iface_t *errors),
+	struct issues_iface_t *errors),
     const struct st_location_t *location,
     int (*step_function)(
 	struct invoke_iface_t *,
 	struct cursor_t *,
 	const struct systime_iface_t *,
 	const struct config_iface_t *,
-	struct errors_iface_t *),
+	struct issues_iface_t *),
+    int (*allocate_function)(
+	struct invoke_iface_t *,
+	struct issues_iface_t *),
     struct parser_t *parser)
 {
     struct binary_expression_t *be = NULL;
@@ -419,6 +427,7 @@ static struct expression_iface_t * new_binary_expression(
     
     be->expression.invoke.location = st_binary_expression_location;
     be->expression.invoke.clone = NULL;
+    be->expression.invoke.allocate = allocate_function;
     be->expression.return_value = st_binary_expression_return_value;
     be->expression.destroy = st_binary_expression_destroy;
     be->temporary = NULL;
@@ -444,6 +453,7 @@ struct expression_iface_t * st_new_xor_expression(
 	st_xor_expression_verify,
 	location,
 	st_xor_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -460,6 +470,7 @@ struct expression_iface_t * st_new_and_expression(
 	st_and_expression_verify,       
 	location,
 	st_and_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -476,6 +487,7 @@ struct expression_iface_t * st_new_or_expression(
 	st_or_expression_verify,
 	location,
 	st_or_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -492,6 +504,7 @@ struct expression_iface_t * st_new_greater_expression(
 	st_greater_expression_verify,
 	location,
 	st_greater_expression_step,
+	st_binary_expression_allocate_bool,
 	parser);
 }
 
@@ -508,6 +521,7 @@ struct expression_iface_t * st_new_lesser_expression(
 	st_lesser_expression_verify,	
 	location,
 	st_lesser_expression_step,
+	st_binary_expression_allocate_bool,
 	parser);
 }
 
@@ -524,6 +538,7 @@ struct expression_iface_t * st_new_equals_expression(
 	st_equals_expression_verify,
 	location,
 	st_equals_expression_step,
+	st_binary_expression_allocate_bool,
 	parser);
 }
 
@@ -540,6 +555,7 @@ struct expression_iface_t * st_new_gequals_expression(
 	st_gequals_expression_verify,
 	location,
 	st_gequals_expression_step,
+	st_binary_expression_allocate_bool,
 	parser);
 }
 
@@ -555,7 +571,8 @@ struct expression_iface_t * st_new_lequals_expression(
 	st_lequals_expression_constant_verify,
 	st_lequals_expression_verify,
 	location,
-	st_lequals_expression_step,
+	st_lequals_expression_step,	
+	st_binary_expression_allocate_bool,
 	parser);
 }
 
@@ -572,6 +589,7 @@ struct expression_iface_t * st_new_nequals_expression(
 	st_nequals_expression_verify,	
 	location,
 	st_nequals_expression_step,
+	st_binary_expression_allocate_bool,
 	parser);
 }
 
@@ -588,6 +606,7 @@ struct expression_iface_t * st_new_plus_expression(
 	st_plus_expression_verify,	
 	location,
 	st_plus_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -604,6 +623,7 @@ struct expression_iface_t * st_new_minus_expression(
 	st_minus_expression_verify,	
 	location,
 	st_minus_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -620,6 +640,7 @@ struct expression_iface_t * st_new_multiply_expression(
 	st_multiply_expression_verify,
 	location,
 	st_multiply_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -636,6 +657,7 @@ struct expression_iface_t * st_new_division_expression(
 	st_division_expression_verify,
 	location,
 	st_division_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -652,6 +674,7 @@ struct expression_iface_t * st_new_mod_expression(
 	st_mod_expression_verify,
 	location,
 	st_mod_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }
 
@@ -668,5 +691,6 @@ struct expression_iface_t * st_new_to_power_expression(
 	st_power_expression_verify,	
 	location,
 	st_power_expression_step,
+	st_binary_expression_allocate,
 	parser);
 }

@@ -18,22 +18,23 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <linker/linker.h>
+#include <esstee/flags.h>
 
 #include <utlist.h>
 #include <stdio.h>
 
 static int create_header_tables(
     struct header_t *header,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int result = ESSTEE_OK;
     
     /* Make hash table from type list */
-    int errors_at_type_start = errors->error_count(errors);
+    int issues_at_type_start = issues->count(issues, ESSTEE_FILTER_ANY_ERROR);
     struct type_iface_t *type_table =
-	st_link_types(header->types, NULL, errors);
+	st_link_types(header->types, NULL, issues);
 
-    if(errors->error_count(errors) == errors_at_type_start)
+    if(issues->count(issues, ESSTEE_FILTER_ANY_ERROR) == issues_at_type_start)
     {
 	header->types = type_table;
     }
@@ -43,11 +44,11 @@ static int create_header_tables(
     }
 
     /* Make hash table from var list */
-    int errors_at_var_start = errors->error_count(errors);
+    int issues_at_var_start = issues->count(issues, ESSTEE_FILTER_ANY_ERROR);
     struct variable_t *variable_table =
-	st_link_variables(header->variables, NULL, errors);
+	st_link_variables(header->variables, NULL, issues);
 
-    if(errors->error_count(errors) == errors_at_var_start)
+    if(issues->count(issues, ESSTEE_FILTER_ANY_ERROR) == issues_at_var_start)
     {
 	header->variables = variable_table;
     }
@@ -63,11 +64,11 @@ int st_link_queries(
     struct query_t *queries,
     struct variable_t *global_variables,
     struct function_t *functions,
-    struct namedreference_iface_t *var_ref_pool,
-    struct namedreference_iface_t *func_ref_pool,
+    struct named_ref_pool_iface_t *var_ref_pool,
+    struct named_ref_pool_iface_t *func_ref_pool,
     struct program_t *main,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     /* Resolve references */
     const char *resolve = NULL;
@@ -87,7 +88,7 @@ int st_link_queries(
 		    var_ref_pool,
 		    resolve,
 		    main,
-		    PROGRAM_IN_QUERY_RESOLVE_REMARK);
+		    1);
 	    }
 	}
     }
@@ -97,10 +98,10 @@ int st_link_queries(
     st_resolve_function_refs(func_ref_pool, functions);
 
     /* Do resolve callbacks */
-    var_ref_pool->trigger_resolve_callbacks(var_ref_pool, errors, config);
-    func_ref_pool->trigger_resolve_callbacks(func_ref_pool, errors, config);
+    var_ref_pool->trigger_resolve_callbacks(var_ref_pool, config, issues);
+    func_ref_pool->trigger_resolve_callbacks(func_ref_pool, config, issues);
 
-    if(errors->new_error_occured(errors) == ESSTEE_TRUE)
+    if(issues->count(issues, ESSTEE_FILTER_ANY_ERROR) > 0)
     {
 	return ESSTEE_ERROR;
     }
@@ -110,8 +111,8 @@ int st_link_queries(
     {
 	if(!itr->qi->runtime_constant_reference)
 	{
-	    errors->new_issue_at(
-		errors,
+	    issues->new_issue_at(
+		issues,
 		"array indices must be runtime constant in query mode",
 		1,
 		ISSUE_ERROR_CLASS,
@@ -122,17 +123,17 @@ int st_link_queries(
 	
 	/* Verify the qualified identifer that is displayed/altered */
 	int chain_resolve = st_qualified_identifier_resolve_chain(itr->qi,
-								  errors,
-								  config);
+								  config,
+								  issues);
 	if(chain_resolve != ESSTEE_OK)
 	{
-	    return ESSTEE_ERROR;
+	    return chain_resolve;
 	}
 
 	int array_index_resolve = st_qualified_identifier_resolve_array_index(
 	    itr->qi,
-	    errors,
-	    config);
+	    config,
+	    issues);
 	if(array_index_resolve != ESSTEE_OK)
 	{
 	    return array_index_resolve;
@@ -144,9 +145,9 @@ int st_link_queries(
 	    /* Check that we have target */
 	    if(!itr->qi->target)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "cannot assign value to program",
+		issues->new_issue_at(
+		    issues,
+		    "cannot assign a value to a program",
 		    1,
 		    ISSUE_ERROR_CLASS,
 		    itr->qi->location);
@@ -154,26 +155,28 @@ int st_link_queries(
 		return ESSTEE_ERROR;
 	    }
 	
-	    int new_value_verification = ESSTEE_OK;	
 	    if(itr->new_value->invoke.verify)
 	    {
-		new_value_verification = 
-		    itr->new_value->invoke.verify(
-			&(itr->new_value->invoke),
-			config,
-			errors);
-	    }
-
-	    if(new_value_verification != ESSTEE_OK)
-	    {
-		return ESSTEE_ERROR;
+		int verify_result =
+		    itr->new_value->invoke.verify(&(itr->new_value->invoke),
+						  config,
+						  issues);
+		if(verify_result != ESSTEE_OK)
+		{
+		    return verify_result;
+		}
 	    }
 	    
 	    if(!itr->qi->target->assignable_from)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "values cannot be assigned a new value",
+		const char *message = issues->build_message(
+		    issues,
+		    "element '%s' cannot be assigned a new value",
+		    itr->qi->last->identifier);
+		
+		issues->new_issue_at(
+		    issues,
+		    message,
 		    1,
 		    ISSUE_ERROR_CLASS,
 		    itr->qi->location);
@@ -181,22 +184,15 @@ int st_link_queries(
 		return ESSTEE_ERROR;
 	    }
 
-	    const struct value_iface_t *assign_value
-		= itr->new_value->return_value(itr->new_value);
-	    
+	    const struct value_iface_t *assign_value =
+		itr->new_value->return_value(itr->new_value);
+
 	    int assignable_from = itr->qi->target->assignable_from(itr->qi->target,
 								   assign_value,
-								   config);
+								   config,
+								   issues);
 	    if(assignable_from != ESSTEE_TRUE)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "left value cannot be assigned the right value",
-		    2,
-		    ISSUE_ERROR_CLASS,
-		    itr->qi->location,
-		    itr->new_value->invoke.location(&(itr->new_value->invoke)));
-
 		return ESSTEE_ERROR;
 	    }
 	}
@@ -208,7 +204,7 @@ int st_link_queries(
 struct type_iface_t * st_link_types(
     struct type_iface_t *type_list,
     struct type_iface_t *type_table,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct type_iface_t *itr = NULL, *found = NULL;
     DL_FOREACH(type_list, itr)
@@ -216,10 +212,15 @@ struct type_iface_t * st_link_types(
 	HASH_FIND_STR(type_table, itr->identifier, found);
 	if(found != NULL)
 	{
-	    errors->new_issue_at(
-		errors,
-		"duplicate definition of type",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"duplicate definition of type '%s'",
+		itr->identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_LINK_ERROR,
 		2,
 		itr->location(itr),
 		found->location(found));
@@ -241,7 +242,7 @@ struct type_iface_t * st_link_types(
 struct variable_t * st_link_variables(
     struct variable_t *variable_list,
     struct variable_t *variable_table,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct variable_t *itr = NULL, *found = NULL;
     DL_FOREACH(variable_list, itr)
@@ -249,9 +250,14 @@ struct variable_t * st_link_variables(
 	HASH_FIND_STR(variable_table, itr->identifier, found);
 	if(found != NULL)
 	{
-	    errors->new_issue_at(
-		errors,
-		"duplicate definition of variable",
+	    const char *message = issues->build_message(
+		issues,
+		"duplicate definition of variable '%s'",
+		itr->identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
 		ISSUE_ERROR_CLASS,
 		2,
 		itr->identifier_location,
@@ -274,7 +280,7 @@ struct variable_t * st_link_variables(
 struct function_t * st_link_functions(
     struct function_t *function_list,
     struct function_t *function_table,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct function_t *itr = NULL, *found = NULL;
     DL_FOREACH(function_list, itr)
@@ -282,13 +288,19 @@ struct function_t * st_link_functions(
 	HASH_FIND_STR(function_table, itr->identifier, found);
 	if(found != NULL)
 	{
-	    errors->new_issue_at(
-		errors,
-		"duplicate definition of function",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"duplicate definition of function '%s'",
+		itr->identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_LINK_ERROR,
 		2,
 		itr->location,
 		found->location);
+	    
 	    continue;
 	}
 
@@ -300,21 +312,28 @@ struct function_t * st_link_functions(
 	    ST_CLEAR_FLAGS(var_class, INPUT_VAR_CLASS|CONSTANT_VAR_CLASS);
 	    if(var_class != 0)
 	    {
-		errors->new_issue_at(
-		    errors,
-		    "function variables can only be of input class (optionally constant)",
-		    ISSUE_ERROR_CLASS,
+		const char *message = issues->build_message(
+		    issues,
+		    "variable '%s' in function '%s' has an invalid specifier",
+		    itr->identifier);
+		
+		issues->new_issue_at(
+		    issues,
+		    message,
+		    ESSTEE_TYPE_ERROR,
 		    1,
 		    var_itr->identifier_location);
+		
 		invalid_variables = 1;
 	    }
 	}
+	
 	if(invalid_variables)
 	{
 	    continue;
 	}
 	
-	int table_result = create_header_tables(itr->header, errors);
+	int table_result = create_header_tables(itr->header, issues);
 	if(table_result != ESSTEE_OK)
 	{
 	    continue;
@@ -324,12 +343,18 @@ struct function_t * st_link_functions(
 	HASH_FIND_STR(itr->header->variables, itr->identifier, found_var);
 	if(found_var)
 	{
-	    errors->new_issue_at(
-		errors,
-		"implicit function output variable shadowed by explicit variable",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"implicit output variable '%s' explicitly defined",
+		itr->identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_LINK_ERROR,
 		1,
 		found_var->identifier_location);
+	    
 	    continue;
 	}
 
@@ -354,7 +379,7 @@ struct function_t * st_link_functions(
 struct program_t * st_link_programs(
     struct program_t *program_list,
     struct program_t *program_table,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     struct program_t *itr = NULL, *found = NULL;
     DL_FOREACH(program_list, itr)
@@ -362,17 +387,22 @@ struct program_t * st_link_programs(
 	HASH_FIND_STR(program_table, itr->identifier, found);
 	if(found != NULL)
 	{
-	    errors->new_issue_at(
-		errors,
-		"duplicate definition of program",
-		ISSUE_ERROR_CLASS,
+	    const char *message = issues->build_message(
+		issues,
+		"duplicate definition of program '%s'",
+		itr->identifier);
+	    
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_LINK_ERROR,
 		2,
 		itr->location,
 		found->location);
 	}
 	else
 	{
-	    create_header_tables(itr->header, errors);
+	    create_header_tables(itr->header, issues);
 	    
 	    HASH_ADD_KEYPTR(
 		hh, 
@@ -388,13 +418,13 @@ struct program_t * st_link_programs(
 
 int st_link_function_blocks(
     struct function_block_t *function_blocks,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int result = ESSTEE_OK;
     struct function_block_t *itr = NULL;
     DL_FOREACH(function_blocks, itr)
     {
-	if(create_header_tables(itr->header, errors) == ESSTEE_ERROR)
+	if(create_header_tables(itr->header, issues) == ESSTEE_ERROR)
 	{
 	    result = ESSTEE_ERROR;
 	}
@@ -404,7 +434,7 @@ int st_link_function_blocks(
 }
 
 int st_resolve_type_refs(
-    struct namedreference_iface_t *type_ref_pool,
+    struct named_ref_pool_iface_t *type_ref_pool,
     struct type_iface_t *type_table)
 {
     int result = ESSTEE_OK;
@@ -423,7 +453,7 @@ int st_resolve_type_refs(
 }
 
 int st_resolve_var_refs(
-    struct namedreference_iface_t *var_ref_pool,
+    struct named_ref_pool_iface_t *var_ref_pool,
     struct variable_t *var_table)
 {
     int result = ESSTEE_OK;
@@ -442,7 +472,7 @@ int st_resolve_var_refs(
 }
 
 int st_resolve_function_refs(
-    struct namedreference_iface_t *function_ref_pool,
+    struct named_ref_pool_iface_t *function_ref_pool,
     struct function_t *function_table)
 {
     int result = ESSTEE_OK;
@@ -460,16 +490,38 @@ int st_resolve_function_refs(
     return result;
 }
 
+int st_allocate_statements(
+    struct invoke_iface_t *statements,
+    struct issues_iface_t *issues)
+{
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(statements, itr)
+    {
+	if(!itr->allocate)
+	{
+	    continue;
+	}
+	
+	if(itr->allocate(itr, issues) != ESSTEE_OK)
+	{
+	    return ESSTEE_ERROR;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+
 int st_verify_statements(
     struct invoke_iface_t *statements,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors)
+    struct issues_iface_t *issues)
 {
     int result = ESSTEE_OK;
     struct invoke_iface_t *itr = NULL;
     DL_FOREACH(statements, itr)
     {
-	if(itr->verify(itr, config, errors) == ESSTEE_ERROR)
+	if(itr->verify(itr, config, issues) != ESSTEE_OK)
 	{
 	    result = ESSTEE_ERROR;
 	}

@@ -21,7 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/itype.h>
 #include <util/bitflag.h>
-#include <util/ierrors.h>
+#include <util/iissues.h>
 
 /**************************************************************************/
 /* Elementary types                                                       */
@@ -65,9 +65,10 @@ const struct st_location_t * st_built_in_type_location_get(
 int st_type_general_compatible(
     const struct type_iface_t *self,
     const struct type_iface_t *other_type,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
-struct type_iface_t * st_new_elementary_types(void);
+struct type_iface_t * st_new_elementary_types();
 
 void st_destroy_types_in_list(
     struct type_iface_t *types);
@@ -86,21 +87,23 @@ struct integer_type_t {
 
 struct value_iface_t * st_integer_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_integer_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_integer_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_integer_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_integer_type_destroy(
     struct type_iface_t *self);
@@ -108,15 +111,17 @@ void st_integer_type_destroy(
 /* Bool specializations */
 struct value_iface_t * st_bool_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 struct value_iface_t * st_bool_type_create_temp_value(
-    const struct config_iface_t *config);
+    struct issues_iface_t *issues);
 
 int st_bool_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_bool_type_true(
     struct value_iface_t *value);
@@ -136,21 +141,23 @@ struct real_type_t {
 
 struct value_iface_t * st_real_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_real_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_real_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_real_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_real_type_destroy(
     struct type_iface_t *self);
@@ -160,28 +167,30 @@ void st_real_type_destroy(
 /**************************************************************************/
 struct string_type_t {
     struct type_iface_t type;
-    unsigned length;
+    size_t length;
     st_bitflag_t class;
     const char *default_value;
 };
 
 struct value_iface_t * st_string_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_string_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_string_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_string_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_string_type_destroy(
     struct type_iface_t *self);
@@ -200,21 +209,23 @@ struct duration_type_t {
 
 struct value_iface_t * st_duration_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_duration_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_duration_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_duration_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_duration_type_destroy(
     struct type_iface_t *self);
@@ -231,21 +242,23 @@ struct date_type_t {
 
 struct value_iface_t * st_date_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_date_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_date_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_date_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_date_type_destroy(
     struct type_iface_t *self);
@@ -263,21 +276,23 @@ struct tod_type_t {
 
 struct value_iface_t * st_tod_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_tod_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_tod_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_tod_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_tod_type_destroy(
     struct type_iface_t *self);
@@ -298,21 +313,23 @@ struct date_tod_type_t {
 
 struct value_iface_t * st_date_tod_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);   
 
 int st_date_tod_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_date_tod_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_date_tod_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_date_tod_type_destroy(
     struct type_iface_t *self);
@@ -334,26 +351,29 @@ const struct st_location_t * st_derived_type_location(
 
 struct value_iface_t * st_derived_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_derived_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_derived_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_derived_type_compatible(
     const struct type_iface_t *self,
     const struct type_iface_t *other_type,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_derived_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_derived_type_destroy(
     struct type_iface_t *self);
@@ -380,21 +400,23 @@ const struct st_location_t * st_enum_type_location(
 
 struct value_iface_t * st_enum_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_enum_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_enum_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_enum_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_enum_type_destroy(
     struct type_iface_t *self);
@@ -419,26 +441,29 @@ struct subrange_type_t {
 
 struct value_iface_t * st_subrange_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_subrange_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_subrange_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_subrange_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 int st_subrange_type_compatible(
     const struct type_iface_t *self,
     const struct type_iface_t *other_type,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 void st_subrange_type_destroy(
     struct type_iface_t *self);
@@ -465,31 +490,34 @@ int st_array_type_check_array_initializer(
     struct array_range_t *ranges,
     const struct value_iface_t *default_value,
     struct type_iface_t *arrayed_type,
-    struct errors_iface_t *errors,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_array_type_assign_default_value(
     struct value_iface_t **elements,
     const struct value_iface_t *default_value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 struct value_iface_t * st_array_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_array_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_array_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_array_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_array_type_destroy(
     struct type_iface_t *self);
@@ -518,21 +546,23 @@ struct struct_type_t {
 
 struct value_iface_t * st_struct_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_struct_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_struct_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_struct_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_struct_type_destroy(
     struct type_iface_t *self);
@@ -545,16 +575,17 @@ const struct st_location_t * st_function_block_type_location(
 
 struct value_iface_t * st_function_block_type_create_value_of(
     const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 int st_function_block_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 st_bitflag_t st_function_block_type_class(
-    const struct type_iface_t *self,
-    const struct config_iface_t *config);
+    const struct type_iface_t *self);
 
 void st_function_block_type_destroy(
     struct type_iface_t *self);

@@ -66,10 +66,10 @@ struct value_iface_t * st_new_explicit_literal(
 	parser->pou_type_ref_pool,
 	type_identifier,
 	implicit_literal,
-	NULL,
 	type_identifier_location,
 	NULL,
-	st_explicit_literal_type_resolved);
+	st_explicit_literal_type_resolved,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
@@ -100,7 +100,7 @@ static struct value_iface_t * new_integer_literal(
     struct parser_t *parser)
 {
     struct value_iface_t *v =
-	st_integer_type_create_value_of(NULL, parser->config);
+	st_integer_type_create_value_of(NULL, parser->config, parser->errors);
 
     if(!v)
     {
@@ -224,12 +224,12 @@ struct value_iface_t * st_new_real_literal(
     
     strip_underscores(string);
     if(strlen(string) < 1)
-     {
+    {
 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
-    v = st_real_type_create_value_of(NULL, parser->config);
+    v = st_real_type_create_value_of(NULL, parser->config, parser->errors);
 
     if(!v)
     {
@@ -273,13 +273,13 @@ error_free_resources:
 }
 
 enum duration_part_t {
-	PLITERALS_D, 
-	PLITERALS_H, 
-	PLITERALS_M, 
-	PLITERALS_S, 
-	PLITERALS_MS,
-	PLITERALS_NOTHING,
-	PLITERALS_ERROR
+    PLITERALS_D, 
+    PLITERALS_H, 
+    PLITERALS_M, 
+    PLITERALS_S, 
+    PLITERALS_MS,
+    PLITERALS_NOTHING,
+    PLITERALS_ERROR
 };
 
 static int find_start(char *string, char **start)
@@ -399,7 +399,9 @@ struct value_iface_t * st_new_duration_literal(
     char fractions = 0x00;
     unsigned parts_defined = 0;
 
-    struct value_iface_t *v = st_duration_type_create_value_of(NULL, parser->config);
+    struct value_iface_t *v = st_duration_type_create_value_of(NULL,
+							       parser->config,
+							       parser->errors);
 
     if(!v)
     {
@@ -650,8 +652,9 @@ struct value_iface_t * st_new_date_literal(
 	goto error_free_resources;
     }
     
-    struct value_iface_t *v
-	= st_date_type_create_value_of(NULL, parser->config);
+    struct value_iface_t *v = st_date_type_create_value_of(NULL,
+							   parser->config,
+							   parser->errors);
 
     if(!v)
     {
@@ -883,17 +886,11 @@ struct value_iface_t * st_new_tod_literal(
 	goto error_free_resources;
     }
 
-    struct value_iface_t *v
-	= st_tod_type_create_value_of(NULL, parser->config);
-
+    struct value_iface_t *v = st_tod_type_create_value_of(NULL,
+							  parser->config,
+							  parser->errors);
     if(!v)
     {
-	parser->errors->memory_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
@@ -977,17 +974,12 @@ struct value_iface_t * st_new_date_tod_literal(
 	goto error_free_resources;
     }
 
-    struct value_iface_t *v
-	= st_date_tod_type_create_value_of(NULL, parser->config);
+    struct value_iface_t *v = st_date_tod_type_create_value_of(NULL,
+							       parser->config,
+							       parser->errors);
 
     if(!v)
     {
-	parser->errors->memory_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
@@ -1032,8 +1024,9 @@ struct value_iface_t * st_new_boolean_literal(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    struct value_iface_t *v =
-	st_bool_type_create_value_of(NULL, parser->config);
+    struct value_iface_t *v = st_bool_type_create_value_of(NULL,
+							   parser->config,
+							   parser->errors);
 
     if(!v)
     {
@@ -1069,8 +1062,9 @@ static struct value_iface_t * new_string_literal(
     const char *string_type,
     struct parser_t *parser)
 {
-    struct value_iface_t *v =
-	st_string_type_create_value_of(NULL, parser->config);
+    struct value_iface_t *v = st_string_type_create_value_of(NULL,
+							     parser->config,
+							     parser->errors);
 
     if(!v)
     {
@@ -1084,18 +1078,12 @@ static struct value_iface_t * new_string_literal(
 	parser->global_type_ref_pool,
 	string_type,
 	sv,
-	NULL,
 	string_location,
-	st_string_literal_type_resolved);
+	st_string_literal_type_resolved,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
-	parser->errors->internal_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	goto error_free_resources;
     }
 

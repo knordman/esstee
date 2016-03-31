@@ -19,9 +19,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <elements/itype.h>
 #include <util/iconfig.h>
+#include <util/iissues.h>
 #include <util/bitflag.h>
+#include <rt/isystime.h>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -29,16 +30,14 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct array_index_t;
 struct variable_t;
 struct enum_item_t;
-struct type_iface_t;
-struct errors_iface_t;
 struct cursor_t;
-struct systime_iface_t;
 struct invoke_parameter_t;
 struct duration_t;
 struct date_t;
 struct tod_t;
 struct array_init_value_t;
 struct struct_init_value_t;
+struct type_iface_t;
 
 struct value_iface_t {
 
@@ -49,6 +48,7 @@ struct value_iface_t {
      * @param buffer_size maximum number of characters to write.
      * @param config configuration to take into consideration.
      * @return number of bytes written, if write succeeded.
+     * @return ESSTEE_FALSE if buffer was full.
      * @return ESSTEE_ERROR on failure.
      */
     int (*display)(
@@ -60,7 +60,8 @@ struct value_iface_t {
     int (*assign)(
 	struct value_iface_t *self,
 	const struct value_iface_t *new_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     /* The functions assignable_from, comparable_to and operates_with,
      * may point to the same function, if that is the behaviour of the
@@ -72,16 +73,14 @@ struct value_iface_t {
      * @param other_value the value to which assignment is evaluated.
      * @param config configuration to take into consideration.
      * @return ESSTEE_TRUE if assignment is possible. 
-     * @return ESSTEE_TYPE_OVERFLOW if assignment is impossible since it would lead to overflow.
-     * @return ESSTEE_TYPE_UNDERFLOW if assignment is impossible since it would lead to underflow.
-     * @return ESSTEE_TYPE_INCOMPATIBLE if assignment is impossible due to type incompatibility between destination and source.
      * @return ESSTEE_FALSE if assignment is impossible. 
      */
     int (*assignable_from)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
-
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     /**
      * Determines whether a value can be compared to another value.
      * @param self the "this" pointer.
@@ -94,7 +93,8 @@ struct value_iface_t {
     int (*comparable_to)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     /**
      * Determines whether a value can be used in a binary expression
@@ -109,16 +109,17 @@ struct value_iface_t {
     int (*operates_with)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     st_bitflag_t (*class)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *config);
+	const struct value_iface_t *self);
     
     int (*override_type)(
 	const struct value_iface_t *self,
 	const struct type_iface_t *type,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     const struct type_iface_t * (*type_of)(
 	const struct value_iface_t *self);
@@ -126,15 +127,18 @@ struct value_iface_t {
     struct value_iface_t * (*index)(
 	struct value_iface_t *self,
 	struct array_index_t *array_index,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     struct variable_t * (*sub_variable)(
 	struct value_iface_t *self,
 	const char *identifier,
-    	const struct config_iface_t *config);
+    	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     struct value_iface_t * (*create_temp_from)(
-	const struct value_iface_t *self);	
+	const struct value_iface_t *self,
+	struct issues_iface_t *issues);
     
     void (*destroy)(
 	struct value_iface_t *self);
@@ -143,7 +147,7 @@ struct value_iface_t {
 	struct value_iface_t *self,
 	struct invoke_parameter_t *parameters,
 	const struct config_iface_t *config,
-	struct errors_iface_t *errors);
+	struct issues_iface_t *issues);
 
     int (*invoke_step)(
 	struct value_iface_t *self,
@@ -151,34 +155,41 @@ struct value_iface_t {
 	struct cursor_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
-	struct errors_iface_t *errors);
+	struct issues_iface_t *issues);
 
     int (*invoke_reset)(
-	struct value_iface_t *self);
+	struct value_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);	
 
     int (*not)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*negate)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
-    /* Binary comparision operations */
+    /* Binary comparison operations */
     int (*greater)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*lesser)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     int (*equals)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     /**@addtogroup value_binary_operations Binary operatios
      *
@@ -204,90 +215,106 @@ struct value_iface_t {
     int (*xor)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*and)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     int (*or)(
 	const struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     int (*plus)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     int (*minus)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*multiply)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*divide)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*modulus)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*to_power)(
 	struct value_iface_t *self,
 	const struct value_iface_t *other_value,
-	const struct config_iface_t *config);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     /* Data access methods */
     int64_t (*integer)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*bool)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     double (*real)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const char * (*string)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const struct enum_item_t * (*enumeration)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const struct duration_t * (*duration)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     const struct date_t * (*date)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const struct tod_t * (*tod)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const struct date_tod_t * (*date_tod)(
 	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const struct array_init_value_t * (*array_init_value)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct value_iface_t *self);
 
     const struct struct_init_value_t * (*struct_init_value)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *conf);
+	const struct value_iface_t *self);
 };

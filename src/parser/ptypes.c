@@ -131,19 +131,13 @@ struct type_iface_t * st_new_derived_type_by_name(
 	parser->pou_type_ref_pool,
 	parent_type_name,
 	dt,
-	NULL,
 	parent_type_name_location,
 	st_derived_type_parent_name_resolved,
-	st_derived_type_resolve_ancestor);
+	st_derived_type_resolve_ancestor,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
-	parser->errors->internal_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	goto error_free_resources;
     }
     
@@ -181,6 +175,11 @@ struct subrange_t * st_new_subrange(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
+    struct subrange_t *sr = NULL;
+    struct st_location_t *loc = NULL;
+    struct st_location_t *min_loc = NULL;
+    struct st_location_t *max_loc = NULL;
+    
     int min_max_accepted = 1;
 
     if(!min->integer)
@@ -221,7 +220,7 @@ struct subrange_t * st_new_subrange(
     {
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "wrong maximum value, must suppoer > and < operators",
+	    "wrong maximum value, must support > and < operators",
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    min_location);
@@ -235,13 +234,13 @@ struct subrange_t * st_new_subrange(
 	goto error_free_resources;
     }
 
-    int min_greater_than_max = min->greater(min, max, parser->config);	
+    int min_greater_than_max = min->greater(min, max, parser->config, parser->errors);	
     if(min_greater_than_max != ESSTEE_FALSE)
     {
 	parser->errors->new_issue_at(
 	    parser->errors,
 	    "maximum must be larger or equal to the minumum value",
-	    ISSUE_ERROR_CLASS,
+	    ESSTEE_ARGUMENT_ERROR,
 	    1,
 	    min_location);
 	
@@ -253,12 +252,7 @@ struct subrange_t * st_new_subrange(
 	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	goto error_free_resources;
     }
-    
-    struct subrange_t *sr = NULL;
-    struct st_location_t *loc = NULL;
-    struct st_location_t *min_loc = NULL;
-    struct st_location_t *max_loc = NULL;
-    
+        
     ALLOC_OR_ERROR_JUMP(
 	sr,
 	struct subrange_t,
@@ -332,7 +326,8 @@ struct type_iface_t * st_new_subrange_type(
 
 	int default_greater_than_max = default_value->greater(default_value,
 							      subrange->max,
-							      parser->config);
+							      parser->config,
+							      parser->errors);
 	if(default_greater_than_max != ESSTEE_FALSE)
 	{
 	    parser->errors->new_issue_at(
@@ -347,7 +342,8 @@ struct type_iface_t * st_new_subrange_type(
 	
 	int default_lesser_than_min = default_value->lesser(default_value,
 							    subrange->min,
-							    parser->config);
+							    parser->config,
+							    parser->errors);
 	if(default_lesser_than_min != ESSTEE_FALSE)
 	{
 	    parser->errors->new_issue_at(
@@ -391,19 +387,13 @@ struct type_iface_t * st_new_subrange_type(
 	parser->pou_type_ref_pool,
 	storage_type_identifier,
 	st,
-	NULL,
 	storage_type_identifier_location,
 	st_subrange_type_storage_type_resolved,
-	st_subrange_type_storage_type_check);
+	st_subrange_type_storage_type_check,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
-	parser->errors->internal_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	goto error_free_resources;
     }
 
@@ -567,8 +557,13 @@ struct array_range_t * st_add_sub_to_new_array_range(
     
     ar->subrange = subrange;
 
-    int64_t max_num = subrange->max->integer(subrange->max, parser->config);
-    int64_t min_num = subrange->min->integer(subrange->min, parser->config);
+    int64_t max_num = subrange->max->integer(subrange->max,
+					     parser->config,
+					     parser->errors);
+
+    int64_t min_num = subrange->min->integer(subrange->min,
+					     parser->config,
+					     parser->errors);
     ar->entries = max_num - min_num + 1;
 
     DL_APPEND(array_ranges, ar);
@@ -701,19 +696,13 @@ struct type_iface_t * st_new_array_type(
 	parser->pou_type_ref_pool,
 	arrayed_type_identifier,
 	at,
-	NULL,
 	arrayed_type_identifier_location,
 	st_array_type_arrayed_type_resolved,
-	st_array_type_arrayed_type_check);
+	st_array_type_arrayed_type_check,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
-	parser->errors->internal_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	goto error_free_resources;
     }
 
@@ -849,18 +838,12 @@ struct struct_element_t * st_add_new_struct_element_by_name(
 	parser->pou_type_ref_pool,
 	element_type_name,
 	se,
-	NULL,
 	element_type_name_location,
-	st_struct_element_type_name_resolved);
+	st_struct_element_type_name_resolved,
+	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
     {
-	parser->errors->internal_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
 	goto error_free_resources;
     }
     

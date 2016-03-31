@@ -36,24 +36,26 @@ struct empty_statement_t {
 int st_empty_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_empty_statement_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 const struct st_location_t * st_empty_statement_location(
     const struct invoke_iface_t *self);
 
 struct invoke_iface_t * st_empty_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 int st_empty_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 void st_empty_statement_destroy(
     struct invoke_iface_t *self);
@@ -76,24 +78,30 @@ struct simple_assignment_statement_t {
 int st_assignment_statement_simple_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_assignment_statement_simple_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 const struct st_location_t * st_assignment_statement_simple_location(
     const struct invoke_iface_t *self);
 
+int st_assignment_statement_simple_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
+
 struct invoke_iface_t * st_assignment_statement_simple_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 int st_assignment_statement_simple_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 void st_assignment_statement_simple_destroy(
     struct invoke_iface_t *self);
@@ -109,32 +117,37 @@ struct qualified_assignment_statement_t {
     struct st_location_t *location;
     struct qualified_identifier_t *lhs;
     struct expression_iface_t *rhs;
-    int lhs_invoke_state;
-    int rhs_invoke_state;
+    int invoke_state;
 };
 
 int st_assignment_statement_qualified_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_assignment_statement_qualified_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 const struct st_location_t * st_assignment_statement_qualified_location(
     const struct invoke_iface_t *self);
 
 struct invoke_iface_t * st_assignment_statement_qualified_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 int st_assignment_statement_qualified_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
-   
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_assignment_statement_qualified_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
+
 void st_assignment_statement_qualified_destroy(
     struct invoke_iface_t *self);
 
@@ -162,19 +175,25 @@ int st_invoke_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_invoke_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_invoke_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_invoke_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 struct invoke_iface_t * st_invoke_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 void st_invoke_statement_destroy(
     struct invoke_iface_t *self);
@@ -217,19 +236,25 @@ int st_case_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_case_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_case_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_case_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 struct invoke_iface_t * st_case_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 void st_case_statement_destroy(
     struct invoke_iface_t *self);
@@ -258,19 +283,25 @@ int st_if_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_if_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_if_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_if_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);    
 
 struct invoke_iface_t * st_if_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 void st_if_statement_destroy(
     struct invoke_iface_t *self);
@@ -297,19 +328,25 @@ int st_while_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_while_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_while_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_while_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 struct invoke_iface_t * st_while_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 void st_while_statement_destroy(
     struct invoke_iface_t *self);
@@ -340,19 +377,25 @@ int st_for_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_for_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_for_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_for_statement_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 struct invoke_iface_t * st_for_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 void st_for_statement_destroy(
     struct invoke_iface_t *self);
@@ -368,7 +411,7 @@ int st_repeat_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 /**************************************************************************/
 /* Exit/return statement                                                  */
@@ -387,27 +430,28 @@ int st_return_statement_step(
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_exit_statement_step(
     struct invoke_iface_t *self,
     struct cursor_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_pop_statement_verify(
     struct invoke_iface_t *self,
     const struct config_iface_t *config,
-    struct errors_iface_t *errors);
+    struct issues_iface_t *errors);
 
 int st_pop_statement_reset(
     struct invoke_iface_t *self,
-    const struct config_iface_t *config);
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
 
 struct invoke_iface_t * st_pop_statement_clone(
-    struct invoke_iface_t *self);
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues);
 
 void st_pop_statement_destroy(
     struct invoke_iface_t *self);
-

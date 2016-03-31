@@ -112,9 +112,9 @@ struct variable_t * st_finalize_var_list_by_name(
 	       parser->pou_type_ref_pool,
 	       type_name,
 	       itr,
-	       NULL,
 	       type_name_location,
-	       st_variable_type_resolved) != ESSTEE_OK)
+	       st_variable_type_resolved,
+	       parser->errors) != ESSTEE_OK)
 	{
 	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	    return NULL;
