@@ -5,17 +5,6 @@ ton
 r_trig
 f_trig
 
-direct-memory
-21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
-DONE 25 /* TODO: return offset into direct memory based on direct address */ ../src/elements/directmemory.c
-DONE 26 /* TODO: reset direct memory, to zero, or resetted value?  */ ../src/elements/directmemory.c
-DONE 108 /* TODO: implement construction of new direct address */ ../src/parser/pdirectmemory.c
-DONE 110 /* TODO: initialization of direct memory */ ../src/parser/pvariables.c
-DONE 111 /* TODO: initialization of direct memory by explicit value */ ../src/parser/pvariables.c
-DONE 112 /* TODO: new direct variable */ ../src/parser/pvariables.c
-DONE 113 /* TODO: new direct var by explicit initial value */ ../src/parser/pvariables.c
-DONE 18 /* TODO: add data of direct memory */ ../src/elements/directmemory.h
-
 config
 103 /* TODO: implement set config */ ../src/esstee/esstee.c
 104 /* TODO: implement get config */ ../src/esstee/esstee.c
@@ -207,3 +196,13 @@ DONE 37 /*TODO: Date tod value, determine value interface function */ ../src/ele
 DONE 69 /* TODO: date tod type create value */ ../src/elements/types.c
 DONE 70 /* TODO: date tod type reset value of */ ../src/elements/types.c
 DONE 71 /* TODO: date tod type can hold */ ../src/elements/types.c
+DONE direct-memory
+DONE 21 /*TODO: direct address term expression functions */ ../src/elements/expressions.h
+DONE 25 /* TODO: return offset into direct memory based on direct address */ ../src/elements/directmemory.c
+DONE 26 /* TODO: reset direct memory, to zero, or resetted value?  */ ../src/elements/directmemory.c
+DONE 108 /* TODO: implement construction of new direct address */ ../src/parser/pdirectmemory.c
+DONE 110 /* TODO: initialization of direct memory */ ../src/parser/pvariables.c
+DONE 111 /* TODO: initialization of direct memory by explicit value */ ../src/parser/pvariables.c
+DONE 112 /* TODO: new direct variable */ ../src/parser/pvariables.c
+DONE 113 /* TODO: new direct var by explicit initial value */ ../src/parser/pvariables.c
+DONE 18 /* TODO: add data of direct memory */ ../src/elements/directmemory.h

@@ -279,6 +279,30 @@ struct direct_address_t * st_new_direct_address(
 	goto error_free_resources;
     }
 
+    parser->errors->begin_group(parser->errors);
+    uint8_t *offset = parser->direct_memory->offset(parser->direct_memory,
+						    da,
+						    parser->config,
+						    parser->errors);
+    if(!offset)
+    {
+	parser->errors->new_issue(parser->errors,
+				  "invalid direct address",
+				  ESSTEE_ARGUMENT_ERROR);
+
+	parser->errors->set_group_location(parser->errors,
+					   1,
+					   representation_location);
+    }
+    parser->errors->end_group(parser->errors);
+    
+    if(!offset)
+    {
+	goto error_free_resources;
+    }
+    
+    da->storage = offset;
+    
     free(representation);
 
     return da;

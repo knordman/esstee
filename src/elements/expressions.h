@@ -124,10 +124,17 @@ void st_qualified_identifier_term_destroy(
 struct direct_address_term_t {
     struct expression_iface_t expression;
     struct st_location_t *location;
-    struct direct_address_t *direct_address;
+    struct direct_address_term_value_t content;
 };
 
-/* TODO: direct address term expression functions */
+const struct st_location_t * st_direct_address_term_location(
+    const struct invoke_iface_t *self);
+
+const struct value_iface_t * st_direct_address_term_return_value(
+    struct expression_iface_t *self);
+    
+void st_direct_address_term_destroy(
+    struct expression_iface_t *self);
 
 /**************************************************************************/
 /* Negative prefix term                                                   */

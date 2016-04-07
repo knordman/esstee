@@ -179,31 +179,6 @@ int st_initialize_direct_memory_explicit(
     return ESSTEE_ERROR;
 }
 
-static uint8_t * compute_offset(
-    const struct direct_address_t *address,
-    const struct st_location_t *location,
-    struct parser_t *parser)
-{
-    parser->errors->begin_group(parser->errors);
-    uint8_t *offset = parser->direct_memory->offset(parser->direct_memory,
-						    address,
-						    parser->config,
-						    parser->errors);
-    if(!offset)
-    {
-	parser->errors->new_issue(parser->errors,
-				  "invalid direct address for variable",
-				  ESSTEE_ARGUMENT_ERROR);
-
-	parser->errors->set_group_location(parser->errors,
-					   1,
-					   location);
-    }
-    parser->errors->end_group(parser->errors);
-
-    return offset;
-}
-
 struct variable_t * st_new_direct_var(
     char *name,
     const struct st_location_t *name_location,
@@ -215,16 +190,6 @@ struct variable_t * st_new_direct_var(
 {
     struct variable_t *v = NULL;
     struct st_location_t *loc = NULL;
-
-    uint8_t *offset = compute_offset(address,
-				     declaration_location,
-				     parser);
-
-    if(!offset)
-    {
-	goto error_free_resources;
-    }
-    address->storage = offset;
     
     ALLOC_OR_ERROR_JUMP(
 	v,
@@ -290,16 +255,6 @@ struct variable_t * st_new_direct_var_explicit(
 {
     struct variable_t *v = NULL;
     struct st_location_t *loc = NULL;
-
-    uint8_t *offset = compute_offset(address,
-				    declaration_location,
-				    parser);
-
-    if(!offset)
-    {
-	goto error_free_resources;
-    }
-    address->storage = offset;
     
     struct type_iface_t *dt = st_new_derived_type_by_name(NULL,
 							  type_name,

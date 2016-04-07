@@ -46,11 +46,13 @@ VAR
 	a : INT;
 
 	myvar AT %MB0 : USINT;
+	m2 : DINT;
 
 	b1 AT %MX0.0 : BOOL := true;
+	b2 : BOOL;
 
 END_VAR
 
-;
+m2 := myvar * 20;
 
 END_PROGRAM

@@ -51,7 +51,6 @@ int st_single_identifier_variable_resolved(
 	
 	memset(&(sit->inline_enum.value), 0, sizeof(struct value_iface_t));
 
-	sit->inline_enum.value.display = st_inline_enum_value_display;
 	sit->inline_enum.value.comparable_to = st_inline_enum_value_comparable_to;
 	sit->inline_enum.value.equals = st_inline_enum_value_equals;
 	sit->inline_enum.value.enumeration = st_inline_enum_value_enumeration;
