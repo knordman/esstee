@@ -45,11 +45,22 @@ struct named_ref_entry_t {
     UT_hash_handle hh;
 };
 
+struct post_resolve_entry_t {
+    void *referrer;
+    post_resolve_callback_t callback;
+    struct post_resolve_entry_t *prev;
+    struct post_resolve_entry_t *next;
+    struct post_resolve_entry_t *nc_prev;
+    struct post_resolve_entry_t *nc_next;
+};
+
 struct named_ref_pool_t {
     struct named_ref_pool_iface_t named_ref_pool;
     struct named_ref_entry_t *iterator;
     struct named_ref_entry_t *ref_table;
     struct named_ref_referrer_t *not_committed;
+    struct post_resolve_entry_t *post_resolves;
+    struct post_resolve_entry_t *not_committed_post_resolves;
 };
 
 static int named_ref_pool_add_two_step(
@@ -149,6 +160,35 @@ static int named_ref_pool_add(
 				       issues);
 }
 
+static int add_post_resolve(
+    struct named_ref_pool_iface_t *self,
+    void *referrer,
+    post_resolve_callback_t callback,
+    struct issues_iface_t *issues)
+{
+    struct named_ref_pool_t *np =
+	CONTAINER_OF(self, struct named_ref_pool_t, named_ref_pool);
+
+    struct post_resolve_entry_t *pe = NULL;
+    
+    ALLOC_OR_JUMP(
+	pe,
+	struct post_resolve_entry_t,
+	error_free_resources);
+
+    pe->referrer = referrer;
+    pe->callback = callback;
+
+    DL_APPEND(np->post_resolves, pe);
+    DL_APPEND2(np->not_committed_post_resolves, pe, nc_prev, nc_next);
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    free(pe);
+    return ESSTEE_ERROR;
+}
+
 static void named_ref_pool_commit(
     struct named_ref_pool_iface_t *self)
 {
@@ -156,6 +196,7 @@ static void named_ref_pool_commit(
 	CONTAINER_OF(self, struct named_ref_pool_t, named_ref_pool);
 
     np->not_committed = NULL;
+    np->not_committed_post_resolves = NULL;
 }
 
 static void named_ref_pool_clear(
@@ -172,6 +213,14 @@ static void named_ref_pool_clear(
 	itr->secondary_callback = NULL;
     }
 
+    struct post_resolve_entry_t *pitr = NULL;
+    DL_FOREACH(np->not_committed_post_resolves, pitr)
+    {
+	pitr->referrer = NULL;
+	pitr->callback = NULL;
+    }
+
+    np->not_committed_post_resolves = NULL;
     np->not_committed = NULL;
 }
     
@@ -323,6 +372,19 @@ static int named_ref_pool_trigger_resolve_callbacks(
 	    }
 	}	
     }
+
+    /* Post resolve callbacks */
+    struct post_resolve_entry_t *pitr = NULL;
+    DL_FOREACH(np->post_resolves, pitr)
+    {
+	if(pitr->referrer && pitr->callback)
+	{
+	    if(pitr->callback(pitr->referrer, config, issues) != ESSTEE_OK)
+	    {
+		result = ESSTEE_ERROR;
+	    }
+	}
+    }
     
     return result;
 }
@@ -399,10 +461,13 @@ struct named_ref_pool_iface_t * st_new_named_ref_pool(
 
     np->ref_table = NULL;
     np->not_committed = NULL;
+    np->not_committed_post_resolves = NULL;
+    np->post_resolves = NULL;
     np->iterator = NULL;
     
     np->named_ref_pool.add_two_step = named_ref_pool_add_two_step;
     np->named_ref_pool.add = named_ref_pool_add;
+    np->named_ref_pool.add_post_resolve = add_post_resolve;
     np->named_ref_pool.clear = named_ref_pool_clear;
     np->named_ref_pool.commit = named_ref_pool_commit;
     np->named_ref_pool.merge = named_ref_pool_merge;

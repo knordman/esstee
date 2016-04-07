@@ -22,15 +22,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #define MEMORY_DIRECT_ADDRESS	        (1 << 0)
 #define INPUT_DIRECT_ADDRESS    	(1 << 1)
 #define OUTPUT_DIRECT_ADDRESS       	(1 << 2)
-#define BIT_UNIT_DIRECT_ADDRESS		(1 << 3)
-#define BYTE_UNIT_DIRECT_ADDRESS	(1 << 4)
-#define WORD_UNIT_DIRECT_ADDRESS	(1 << 5)
-#define DWORD_UNIT_DIRECT_ADDRESS	(1 << 6)
-#define LONG_UNIT_DIRECT_ADDRESS	(1 << 7)
-#define MEMORY_DIRECT_ADDRESS	        (1 << 0)
-#define INPUT_DIRECT_ADDRESS    	(1 << 1)
-#define OUTPUT_DIRECT_ADDRESS       	(1 << 2)
-
 #define BIT_UNIT_ADDRESS		(1 << 3)
 #define BYTE_UNIT_ADDRESS		(1 << 4)
 #define WORD_UNIT_ADDRESS		(1 << 5)
@@ -39,20 +30,30 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <util/iconfig.h>
 #include <util/bitflag.h>
+#include <util/iissues.h>
+
+#include <stddef.h>
+#include <stdint.h>
 
 struct direct_address_t {
-    st_bitflag_t address_class;
-    unsigned long byte_offset;
-    unsigned long bit_offset;
+    st_bitflag_t class;
+    size_t byte_offset;
+    size_t bit_offset;
+    size_t field_size_bits;
+    uint8_t *storage;
 };
 
 struct dmem_iface_t {
 
     uint8_t * (*offset)(
 	struct dmem_iface_t *self,
-	struct direct_address_t *da,
-	struct config_iface_t *conf);
+	const struct direct_address_t *da,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     int (*reset)(
 	struct dmem_iface_t *self);
+
+    void (*destroy)(
+	struct dmem_iface_t *self);    
 };

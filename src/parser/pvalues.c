@@ -47,7 +47,6 @@ struct value_iface_t * st_new_enum_inline_value(
 
     memset(&(ie->value), 0, sizeof(struct value_iface_t));
 
-    ie->value.display = st_inline_enum_value_display;
     ie->value.comparable_to = st_inline_enum_value_comparable_to;
     ie->value.equals = st_inline_enum_value_equals;
     ie->value.enumeration = st_inline_enum_value_enumeration;

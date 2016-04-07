@@ -2826,31 +2826,6 @@ int st_function_block_value_invoke_reset(
 /**************************************************************************/
 /* Inline values                                                          */
 /**************************************************************************/
-int st_inline_enum_value_display(
-    const struct value_iface_t *self,
-    char *buffer,
-    size_t buffer_size,
-    const struct config_iface_t *config)
-{
-    struct inline_enum_value_t *ie
-	= CONTAINER_OF(self, struct inline_enum_value_t, value);
-
-    int written_bytes = snprintf(buffer,
-				 buffer_size,
-				 "%s",
-				 ie->data.identifier);
-    if(written_bytes == 0)
-    {
-	return ESSTEE_FALSE;
-    }
-    else if(written_bytes < 0)
-    {
-	return ESSTEE_ERROR;
-    }
-
-    return written_bytes;
-}
-
 int st_inline_enum_value_comparable_to(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
@@ -2960,4 +2935,195 @@ void st_subrange_case_value_destroy(
     struct value_iface_t *self)
 {
     /* TODO: inline subrange case value destructor */
+}
+
+/**************************************************************************/
+/* Direct address term value                                              */
+/**************************************************************************/
+int st_direct_address_term_value_comparable_to(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    if(ST_FLAG_IS_SET(dv->address->class, BIT_UNIT_ADDRESS))
+    {
+	if(!other_value->bool)
+	{
+	    issues->new_issue(issues,
+			      "a direct address referring to a bit may only be compared booleans",
+			      ESSTEE_CONTEXT_ERROR);
+
+	    return ESSTEE_ERROR;
+	}
+    }
+    else
+    {
+	if(!other_value->integer)
+	{
+	    issues->new_issue(issues,
+			      "multi bit direct address can only be compared to integers",
+			      ESSTEE_CONTEXT_ERROR);
+
+	    return ESSTEE_ERROR;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+int st_direct_address_term_value_operates_with(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    if(!other_value->integer)
+    {
+	issues->new_issue(issues,
+			  "multi bit direct address can only be used in expression with integers",
+			  ESSTEE_CONTEXT_ERROR);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
+
+struct value_iface_t * st_direct_address_term_value_create_temp_from(
+    const struct value_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    struct value_iface_t *v = NULL;
+    if(ST_FLAG_IS_SET(dv->address->class, BIT_UNIT_ADDRESS))
+    {
+	v = st_bool_type_create_value_of(NULL,
+					 NULL, /* TODO: fix dependency on config */
+					 issues);
+    }
+    else
+    {
+	v = st_integer_type_create_value_of(NULL,
+					    NULL, /* TODO: fix dependency on config */
+					    issues);
+    }
+
+    if(!v)
+    {
+	return NULL;
+    }
+    
+    struct integer_value_t *iv =
+	CONTAINER_OF(v, struct integer_value_t, value);
+
+    ST_SET_FLAGS(iv->class, TEMPORARY_VALUE);
+
+    return v;
+}
+
+int st_direct_address_term_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    int64_t other_value_num = other_value->integer(other_value,
+						   config,
+						   issues);
+
+    if(dv->data > other_value_num)
+    {
+	return ESSTEE_TRUE;
+    }
+       
+    return ESSTEE_FALSE;
+}
+
+int st_direct_address_term_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    int64_t other_value_num = other_value->integer(other_value,
+						   config,
+						   issues);
+
+    if(dv->data < other_value_num)
+    {
+	return ESSTEE_TRUE;
+    }
+       
+    return ESSTEE_FALSE;
+}
+    
+int st_direct_address_term_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    int64_t other_value_num;
+    
+    if(ST_FLAG_IS_SET(dv->address->class, BIT_UNIT_ADDRESS))
+    {
+	other_value_num = other_value->bool(other_value,
+					    config,
+					    issues);
+    }
+    else
+    {
+	other_value_num = other_value->integer(other_value,
+					    config,
+					    issues);
+    }
+
+    if(dv->data == other_value_num)
+    {
+	return ESSTEE_TRUE;
+    }
+       
+    return ESSTEE_FALSE;
+}
+
+int64_t st_direct_address_term_value_integer(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    return dv->data;
+}
+
+int st_direct_address_term_value_bool(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct direct_address_term_value_t *dv =
+	CONTAINER_OF(self, struct direct_address_term_value_t, value);
+
+    if(dv->data == 0)
+    {
+	return ESSTEE_FALSE;
+    }
+
+    return ESSTEE_TRUE;
 }

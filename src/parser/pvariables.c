@@ -131,7 +131,14 @@ struct variable_t * st_finalize_var_list_by_edge(
     int rising_edge,
     struct parser_t *parser)
 {
-    /* TODO: finalize variables by edge */
+    parser->errors->new_issue_at(
+	parser->errors,
+	"edge variable specifiers not (yet) supported",
+	ESSTEE_GENERAL_ERROR_ISSUE,
+	1,
+	name_location);
+
+    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
     return NULL;
 }
 
@@ -142,7 +149,14 @@ int st_initialize_direct_memory(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: initialization of direct memory */
+    parser->errors->new_issue_at(
+	parser->errors,
+	"initialization of direct memory through VAR block not (yet) supported",
+	ESSTEE_GENERAL_ERROR_ISSUE,
+	1,
+	location);
+
+    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
     return ESSTEE_ERROR;
 }
 
@@ -154,7 +168,14 @@ int st_initialize_direct_memory_explicit(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    /* TODO: initialization of direct memory by explicit value */
+    parser->errors->new_issue_at(
+	parser->errors,
+	"initialization of direct memory through VAR block not (yet) supported",
+	ESSTEE_GENERAL_ERROR_ISSUE,
+	1,
+	location);
+
+    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
     return ESSTEE_ERROR;
 }
 
@@ -167,7 +188,57 @@ struct variable_t * st_new_direct_var(
     struct direct_address_t *address,
     struct parser_t *parser)
 {
-    /* TODO: new direct variable */
+    struct variable_t *v = NULL;
+    struct st_location_t *loc = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	v,
+	struct variable_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	name_location,
+	parser->errors,
+	error_free_resources);
+
+    v->identifier_location = loc;
+    v->identifier = name;
+    v->type = NULL;
+    v->value = NULL;
+    v->address = address;
+
+    if(parser->pou_type_ref_pool->add(
+	   parser->pou_type_ref_pool,
+	   type_name,
+	   v,
+	   type_name_location,
+	   st_variable_type_resolved,
+	   parser->errors) != ESSTEE_OK)
+    {
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+
+    if(parser->pou_type_ref_pool->add_post_resolve(
+	   parser->pou_type_ref_pool,
+	   v,
+	   st_direct_variable_type_post_resolve,
+	   parser->errors) != ESSTEE_OK)
+    {
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+    
+    /* Return a list to fit var_list format */
+    struct variable_t *list = NULL;
+    DL_APPEND(list, v);
+    return list;
+    
+error_free_resources:
+    free(v);
+    free(loc);
     return NULL;
 }
 
@@ -178,9 +249,61 @@ struct variable_t * st_new_direct_var_explicit(
     char *type_name,
     const struct st_location_t *type_name_location,
     struct direct_address_t *address,
-    struct value_iface_t *initial_value,
+    struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser)
 {
-    /* TODO: new direct var by explicit initial value */
-    return NULL;
+    struct variable_t *v = NULL;
+    struct st_location_t *loc = NULL;
+    
+    struct type_iface_t *dt = st_new_derived_type_by_name(NULL,
+							  type_name,
+							  type_name_location,
+							  declaration_location,
+							  default_value,
+							  default_value_location,
+							  parser);
+    
+    if(!dt)
+    {
+	goto error_free_resources;
+    }
+
+    ALLOC_OR_ERROR_JUMP(
+	v,
+	struct variable_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	loc,
+	name_location,
+	parser->errors,
+	error_free_resources);
+
+    v->identifier_location = loc;
+    v->identifier = name;
+    v->type = dt;
+    v->value = NULL;
+    v->address = address;
+
+    if(parser->pou_type_ref_pool->add_post_resolve(
+	   parser->pou_type_ref_pool,
+	   v,
+	   st_direct_variable_type_post_resolve,
+	   parser->errors) != ESSTEE_OK)
+    {
+	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+	goto error_free_resources;
+    }
+    
+    struct variable_t *list = NULL;
+    DL_APPEND(list, v);
+    return list;
+    
+error_free_resources:
+    /* TODO: check what to destroy */
+    free(v);
+    free(loc);
+    return NULL;					  
 }

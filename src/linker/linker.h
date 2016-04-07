@@ -181,6 +181,20 @@ int st_variable_type_resolved(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
+int st_direct_variable_type_resolved(
+    void *referrer,
+    void *target,
+    st_bitflag_t remark,
+    const char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_direct_variable_type_post_resolve(
+    void *referrer,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
 /**************************************************************************/
 /* Types                                                                  */
 /**************************************************************************/

@@ -932,7 +932,7 @@ var_list ':' variable_type
 }
 | IDENTIFIER AT direct_address ':' simple_type_name ASSIGN simple_type_initial_value
 {
-    if(($$ = st_new_direct_var_explicit($1, &@1, &@$, $5, &@5, $3, $7, parser)) == NULL)
+    if(($$ = st_new_direct_var_explicit($1, &@1, &@$, $5, &@5, $3, $7, &@7, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;

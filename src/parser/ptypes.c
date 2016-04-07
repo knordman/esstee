@@ -99,7 +99,7 @@ struct type_iface_t * st_new_derived_type_by_name(
     const struct st_location_t *parent_type_name_location,
     const struct st_location_t *location,
     struct value_iface_t *default_value,
-    const struct st_location_t *default_value_location,    
+    const struct st_location_t *default_value_location,
     struct parser_t *parser)
 {
     struct derived_type_t *dt = NULL;
@@ -152,6 +152,8 @@ struct type_iface_t * st_new_derived_type_by_name(
     dt->type.create_value_of = st_derived_type_create_value_of;
     dt->type.reset_value_of = st_derived_type_reset_value_of;
     dt->type.can_hold = st_derived_type_can_hold;
+    dt->type.sync_direct_memory = st_derived_type_sync_direct_memory;
+    dt->type.validate_direct_address = st_derived_type_validate_direct_address;
     dt->type.compatible = st_derived_type_compatible;
     dt->type.class = st_derived_type_class;
     dt->type.destroy = st_derived_type_destroy;
@@ -404,6 +406,8 @@ struct type_iface_t * st_new_subrange_type(
     st->type.location = NULL;
     st->type.create_value_of = st_subrange_type_create_value_of;
     st->type.reset_value_of = st_subrange_type_reset_value_of;
+    st->type.sync_direct_memory = NULL;
+    st->type.validate_direct_address = NULL;
     st->type.can_hold = st_subrange_type_can_hold;
     st->type.class = st_subrange_type_class;
     st->type.compatible = st_subrange_type_compatible;
@@ -526,6 +530,8 @@ struct type_iface_t * st_new_enum_type(
     et->type.location = st_enum_type_location;
     et->type.create_value_of = st_enum_type_create_value_of;
     et->type.reset_value_of = st_enum_type_reset_value_of;
+    et->type.sync_direct_memory = NULL;
+    et->type.validate_direct_address = NULL;
     et->type.can_hold = st_enum_type_can_hold;
     et->type.compatible = st_type_general_compatible;
     et->type.class = st_enum_type_class;
@@ -725,6 +731,8 @@ struct type_iface_t * st_new_array_type(
     at->type.location = NULL;
     at->type.create_value_of = st_array_type_create_value_of;
     at->type.reset_value_of = st_array_type_reset_value_of;
+    at->type.sync_direct_memory = NULL;
+    at->type.validate_direct_address = NULL;
     at->type.can_hold = st_array_type_can_hold;
     at->type.class = st_array_type_class;
     at->type.destroy = st_array_type_destroy;
@@ -879,12 +887,16 @@ struct type_iface_t * st_new_struct_type(
 
     memset(&(st->type), 0, sizeof(struct type_iface_t));
 
+    st->type.location = NULL;
     st->type.create_value_of = st_struct_type_create_value_of;
-    st->type.destroy = st_struct_type_destroy;
-    st->type.can_hold = st_struct_type_can_hold;
     st->type.reset_value_of = st_struct_type_reset_value_of;
+    st->type.sync_direct_memory = NULL;
+    st->type.validate_direct_address = NULL;
+    st->type.can_hold = st_struct_type_can_hold;
+    st->type.compatible = NULL;
     st->type.class = st_struct_type_class;
-
+    st->type.destroy = st_struct_type_destroy;
+    
     return &(st->type);
     
 error_free_resources:

@@ -881,12 +881,6 @@ struct inline_enum_value_t {
     struct enum_item_t data;
 };
 
-int st_inline_enum_value_display(
-    const struct value_iface_t *self,
-    char *buffer,
-    size_t buffer_size,
-    const struct config_iface_t *config);
-
 int st_inline_enum_value_comparable_to(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
@@ -926,3 +920,57 @@ int st_subrange_case_value_equals(
 
 void st_subrange_case_value_destroy(
     struct value_iface_t *self);
+
+/**************************************************************************/
+/* Direct address term value                                              */
+/**************************************************************************/
+struct direct_address_term_value_t {
+    struct value_iface_t value;
+    struct direct_address_t *address;
+    int64_t data;
+};
+
+int st_direct_address_term_value_comparable_to(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_direct_address_term_value_operates_with(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+struct value_iface_t * st_direct_address_term_value_create_temp_from(
+    const struct value_iface_t *self,
+    struct issues_iface_t *issues);
+
+int st_direct_address_term_value_greater(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_direct_address_term_value_lesser(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+    
+int st_direct_address_term_value_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int64_t st_direct_address_term_value_integer(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_direct_address_term_value_bool(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+

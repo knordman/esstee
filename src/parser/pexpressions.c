@@ -175,10 +175,70 @@ error_free_resources:
 /* Direct address term                                                    */
 /**************************************************************************/
 struct expression_iface_t * st_new_direct_address_term(
-    struct direct_address_t *direct_address,
+    struct direct_address_t *address,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
+    struct direct_address_term_t *dt = NULL;
+    struct st_location_t *term_location = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	dt,
+	struct direct_address_term_t,
+	parser->errors,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	term_location,
+	location,
+	parser->errors,
+	error_free_resources);
+
+    dt->expression.invoke.location = st_direct_address_term_location;
+    dt->expression.invoke.verify = NULL;
+    dt->expression.invoke.step = NULL;
+    dt->expression.invoke.reset = NULL;
+    dt->expression.invoke.allocate = NULL;
+    dt->expression.invoke.clone = NULL;
+    dt->expression.invoke.destroy = NULL;
+
+    dt->expression.return_value = st_direct_address_term_return_value;
+    dt->expression.clone = NULL;
+    dt->expression.destroy = st_direct_address_term_destroy;
+
+    memset(&(dt->content.value), 0, sizeof(struct value_iface_t));
+
+    dt->content.value.comparable_to = st_direct_address_term_value_comparable_to;
+    dt->content.value.create_temp_from = st_direct_address_term_value_create_temp_from; 
+    dt->content.value.equals = st_direct_address_term_value_equals;
+	
+    if(address->field_size_bits > 1)
+    {
+	/* Integer */
+	dt->content.value.operates_with = st_direct_address_term_value_operates_with;
+	dt->content.value.greater = st_direct_address_term_value_greater;
+	dt->content.value.lesser = st_direct_address_term_value_lesser;
+
+	dt->content.value.integer = st_direct_address_term_value_integer;
+    }
+    else
+    {
+	/* Default to bit size if no size is given = boolean */
+	address->field_size_bits = 1;
+	ST_SET_FLAGS(address->class, BIT_UNIT_ADDRESS);
+
+	dt->content.value.bool = st_direct_address_term_value_bool;
+    }
+    
+    dt->location = term_location;
+    dt->content.address = address;
+    dt->content.data = 0;
+
+    return &(dt->expression);
+
+error_free_resources:
+    free(dt);
+    free(term_location);
     return NULL;
 }
 

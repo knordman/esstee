@@ -140,7 +140,7 @@ int st_assignment_statement_simple_verify(
 
 	return ESSTEE_ERROR;
     }
-
+    
     issues->begin_group(issues);
     int assignable_result = sa->lhs->value->assignable_from(sa->lhs->value,
 							    rhs_value,
@@ -214,6 +214,14 @@ int st_assignment_statement_simple_step(
 	if(assign_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
+	}
+
+	if(sa->lhs->address)
+	{
+	    sa->lhs->type->sync_direct_memory(sa->lhs->type,
+					      sa->lhs->value,
+					      sa->lhs->address,
+					      1);
 	}
     }
     }

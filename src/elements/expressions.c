@@ -100,6 +100,14 @@ const struct value_iface_t * st_single_identifier_term_var_return_value(
     struct single_identifier_term_t *sit =
 	CONTAINER_OF(self, struct single_identifier_term_t, expression);
 
+    if(sit->variable->address)
+    {
+	sit->variable->type->sync_direct_memory(sit->variable->type,
+						sit->variable->value,
+						sit->variable->address,
+						0);
+    }
+    
     return sit->variable->value;
 }
 
@@ -2580,4 +2588,62 @@ int st_power_expression_step(
 		   time,
 		   config,
 		   issues);
+}
+
+/**************************************************************************/
+/* Direct address term                                                    */
+/**************************************************************************/
+const struct st_location_t * st_direct_address_term_location(
+    const struct invoke_iface_t *self)
+{
+   struct expression_iface_t *e =
+	CONTAINER_OF(self, struct expression_iface_t, invoke);
+
+    struct direct_address_term_t *dt =
+	CONTAINER_OF(e, struct direct_address_term_t, expression);
+
+    return dt->location;
+}
+
+const struct value_iface_t * st_direct_address_term_return_value(
+    struct expression_iface_t *self)
+{
+    struct direct_address_term_t *dt =
+	CONTAINER_OF(self, struct direct_address_term_t, expression);
+
+    struct direct_address_t *address = dt->content.address;
+    
+    if(ST_FLAG_IS_SET(dt->content.address->class, BIT_UNIT_ADDRESS))
+    {
+	size_t bit_offset = dt->content.address->bit_offset % 8;
+	uint8_t mask = (1 << bit_offset);
+
+	dt->content.data = mask & *(address->storage);
+    }
+    else
+    {
+	size_t data_size = address->field_size_bits / 8;
+	
+	switch(data_size)
+	{
+	case 8:
+	    dt->content.data = *((int64_t *)address->storage);
+	case 4:
+	    dt->content.data = *((uint32_t *)address->storage);
+
+	case 2:
+	    dt->content.data = *((uint16_t *)address->storage);
+
+	case 1:
+	    dt->content.data = *(address->storage);
+	}
+    }
+
+    return &(dt->content.value);
+}
+    
+void st_direct_address_term_destroy(
+    struct expression_iface_t *self)
+{
+    /* TODO: direct address term destructor */
 }

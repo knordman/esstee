@@ -20,22 +20,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/idirectmemory.h>
-
-struct direct_memory_t {
-    struct dmem_iface_t dmem;
-    /* TODO: add data of direct memory */
-};
+#include <util/iissues.h>
 
 struct dmem_iface_t * st_new_direct_memory(
-    unsigned direct_memory_bytes);
+    size_t direct_memory_bytes);
 
-uint8_t * st_direct_memory_offset(
-    struct dmem_iface_t *self,
-    struct direct_address_t *da,
-    struct config_iface_t *conf);
-
-int st_direct_memory_reset(
-    struct dmem_iface_t *self);
-
-void st_destroy_direct_memory(
-    struct dmem_iface_t *self);
