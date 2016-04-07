@@ -36,6 +36,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_bool_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_bool_type_sync_direct_memory,
+	    .validate_direct_address = st_bool_type_validate_direct_address,
 	    .can_hold = st_bool_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -52,6 +54,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -69,6 +73,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -85,6 +91,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -101,6 +109,7 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -117,6 +126,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -133,6 +144,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -149,6 +162,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -165,6 +180,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -181,6 +198,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -197,6 +216,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -213,6 +234,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -229,6 +252,8 @@ static struct integer_type_t integer_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_integer_type_create_value_of,
 	    .reset_value_of = st_integer_type_reset_value_of,
+	    .sync_direct_memory = st_integer_type_sync_direct_memory,
+	    .validate_direct_address = st_integer_type_validate_direct_address,
 	    .can_hold = st_integer_type_can_hold,
 	    .class = st_integer_type_class,
 	    .compatible = st_type_general_compatible,
@@ -248,6 +273,8 @@ static struct real_type_t real_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_real_type_create_value_of,
 	    .reset_value_of = st_real_type_reset_value_of,
+	    .sync_direct_memory = NULL,
+	    .validate_direct_address = NULL,
 	    .can_hold = st_real_type_can_hold,
 	    .class = st_real_type_class,
 	    .compatible = st_type_general_compatible,
@@ -262,6 +289,8 @@ static struct real_type_t real_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_real_type_create_value_of,
 	    .reset_value_of = st_real_type_reset_value_of,
+	    .sync_direct_memory = NULL,
+	    .validate_direct_address = NULL,
 	    .can_hold = st_real_type_can_hold,
 	    .class = st_real_type_class,
 	    .compatible = st_type_general_compatible,
@@ -279,6 +308,8 @@ static struct string_type_t string_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_string_type_create_value_of,
 	    .reset_value_of = st_string_type_reset_value_of,
+	    .sync_direct_memory = NULL,
+	    .validate_direct_address = NULL,
 	    .can_hold = st_string_type_can_hold,
 	    .class = st_string_type_class,
 	    .compatible = st_type_general_compatible,
@@ -293,6 +324,8 @@ static struct string_type_t string_type_templates[] = {
 	    .location = st_built_in_type_location_get,
 	    .create_value_of = st_string_type_create_value_of,
 	    .reset_value_of = st_string_type_reset_value_of,
+	    .sync_direct_memory = NULL,
+	    .validate_direct_address = NULL,
 	    .can_hold = st_string_type_can_hold,
 	    .class = st_string_type_class,
 	    .compatible = st_type_general_compatible,
@@ -310,6 +343,8 @@ static struct duration_type_t duration_type_template = {
 	.location = st_built_in_type_location_get,
 	.create_value_of = st_duration_type_create_value_of,
 	.reset_value_of = st_duration_type_reset_value_of,
+	.sync_direct_memory = NULL,
+	.validate_direct_address = NULL,
 	.can_hold = st_duration_type_can_hold,
 	.compatible = st_type_general_compatible,
 	.destroy = st_duration_type_destroy,
@@ -326,7 +361,10 @@ static struct date_type_t date_type_template = {
     .type = {
 	.location = st_built_in_type_location_get,
 	.create_value_of = st_date_type_create_value_of,
-	.can_hold = NULL,
+	.reset_value_of = st_date_type_reset_value_of,
+	.sync_direct_memory = NULL,
+	.validate_direct_address = NULL,
+	.can_hold = st_date_type_can_hold,
 	.compatible = st_type_general_compatible,
 	.destroy = st_date_type_destroy,
 	.identifier = "DATE",
@@ -340,7 +378,10 @@ static struct tod_type_t tod_type_template = {
     .type = {
 	.location = st_built_in_type_location_get,
 	.create_value_of = st_tod_type_create_value_of,
-	.can_hold = NULL,
+	.reset_value_of = st_tod_type_reset_value_of,
+	.sync_direct_memory = NULL,
+	.validate_direct_address = NULL,
+	.can_hold = st_tod_type_can_hold,
 	.compatible = st_type_general_compatible,
 	.destroy = st_tod_type_destroy,
 	.identifier = "TIME_OF_DAY",
@@ -354,7 +395,10 @@ static struct date_tod_type_t date_tod_type_template = {
     .type = {
 	.location = st_built_in_type_location_get,
 	.create_value_of = st_date_tod_type_create_value_of,
-	.can_hold = NULL,
+	.reset_value_of = st_date_tod_type_reset_value_of,
+	.sync_direct_memory = NULL,
+	.validate_direct_address = NULL,
+	.can_hold = st_date_tod_type_can_hold,
 	.compatible = st_type_general_compatible,
 	.destroy = st_date_tod_type_destroy,
 	.identifier = "DATE_AND_TIME",
@@ -611,6 +655,111 @@ int st_integer_type_reset_value_of(
     return ESSTEE_OK;
 }
 
+void st_integer_type_sync_direct_memory(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct direct_address_t *address,
+    int write)
+{
+    struct integer_type_t *it =
+	CONTAINER_OF(self, struct integer_type_t, type);
+
+    struct integer_value_t *iv
+	= CONTAINER_OF(value_of, struct integer_value_t, value);
+    
+    if(!address->storage)
+    {
+	return;
+    }
+
+    size_t data_size = address->field_size_bits / 8;
+    
+    if(write)
+    {    
+	memset(address->storage, 0, data_size);
+
+	switch(data_size)
+	{
+	case 8:
+	    memcpy(address->storage, &iv->num, 8);
+	case 4: {
+	    uint32_t data = (uint32_t)iv->num;
+	    memcpy(address->storage, &data, 4);
+	}
+	case 2: {
+	    uint16_t data = (uint16_t)iv->num;
+	    memcpy(address->storage, &data, 2);
+	}
+	case 1:
+	    *(address->storage) = (uint8_t)iv->num;
+	}
+    }
+    else
+    {
+	switch(data_size)
+	{
+	case 8:
+	    iv->num = *((int64_t *)address->storage);
+	case 4:
+	    if(ST_FLAG_IS_SET(it->class, INTEGER_DINT_TYPE))
+	    {
+		iv->num = *((int32_t *)address->storage);
+	    }
+	    else
+	    {
+		iv->num = *((uint32_t *)address->storage);
+	    }
+	case 2:
+	    if(ST_FLAG_IS_SET(it->class, INTEGER_INT_TYPE))
+	    {
+		iv->num = *((int16_t *)address->storage);
+	    }
+	    else
+	    {
+		iv->num = *((uint16_t *)address->storage);
+	    }
+	case 1:
+	    if(ST_FLAG_IS_SET(it->class, INTEGER_SINT_TYPE))
+	    {
+		iv->num = *((int8_t *)address->storage);
+	    }
+	    else
+	    {
+		iv->num = *(address->storage);
+	    }
+	}
+    }
+}
+
+int st_integer_type_validate_direct_address(
+    const struct type_iface_t *self,
+    struct direct_address_t *address,
+    struct issues_iface_t *issues)
+{
+    struct integer_type_t *it =
+	CONTAINER_OF(self, struct integer_type_t, type);
+
+    size_t type_size = it->size * 8;
+    
+    if(address->field_size_bits != 0)
+    {
+	if(type_size > address->field_size_bits)
+	{
+	    issues->new_issue(issues,
+			      "type needs '%lu' bits of storage and does not fit into explicilty given '%lu' bits",
+			      ESSTEE_CONTEXT_ERROR,
+			      type_size,
+			      address->field_size_bits);
+
+	    return ESSTEE_ERROR;
+	}
+    }
+
+    address->field_size_bits = type_size;
+
+    return ESSTEE_OK;
+}
+
 int st_integer_type_can_hold(
     const struct type_iface_t *self,
     const struct value_iface_t *value,
@@ -736,6 +885,48 @@ struct value_iface_t * st_bool_type_create_temp_value(
     ST_SET_FLAGS(iv->class, TEMPORARY_VALUE);
 
     return value;
+}
+
+void st_bool_type_sync_direct_memory(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct direct_address_t *address,
+    int write)
+{
+    struct integer_value_t *iv
+	= CONTAINER_OF(value_of, struct integer_value_t, value);
+    
+    if(!address->storage)
+    {
+	return;
+    }
+
+    size_t bit_offset = address->bit_offset % 8;
+    uint8_t mask = (1 << bit_offset);
+    
+    if(write)
+    {
+	if(iv->num == 0)
+	{
+	    *(address->storage) &= ~mask;
+	}
+	else
+	{
+	    *(address->storage) |= mask;
+	}
+    }
+    else
+    {
+	iv->num = mask & *(address->storage);
+    }	
+}
+
+int st_bool_type_validate_direct_address(
+    const struct type_iface_t *self,
+    struct direct_address_t *address,
+    struct issues_iface_t *issues)
+{
+    return ESSTEE_OK;
 }
 
 int st_bool_type_can_hold(
@@ -1425,6 +1616,65 @@ int st_derived_type_reset_value_of(
     }
     
     return ESSTEE_OK;
+}
+
+void st_derived_type_sync_direct_memory(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct direct_address_t *address,
+    int write)
+{
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    dt->ancestor->sync_direct_memory(dt->ancestor,
+				     value_of,
+				     address,
+				     write);
+}
+
+int st_derived_type_validate_direct_address(
+    const struct type_iface_t *self,
+    struct direct_address_t *address,
+    struct issues_iface_t *issues)
+{
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    if(!dt->ancestor->validate_direct_address)
+    {
+	const char *type_name = (dt->ancestor->identifier) ?
+	    dt->ancestor->identifier : "(no explicit type name)";
+
+	const char *message;
+	if(dt->type.identifier)
+	{
+	    message = issues->build_message(
+		issues,
+		"derived type '%s' does not support direct memory storage, its ancestor type '%s' lacks support",
+		dt->type.identifier,
+		type_name);
+	}
+	else
+	{
+	    message = issues->build_message(
+		issues,
+		"type '%s' does not support direct memory storage",
+		dt->ancestor->identifier,
+		type_name);
+	}
+	
+	issues->new_issue(issues,
+			  message,
+			  ESSTEE_TYPE_ERROR);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return dt->ancestor->validate_direct_address(
+	dt->ancestor,
+	address,
+	issues);
 }
 
 int st_derived_type_can_hold(
@@ -2404,6 +2654,14 @@ int st_function_block_type_reset_value_of(
 	if(reset != ESSTEE_OK)
 	{
 	    return reset;
+	}
+
+	if(vitr->address)
+	{
+	    vitr->type->sync_direct_memory(vitr->type,
+					   vitr->value,
+					   vitr->address,
+					   1);
 	}
     }
 

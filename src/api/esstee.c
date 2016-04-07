@@ -125,8 +125,6 @@ struct st_t * st_new_instance(
 error_free_resources:
     /* TODO: determine what to destroy */
     st_destroy_types_in_list(et);
-    st_destroy_config(c);
-    st_destroy_direct_memory(dm);
 
     return NULL;
 }
@@ -506,6 +504,14 @@ const struct st_location_t * st_start(
 				   vitr->value,
 				   st->config,
 				   st->errors);
+
+	if(vitr->address)
+	{
+	    vitr->type->sync_direct_memory(vitr->type,
+					   vitr->value,
+					   vitr->address,
+					   1);
+	}
     }
 
     for(vitr = found->header->variables; vitr != NULL; vitr = vitr->hh.next)
@@ -514,6 +520,14 @@ const struct st_location_t * st_start(
 				   vitr->value,
 				   st->config,
 				   st->errors);
+
+	if(vitr->address)
+	{
+	    vitr->type->sync_direct_memory(vitr->type,
+					   vitr->value,
+					   vitr->address,
+					   1);
+	}
     }
     
     st->main = found;
@@ -643,6 +657,15 @@ static int display_queries(
 	}
 	else
 	{
+	    if(itr->qi->last->variable && itr->qi->last->variable->address)
+	    {
+		itr->qi->last->variable->type->sync_direct_memory(
+		    itr->qi->last->variable->type,
+		    itr->qi->last->variable->value,
+		    itr->qi->last->variable->address,
+		    0);
+	    }
+	    
 	    query_written_bytes = itr->qi->target->display(
 		itr->qi->target,
 		output+written_bytes,

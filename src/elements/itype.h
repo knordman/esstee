@@ -23,6 +23,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iconfig.h>
 #include <util/bitflag.h>
 #include <util/iissues.h>
+#include <elements/idirectmemory.h>
 
 #include <uthash.h>
 
@@ -41,7 +42,18 @@ struct type_iface_t {
 	struct value_iface_t *value_of,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
-    
+
+    void (*sync_direct_memory)(
+	const struct type_iface_t *self,
+	struct value_iface_t *value_of,
+	const struct direct_address_t *address,
+	int write);
+
+    int (*validate_direct_address)(
+	const struct type_iface_t *self,
+	struct direct_address_t *address,
+	struct issues_iface_t *issues);
+	
     int (*can_hold)(
     	const struct type_iface_t *self,
 	const struct value_iface_t *value,

@@ -433,7 +433,8 @@ struct variable_t * st_new_direct_var_explicit(
     char *type_name,
     const struct st_location_t *type_name_location,
     struct direct_address_t *address,
-    struct value_iface_t *initial_value,
+    struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser);
 
 /**************************************************************************/

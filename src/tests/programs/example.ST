@@ -1,4 +1,4 @@
-
+(*
 FUNCTION myfunc : INT
 
 VAR_INPUT
@@ -23,7 +23,7 @@ VAR
 	b : SINT;
 END_VAR
 
-b := 127 / 0;
+b := 127 / 1;
 a := -(-(1 + 1) * 10);
 e := e + a;
 
@@ -33,7 +33,7 @@ END_FUNCTION_BLOCK
 
 
 
-
+*)
 
 PROGRAM testprgm
 
@@ -43,12 +43,14 @@ TYPE
 END_TYPE
 
 VAR
-	a : INT;	
-	b : m1;
+	a : INT;
+
+	myvar AT %MB0 : USINT;
+
+	b1 AT %MX0.0 : BOOL := true;
+
 END_VAR
 
-
-a(e:=127);
-b(e:=10);
+;
 
 END_PROGRAM

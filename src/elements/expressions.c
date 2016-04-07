@@ -100,6 +100,14 @@ const struct value_iface_t * st_single_identifier_term_var_return_value(
     struct single_identifier_term_t *sit =
 	CONTAINER_OF(self, struct single_identifier_term_t, expression);
 
+    if(sit->variable->address)
+    {
+	sit->variable->type->sync_direct_memory(sit->variable->type,
+						sit->variable->value,
+						sit->variable->address,
+						0);
+    }
+    
     return sit->variable->value;
 }
 

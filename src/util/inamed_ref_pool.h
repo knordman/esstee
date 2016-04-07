@@ -33,6 +33,11 @@ typedef int (*resolved_callback_t)(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
+typedef int (*post_resolve_callback_t)(
+    void *referrer,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
 struct named_ref_pool_iface_t {
 
     int (*add_two_step)(
@@ -52,6 +57,12 @@ struct named_ref_pool_iface_t {
 	resolved_callback_t callback,
 	struct issues_iface_t *issues);
 
+    int (*add_post_resolve)(
+    	struct named_ref_pool_iface_t *self,
+	void *referrer,
+	post_resolve_callback_t callback,
+	struct issues_iface_t *issues);
+	
     void (*commit)(
 	struct named_ref_pool_iface_t *self);
 

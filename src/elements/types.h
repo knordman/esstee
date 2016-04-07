@@ -79,7 +79,7 @@ void st_destroy_types_in_list(
 struct integer_type_t {
     struct type_iface_t type;
     st_bitflag_t class;
-    unsigned size;
+    size_t size;
     int64_t default_value;
     int64_t min;
     int64_t max;
@@ -94,6 +94,17 @@ int st_integer_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
     const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+void st_integer_type_sync_direct_memory(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct direct_address_t *address,
+    int write);
+
+int st_integer_type_validate_direct_address(
+    const struct type_iface_t *self,
+    struct direct_address_t *address,
     struct issues_iface_t *issues);
 
 int st_integer_type_can_hold(
@@ -115,6 +126,17 @@ struct value_iface_t * st_bool_type_create_value_of(
     struct issues_iface_t *issues);
 
 struct value_iface_t * st_bool_type_create_temp_value(
+    struct issues_iface_t *issues);
+
+void st_bool_type_sync_direct_memory(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct direct_address_t *address,
+    int write);
+
+int st_bool_type_validate_direct_address(
+    const struct type_iface_t *self,
+    struct direct_address_t *address,
     struct issues_iface_t *issues);
 
 int st_bool_type_can_hold(
@@ -358,6 +380,17 @@ int st_derived_type_reset_value_of(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
     const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+void st_derived_type_sync_direct_memory(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct direct_address_t *address,
+    int write);
+
+int st_derived_type_validate_direct_address(
+    const struct type_iface_t *self,
+    struct direct_address_t *address,
     struct issues_iface_t *issues);
 
 int st_derived_type_can_hold(
