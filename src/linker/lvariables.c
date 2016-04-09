@@ -57,6 +57,38 @@ int st_variable_type_resolved(
     return ESSTEE_OK;
 }
 
+int st_external_variable_resolved(
+    void *referrer,
+    void *target,
+    st_bitflag_t remark,
+    const char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    if(target == NULL)
+    {
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined global type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    location);
+
+	return ESSTEE_ERROR;
+    }
+
+    struct variable_t *var = (struct variable_t *)referrer;
+    var->external_alias = (struct variable_t *)target;
+    
+    return ESSTEE_OK;
+}
+
 int st_direct_variable_type_post_resolve(
     void *referrer,
     const struct config_iface_t *config,

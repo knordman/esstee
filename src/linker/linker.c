@@ -60,10 +60,17 @@ static int create_header_tables(
     return result;
 }
 
+int st_create_header_tables(
+    struct header_t *header,
+    struct issues_iface_t *issues)
+{
+    return create_header_tables(header, issues);
+}
+
 int st_link_queries(
     struct query_t *queries,
     struct variable_t *global_variables,
-    struct function_t *functions,
+    struct function_iface_t *functions,
     struct named_ref_pool_iface_t *var_ref_pool,
     struct named_ref_pool_iface_t *func_ref_pool,
     struct program_t *main,
@@ -277,12 +284,12 @@ struct variable_t * st_link_variables(
     return variable_table;
 }
 
-struct function_t * st_link_functions(
-    struct function_t *function_list,
-    struct function_t *function_table,
+struct function_iface_t * st_link_functions(
+    struct function_iface_t *function_list,
+    struct function_iface_t *function_table,
     struct issues_iface_t *issues)
 {
-    struct function_t *itr = NULL, *found = NULL;
+    struct function_iface_t *itr = NULL, *found = NULL;
     DL_FOREACH(function_list, itr)
     {
 	HASH_FIND_STR(function_table, itr->identifier, found);
@@ -303,74 +310,6 @@ struct function_t * st_link_functions(
 	    
 	    continue;
 	}
-
-	struct variable_t *var_itr = NULL;
-	int invalid_variables = 0;
-	DL_FOREACH(itr->header->variables, var_itr)
-	{
-	    st_bitflag_t var_class = var_itr->class;
-	    ST_CLEAR_FLAGS(var_class, INPUT_VAR_CLASS|CONSTANT_VAR_CLASS);
-	    if(var_class != 0)
-	    {
-		const char *message = issues->build_message(
-		    issues,
-		    "variable '%s' in function '%s' has an invalid specifier",
-		    itr->identifier);
-		
-		issues->new_issue_at(
-		    issues,
-		    message,
-		    ESSTEE_TYPE_ERROR,
-		    1,
-		    var_itr->identifier_location);
-		
-		invalid_variables = 1;
-	    }
-	}
-	
-	if(invalid_variables)
-	{
-	    continue;
-	}
-	
-	int table_result = create_header_tables(itr->header, issues);
-	if(table_result != ESSTEE_OK)
-	{
-	    continue;
-	}
-
-	struct variable_t *found_var = NULL;
-	HASH_FIND_STR(itr->header->variables, itr->identifier, found_var);
-	if(found_var)
-	{
-	    const char *message = issues->build_message(
-		issues,
-		"implicit output variable '%s' explicitly defined",
-		itr->identifier);
-
-	    issues->new_issue_at(
-		issues,
-		message,
-		ESSTEE_LINK_ERROR,
-		1,
-		found_var->identifier_location);
-	    
-	    continue;
-	}
-
-	HASH_ADD_KEYPTR(
-	    hh,
-	    itr->header->variables,
-	    itr->output.identifier,
-	    strlen(itr->output.identifier),
-	    &(itr->output));
-	
-	HASH_ADD_KEYPTR(
-	    hh, 
-	    function_table, 
-	    itr->identifier, 
-	    strlen(itr->identifier), 
-	    itr);
     }
 
     return function_table;
@@ -433,11 +372,10 @@ int st_link_function_blocks(
     return result;
 }
 
-int st_resolve_type_refs(
+void st_resolve_type_refs(
     struct named_ref_pool_iface_t *type_ref_pool,
     struct type_iface_t *type_table)
 {
-    int result = ESSTEE_OK;
     const char *resolve = NULL;
     while((resolve = type_ref_pool->next_unresolved(type_ref_pool)) != NULL)
     {
@@ -448,15 +386,98 @@ int st_resolve_type_refs(
 	    type_ref_pool->resolve(type_ref_pool, resolve, found);
 	}
     }
+}
+
+int st_create_header_variable_values(
+    struct variable_t *var_table,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+/* In the special case of an EXTERNAL variable, no value should be
+ * created, since the variable is a link to a global variable. In that
+ * case, check that that classes of the two variables match. This is
+ * not a perfect way to catch type differences, e.g. two different
+ * arrays will be accepted. */
+
+    int result = ESSTEE_OK;
+    struct variable_t *itr = NULL;
+    DL_FOREACH(var_table, itr)
+    {
+	if(ST_FLAG_IS_SET(itr->class, EXTERNAL_VAR_CLASS))
+	{
+	    /* Link will be NULL if global reference failed  */
+	    if(itr->external_alias)
+	    {
+		st_bitflag_t global_type_class = 
+		    itr->external_alias->type->class(itr->external_alias->type);
+
+		st_bitflag_t local_type_class = 
+		    itr->type->class(itr->type);
+
+		if(global_type_class != local_type_class)
+		{
+		    const char *message = issues->build_message(
+			issues,
+			"type of the external variable '%s' does not match the type of global variable '%s'",
+			itr->identifier);
+			
+		    issues->new_issue_at(issues,
+					 message,
+					 ESSTEE_TYPE_ERROR,
+					 2,
+					 itr->identifier_location,
+					 itr->external_alias->identifier_location);
+
+		    result = ESSTEE_ERROR;
+		}
+	    }
+	}
+	else
+	{
+	    itr->value = itr->type->create_value_of(itr->type, config, issues);
+
+	    if(!itr->value)
+	    {
+		return ESSTEE_ERROR;
+	    }
+	}
+    }
 
     return result;
 }
 
-int st_resolve_var_refs(
+void st_resolve_pou_var_refs(
+    struct named_ref_pool_iface_t *var_refs,
+    struct variable_t *global_var_table,
+    struct variable_t *var_table)
+{
+    const char *resolve = NULL;
+    while((resolve = var_refs->next_unresolved(var_refs)) != NULL)
+    {
+	struct variable_t *found = NULL;
+	HASH_FIND_STR(var_table, resolve, found);
+	if(found)
+	{
+	    if(ST_FLAG_IS_SET(found->class, EXTERNAL_VAR_CLASS))
+	    {
+		var_refs->resolve(var_refs,
+				  resolve,
+				  found->external_alias);
+	    }
+	    else
+	    {
+		var_refs->resolve(var_refs,
+				  resolve,
+				  found);
+	    }
+	}
+    }
+}
+
+void st_resolve_var_refs(
     struct named_ref_pool_iface_t *var_ref_pool,
     struct variable_t *var_table)
 {
-    int result = ESSTEE_OK;
     const char *resolve = NULL;
     while((resolve = var_ref_pool->next_unresolved(var_ref_pool)) != NULL)
     {
@@ -467,19 +488,17 @@ int st_resolve_var_refs(
 	    var_ref_pool->resolve(var_ref_pool, resolve, found);
 	}
     }
-
-    return result;
 }
 
 int st_resolve_function_refs(
     struct named_ref_pool_iface_t *function_ref_pool,
-    struct function_t *function_table)
+    struct function_iface_t *function_table)
 {
     int result = ESSTEE_OK;
     const char *resolve = NULL;
     while((resolve = function_ref_pool->next_unresolved(function_ref_pool)) != NULL)
     {
-	struct function_t *found = NULL;
+	struct function_iface_t *found = NULL;
 	HASH_FIND_STR(function_table, resolve, found);
 	if(found != NULL)
 	{

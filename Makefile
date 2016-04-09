@@ -36,6 +36,7 @@ OBJECTS := 		build/util/issue_context.o \
 			build/elements/statements.o \
 			build/elements/expressions.o \
 			build/elements/query.o \
+			build/elements/user_functions.o \
 			build/api/esstee.o \
 			build/api/elements.o \
 			build/linker/lpous.o \

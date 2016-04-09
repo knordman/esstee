@@ -24,14 +24,14 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/idirectmemory.h>
 #include <esstee/flags.h>
 
-#define INPUT_VAR_CLASS			(1 << 2)
-#define OUTPUT_VAR_CLASS		(1 << 3)
-#define TEMP_VAR_CLASS			(1 << 4)
-#define IN_OUT_VAR_CLASS		(1 << 5)
-#define EXTERNAL_VAR_CLASS		(1 << 6)
-#define GLOBAL_VAR_CLASS		(1 << 7)
-#define RETAIN_VAR_CLASS		(1 << 8)
-#define CONSTANT_VAR_CLASS		(1 << 9)
+#define INPUT_VAR_CLASS			(1 << 0)
+#define OUTPUT_VAR_CLASS		(1 << 1)
+#define TEMP_VAR_CLASS			(1 << 2)
+#define IN_OUT_VAR_CLASS		(1 << 3)
+#define EXTERNAL_VAR_CLASS		(1 << 4)
+#define GLOBAL_VAR_CLASS		(1 << 5)
+#define RETAIN_VAR_CLASS		(1 << 6)
+#define CONSTANT_VAR_CLASS		(1 << 7)
 
 struct variable_t {
     struct type_iface_t *type;
@@ -39,8 +39,9 @@ struct variable_t {
     struct direct_address_t *address;
     struct st_location_t *identifier_location;
     st_bitflag_t class;
+    struct variable_t *external_alias;
     struct variable_t *prev;
-    struct variable_t *next;    
+    struct variable_t *next;
     char *identifier;
     UT_hash_handle hh;
 };

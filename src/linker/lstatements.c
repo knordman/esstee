@@ -84,7 +84,7 @@ int st_invoke_statement_as_func_resolved(
     struct invoke_statement_t *is =
 	(struct invoke_statement_t *)referrer;
 
-    is->function = (struct function_t *)target;
+    is->function = (struct function_iface_t *)target;
 
     return ESSTEE_OK;
 }

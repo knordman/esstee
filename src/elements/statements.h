@@ -21,6 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/iinvoke.h>
 #include <elements/iexpression.h>
+#include <elements/ifunction.h>
 #include <elements/shared.h>
 #include <elements/variables.h>
 #include <elements/pous.h>
@@ -161,7 +162,7 @@ struct invoke_statement_t {
     struct invoke_iface_t invoke;
     struct st_location_t *location;
     struct variable_t *variable;
-    struct function_t *function;
+    struct function_iface_t *function;
     struct invoke_parameter_t *parameters;
     
     int invoke_state;

@@ -714,7 +714,7 @@ IDENTIFIER ':' variable_type ';'
 | structure_elements IDENTIFIER ':' variable_type ';'
 {
     if(($$ = st_add_new_struct_element($1, $2, &@2, $4, parser)) == NULL)
-	DO_ERROR_STRATEGY(parser);											
+	DO_ERROR_STRATEGY(parser);
 }
 | IDENTIFIER ':' simple_type_name ';'
 {

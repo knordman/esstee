@@ -20,36 +20,3 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <linker/linker.h>
 #include <elements/pous.h>
 
-
-int st_function_return_type_resolved(
-    void *referrer,
-    void *target,
-    st_bitflag_t remark,
-    const char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    if(target == NULL)
-    {
-	const char *message = issues->build_message(
-	    issues,
-	    "return type '%s' undefined",
-	    identifier);
-
-	issues->new_issue_at(
-	    issues,
-	    message,
-	    ESSTEE_LINK_ERROR,
-	    1,
-	    location);
-	
-	return ESSTEE_ERROR;
-    }
-
-    struct function_t *function = (struct function_t *)referrer;
-
-    function->output.type = (struct type_iface_t *)target;
-
-    return ESSTEE_OK;
-}

@@ -24,16 +24,31 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/variables.h>
 #include <elements/pous.h>
 #include <elements/query.h>
+#include <elements/ifunction.h>
 #include <util/iissues.h>
 #include <util/inamed_ref_pool.h>
 
 /**************************************************************************/
 /* General linking functionality                                          */
 /**************************************************************************/
+int st_create_header_tables(
+    struct header_t *header,
+    struct issues_iface_t *issues);
+
+void st_resolve_pou_var_refs(
+    struct named_ref_pool_iface_t *var_refs,
+    struct variable_t *global_var_table,
+    struct variable_t *var_table);
+
+int st_create_header_variable_values(
+    struct variable_t *var_table,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
 int st_link_queries(
     struct query_t *query,
     struct variable_t *global_variables,
-    struct function_t *functions, 
+    struct function_iface_t *functions, 
     struct named_ref_pool_iface_t *var_ref_pool,
     struct named_ref_pool_iface_t *func_ref_pool,
     struct program_t *main,
@@ -50,10 +65,10 @@ struct variable_t * st_link_variables(
     struct variable_t *variable_table,
     struct issues_iface_t *errors);
 
-struct function_t * st_link_functions(
-    struct function_t *function_list,
-    struct function_t *function_table,
-    struct issues_iface_t *errors);
+struct function_iface_t * st_link_functions(
+    struct function_iface_t *function_list,
+    struct function_iface_t *function_table,
+    struct issues_iface_t *issues);
 
 struct program_t * st_link_programs(
     struct program_t *function_list,
@@ -64,17 +79,17 @@ int st_link_function_blocks(
     struct function_block_t *function_blocks,
     struct issues_iface_t *errors);
 
-int st_resolve_type_refs(
+void st_resolve_type_refs(
     struct named_ref_pool_iface_t *type_ref_pool,
     struct type_iface_t *type_table);
 
-int st_resolve_var_refs(
+void st_resolve_var_refs(
     struct named_ref_pool_iface_t *var_ref_pool,
     struct variable_t *var_table);
 
 int st_resolve_function_refs(
     struct named_ref_pool_iface_t *function_ref_pool,
-    struct function_t *function_table);
+    struct function_iface_t *function_table);
 
 int st_allocate_statements(
     struct invoke_iface_t *statements,
@@ -173,6 +188,15 @@ int st_for_statement_variable_resolved(
 /* Variables                                                              */
 /**************************************************************************/
 int st_variable_type_resolved(
+    void *referrer,
+    void *target,
+    st_bitflag_t remark,
+    const char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_external_variable_resolved(
     void *referrer,
     void *target,
     st_bitflag_t remark,

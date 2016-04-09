@@ -88,7 +88,7 @@ int st_function_invocation_term_function_resolved(
     struct function_invocation_term_t *ft =
 	(struct function_invocation_term_t *)referrer;
 
-    ft->function = (struct function_t *)target;
+    ft->function = (struct function_iface_t *)target;
 
     return ESSTEE_OK;
 }

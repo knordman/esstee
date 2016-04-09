@@ -31,22 +31,6 @@ struct header_t {
 void st_destroy_header(
     struct header_t *header);
 
-struct function_t {    
-    struct header_t *header;
-    struct variable_t output;
-    struct invoke_iface_t *statements;
-    struct st_location_t *location;
-    struct named_ref_pool_iface_t *type_ref_pool;
-    struct named_ref_pool_iface_t *var_ref_pool;
-    struct function_t *prev;
-    struct function_t *next;
-    char *identifier;
-    UT_hash_handle hh;
-};
-
-void st_destroy_function(
-    struct function_t *function);
-
 struct program_t {
     struct header_t *header;
     struct invoke_iface_t *statements;

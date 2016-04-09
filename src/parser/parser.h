@@ -21,6 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/types.h>
 #include <elements/variables.h>
+#include <elements/ifunction.h>
 #include <elements/pous.h>
 #include <elements/expressions.h>
 #include <elements/statements.h>
@@ -48,7 +49,7 @@ struct parser_t {
     
     struct type_iface_t *global_types;	 /* List of defined global types */
     struct variable_t *global_variables; /* List of defined global variables */
-    struct function_t *functions;	 /* List of defined functions */
+    struct function_iface_t *functions;	 /* List of defined functions */
     struct function_block_t *function_blocks; /* List of defined function block types */
     struct program_t *programs;		      /* List of defined programs */
 
@@ -73,7 +74,7 @@ struct compilation_unit_t {
 
     struct type_iface_t *global_types;	 /* List of defined global types */
     struct variable_t *global_variables; /* List of degined global variables */
-    struct function_t *functions;	 /* List of defined functions */
+    struct function_iface_t *functions;	 /* List of defined functions */
     struct function_block_t *function_blocks; /* List of defined function block types */
     struct program_t *programs;		      /* List of defined programs */
 

@@ -3127,3 +3127,46 @@ int st_direct_address_term_value_bool(
 
     return ESSTEE_TRUE;
 }
+
+/**************************************************************************/
+/* Function output value                                                  */
+/**************************************************************************/
+int st_function_output_value_verify(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    /* struct variable_t *output = */
+    /* 	CONTAINER_OF(self, struct variable_t, value); */
+
+    /* struct function_t *function = */
+    /* 	CONTAINER_OF(output, struct function_t, output); */
+
+    /* int verify_result = st_verify_invoke_parameters(parameters, */
+    /* 						    function->header->variables, */
+    /* 						    config, */
+    /* 						    issues);	 */
+
+    return ESSTEE_OK;
+}
+
+int st_function_output_value_step(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    /* struct variable_t *output = */
+    /* 	CONTAINER_OF(self, struct variable_t, value); */
+
+    /* struct function_t *function = */
+    /* 	CONTAINER_OF(output, struct function_t, output); */
+
+    /* st_switch_current(cursor, function->statements, config, issues); */
+    /* return INVOKE_RESULT_IN_PROGRESS; */
+
+    return 0;
+}

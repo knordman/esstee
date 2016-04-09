@@ -19,41 +19,23 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <esstee/locations.h>
+#include <elements/ifunction.h>
+#include <elements/pous.h>
 #include <util/iconfig.h>
 #include <util/iissues.h>
+#include <util/inamed_ref_pool.h>
+#include <esstee/locations.h>
 
-struct invoke_iface_t;
-
-struct cursor_t {
-    struct invoke_iface_t *call_stack;
-    struct invoke_iface_t *exit_context;
-    struct invoke_iface_t *return_context;
-    struct invoke_iface_t *current;
-};
-
-void st_switch_current(
-    struct cursor_t *cursor,
-    struct invoke_iface_t *switch_to,
+struct function_iface_t * st_new_user_function(
+    char *identifier,
+    const struct st_location_t *location,
+    char *return_type_identifier,
+    const struct st_location_t *return_type_identifier_location,
+    struct header_t *header,
+    struct named_ref_pool_iface_t *global_type_refs,
+    struct named_ref_pool_iface_t *type_refs,
+    struct named_ref_pool_iface_t *global_var_refs,
+    struct named_ref_pool_iface_t *var_refs,
+    struct invoke_iface_t *statements,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
-    
-void st_push_return_context(
-    struct cursor_t *cursor,
-    struct invoke_iface_t *context);
-
-void st_pop_return_context(
-    struct cursor_t *cursor);
-
-int st_jump_return(
-    struct cursor_t *cursor);
-
-void st_push_exit_context(
-    struct cursor_t *cursor,
-    struct invoke_iface_t *context);
-
-void st_pop_exit_context(
-    struct cursor_t *cursor);
-
-void st_jump_exit(
-    struct cursor_t *cursor);

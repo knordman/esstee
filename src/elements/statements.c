@@ -729,33 +729,37 @@ int st_invoke_statement_step(
     case 1:
 	if(is->variable)
 	{
-	    is->invoke_state = 3;
-	    return is->variable->value->invoke_step(is->variable->value,
-						    is->parameters,
-						    cursor,
-						    time,
-						    config,
-						    issues);
+	    is->invoke_state = 2;
+	    int step_result = is->variable->value->invoke_step(
+		is->variable->value,
+		is->parameters,
+		cursor,
+		time,
+		config,
+		issues);
+
+	    if(step_result != INVOKE_RESULT_FINISHED)
+	    {
+		return step_result;
+	    }
 	}
 	else if(is->function)
 	{
-	    is->invoke_state = 2;
-	    int assign_result = st_assign_from_invoke_parameters(is->parameters,
-								 is->function->header->variables,
-								 config,
-								 issues);
-	    if(assign_result != ESSTEE_OK)
+	    int step_result = is->function->step(
+		is->function,
+		is->parameters,
+		cursor,
+		time,
+		config,
+		issues);
+
+	    if(step_result != INVOKE_RESULT_FINISHED)
 	    {
-		return INVOKE_RESULT_ERROR;
+		return step_result;
 	    }
 	}
 	
     case 2:
-	is->invoke_state = 3;
-	st_switch_current(cursor, is->function->statements, config, issues);
-	return INVOKE_RESULT_IN_PROGRESS;
-
-    case 3:
     default:
 	break;
     }
@@ -794,7 +798,7 @@ int st_invoke_statement_verify(
 	{
 	    const char *message = issues->build_message(issues,
 							"variable '%s' cannot be invoked",
-							is->variable->identifier);	    
+							is->variable->identifier);
 	    issues->new_issue_at(
 		issues,
 		message,
@@ -817,10 +821,12 @@ int st_invoke_statement_verify(
     }
     else if(is->function)
     {
-	int verify_result = st_verify_invoke_parameters(is->parameters,
-							is->function->header->variables,	
-							config,
-							issues);
+	int verify_result = is->function->verify_invoke(
+	    is->function,
+	    is->parameters,
+	    config,
+	    issues);
+
 	if(verify_result != ESSTEE_OK)
 	{
 	    return verify_result;
@@ -861,17 +867,12 @@ int st_invoke_statement_reset(
     }
     else if(is->function)
     {
-	struct variable_t *itr = NULL;
-	DL_FOREACH(is->function->header->variables, itr)
+	int reset_result = is->function->reset(is->function,
+					       config,
+					       issues);
+	if(reset_result != ESSTEE_OK)
 	{
-	    int reset_result = itr->type->reset_value_of(itr->type,
-							 itr->value,
-							 config,
-							 issues);
-	    if(reset_result != ESSTEE_OK)
-	    {
-		return reset_result;
-	    }
+	    return reset_result;
 	}
     }
 

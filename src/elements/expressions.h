@@ -22,6 +22,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/iexpression.h>
 #include <elements/variables.h>
 #include <elements/pous.h>
+#include <elements/ifunction.h>
 #include <elements/shared.h>
 #include <elements/types.h>
 #include <elements/values.h>
@@ -194,7 +195,7 @@ void st_negative_prefix_term_clone_destroy(
 /**************************************************************************/
 struct function_invocation_term_t {
     struct expression_iface_t expression;
-    struct function_t *function;
+    struct function_iface_t *function;
     struct invoke_parameter_t *parameters;
     struct st_location_t *location;
     int invoke_state;

@@ -560,8 +560,8 @@ int st_function_invocation_term_verify(
     struct function_invocation_term_t *ft =
 	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
 
-    return st_verify_invoke_parameters(ft->parameters,
-				       ft->function->header->variables,
+    return ft->function->verify_invoke(ft->function,
+				       ft->parameters,
 				       config,
 				       issues);
 }
@@ -583,31 +583,36 @@ int st_function_invocation_term_step(
     {
     case 0:
 	st_push_return_context(cursor, self);
+	
+	if(ft->parameters)
+	{
+	    ft->invoke_state = 1;
+	    int step_result = st_step_invoke_parameters(ft->parameters,
+							cursor,
+							time,
+							config,
+							issues);
+	    if(step_result != INVOKE_RESULT_FINISHED)
+	    {
+		return step_result;
+	    }
+	}
+	
+    case 1: {
+	ft->invoke_state = 2;
+	
+	int step_result = ft->function->step(
+	    ft->function,
+	    ft->parameters,
+	    cursor,
+	    time,
+	    config,
+	    issues);
 
-	ft->invoke_state = 1;
-	int step_result = st_step_invoke_parameters(ft->parameters,
-						    cursor,
-						    time,
-						    config,
-						    issues);
 	if(step_result != INVOKE_RESULT_FINISHED)
 	{
 	    return step_result;
 	}
-
-    case 1: {
-	int assign_result = st_assign_from_invoke_parameters(ft->parameters,
-							     ft->function->header->variables,
-							     config,
-							     issues);
-	if(assign_result != ESSTEE_OK)
-	{
-	    return INVOKE_RESULT_ERROR;
-	}
-	
-	ft->invoke_state = 2;
-	st_switch_current(cursor, ft->function->statements, config, issues);
-	return INVOKE_RESULT_IN_PROGRESS;
     }
 	
     case 2:
@@ -631,23 +636,17 @@ int st_function_invocation_term_reset(
     struct function_invocation_term_t *ft =
 	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
     
-    struct variable_t *itr = NULL;
-    DL_FOREACH(ft->function->header->variables, itr)
+    int reset_result = ft->function->reset(ft->function,
+					   config,
+					   issues);
+    if(reset_result != ESSTEE_OK)
     {
-	int reset_result = itr->type->reset_value_of(itr->type,
-						     itr->value,
-						     config,
-						     issues);
-
-	if(reset_result != ESSTEE_OK)
-	{
-	    return reset_result;
-	}
+	return reset_result;
     }
-
-    int reset_result = st_reset_invoke_parameters(ft->parameters,
-						  config,
-						  issues);
+    
+    reset_result = st_reset_invoke_parameters(ft->parameters,
+					      config,
+					      issues);
     if(reset_result != ESSTEE_OK)
     {
 	return reset_result;
@@ -662,7 +661,7 @@ const struct value_iface_t * st_function_invocation_term_return_value(
     struct function_invocation_term_t *ft =
 	CONTAINER_OF(self, struct function_invocation_term_t, expression);
     
-    return ft->function->output.value;
+    return ft->function->result_value(ft->function);
 }
 
 struct expression_iface_t * st_function_invocation_term_clone(

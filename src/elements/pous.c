@@ -26,12 +26,6 @@ void st_destroy_header(
     /* TODO: destructor for header */
 }
 
-void st_destroy_function(
-    struct function_t *function)
-{
-    /* TODO: destructor for function */
-}
-
 void st_destroy_program(
     struct program_t *program)
 {

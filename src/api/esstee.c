@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <elements/ifunction.h>
+
 #include <esstee/esstee.h>
 #include <esstee/flags.h>
 #include <parser/parser.h>
@@ -43,7 +45,7 @@ struct st_t {
     struct type_iface_t *elementary_types; /* List of elementary types */
     struct type_iface_t *global_types;	   /* Table of global types */
     struct variable_t *global_variables;   /* Table of global variables */
-    struct function_t *functions;	   /* Table of functions */
+    struct function_iface_t *functions;	   /* Table of functions */
     struct program_t *programs;		   /* Table of programs */
 
     struct program_t *main;
@@ -194,16 +196,16 @@ int st_link(struct st_t *st)
 	return ESSTEE_OK;
     }
 
-    int resolve_on_link_error =
-	st->config->get(st->config, "resolve_links_on_parse_error") == ESSTEE_TRUE;
+    /* int resolve_on_link_error = */
+    /* 	st->config->get(st->config, "resolve_links_on_parse_error") == ESSTEE_TRUE; */
     
     /* Reset all link information */
     reset_linking(st);
     
     /* Link elementary types */
     st->global_types = st_link_types(st->elementary_types, st->global_types, st->errors);
-    
-    /* For each compilation unit ... */
+
+    /* Link all resources */
     struct compilation_unit_t *cuitr = NULL;
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
@@ -214,35 +216,62 @@ int st_link(struct st_t *st)
 	st_link_function_blocks(cuitr->function_blocks, st->errors);
     }
 
-    size_t error_count = st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR);
-    
-    if(error_count > 0 && !resolve_on_link_error)
-    {
-	goto error_free_resources;
-    }
-
-    /* Resolve references ... */
+    /* Resolve global type references */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
 	cuitr->global_type_ref_pool->reset_resolved(cuitr->global_type_ref_pool);
-	cuitr->global_var_ref_pool->reset_resolved(cuitr->global_var_ref_pool);
-	cuitr->function_ref_pool->reset_resolved(cuitr->function_ref_pool);
-	
 	st_resolve_type_refs(cuitr->global_type_ref_pool, st->global_types);
-	st_resolve_var_refs(cuitr->global_var_ref_pool, st->global_variables);
-	st_resolve_function_refs(cuitr->function_ref_pool, st->functions);
+	cuitr->global_type_ref_pool->trigger_resolve_callbacks(cuitr->global_type_ref_pool,
+							       st->config,
+							       st->errors);
+    }
 
-	struct function_t *fitr = NULL;
+    /* Create values of global variables */
+    struct variable_t *vitr = NULL;
+    DL_FOREACH(st->global_variables, vitr)
+    {
+	vitr->value = vitr->type->create_value_of(vitr->type, st->config, st->errors);
+    }
+
+    /* Resolve global variable references */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
+	cuitr->global_var_ref_pool->reset_resolved(cuitr->global_var_ref_pool);
+	st_resolve_var_refs(cuitr->global_var_ref_pool, st->global_variables);
+	cuitr->global_var_ref_pool->trigger_resolve_callbacks(cuitr->global_var_ref_pool,
+							      st->config,
+							      st->errors);
+    }
+
+    /* Finalize function headers */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
+	struct function_iface_t *fitr = NULL;
 	DL_FOREACH(cuitr->functions, fitr)
 	{
-	    fitr->type_ref_pool->reset_resolved(fitr->type_ref_pool);
-	    fitr->var_ref_pool->reset_resolved(fitr->var_ref_pool);
-	    
-	    st_resolve_type_refs(fitr->type_ref_pool, st->global_types);
-	    st_resolve_type_refs(fitr->type_ref_pool, fitr->header->types);
-	    st_resolve_var_refs(fitr->var_ref_pool, fitr->header->variables);
+	    fitr->finalize_header(fitr,
+				  st->global_types,
+				  st->global_variables,
+				  st->config,
+				  st->errors);
 	}
+    }
 
+    /* Resolve function references */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
+	cuitr->function_ref_pool->reset_resolved(cuitr->function_ref_pool);
+	cuitr->function_ref_pool->trigger_resolve_callbacks(cuitr->function_ref_pool,
+							    st->config,
+							    st->errors);
+    }
+
+    size_t error_count = st->errors->count(st->errors,
+					   ESSTEE_FILTER_ANY_ERROR);
+    
+    /* Resolve references ... */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
 	struct function_block_t *fbitr = NULL;
 	DL_FOREACH(cuitr->function_blocks, fbitr)
 	{
@@ -269,35 +298,6 @@ int st_link(struct st_t *st)
     /* Call resolve callbacks ... */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
-	cuitr->global_type_ref_pool->trigger_resolve_callbacks(
-	    cuitr->global_type_ref_pool,
-	    st->config,
-	    st->errors);
-
-	cuitr->global_var_ref_pool->trigger_resolve_callbacks(
-	    cuitr->global_var_ref_pool,
-	    st->config,
-	    st->errors);
-
-	cuitr->function_ref_pool->trigger_resolve_callbacks(
-	    cuitr->function_ref_pool,
-	    st->config,
-	    st->errors);
-
-	struct function_t *fitr = NULL;
-	DL_FOREACH(cuitr->functions, fitr)
-	{
-	    fitr->type_ref_pool->trigger_resolve_callbacks(
-		fitr->type_ref_pool,
-		st->config,
-		st->errors);
-
-	    fitr->var_ref_pool->trigger_resolve_callbacks(
-		fitr->var_ref_pool,
-		st->config,
-		st->errors);
-	}
-
 	struct function_block_t *fbitr = NULL;
 	DL_FOREACH(cuitr->function_blocks, fbitr)
 	{
@@ -356,29 +356,6 @@ int st_link(struct st_t *st)
     /* Create variable values */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
-	struct variable_t *vitr = NULL;
-	DL_FOREACH(cuitr->global_variables, vitr)
-	{
-	    if((vitr->value = vitr->type->create_value_of(vitr->type, st->config, st->errors)) == NULL)
-	    {
-		goto error_free_resources;
-	    }
-	}
-
-	struct function_t *fitr = NULL;
-	DL_FOREACH(cuitr->functions, fitr)
-	{
-	    for(struct variable_t *vitr = fitr->header->variables;
-		vitr != NULL;
-		vitr = vitr->hh.next)
-	    {
-		if((vitr->value = vitr->type->create_value_of(vitr->type, st->config, st->errors)) == NULL)
-		{
-		    goto error_free_resources;
-		}
-	    }
-	}
-
 	struct function_block_t *fbitr = NULL;
 	DL_FOREACH(cuitr->function_blocks, fbitr)
 	{
@@ -418,13 +395,6 @@ int st_link(struct st_t *st)
     /* Allocate working memory for statements */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
-	struct function_t *fitr = NULL;
-	DL_FOREACH(cuitr->functions, fitr)
-	{
-	    st_allocate_statements(fitr->statements,
-				   st->errors);
-	}
-
 	struct program_t *pitr = NULL;
 	DL_FOREACH(cuitr->programs, pitr)
 	{
@@ -447,15 +417,17 @@ int st_link(struct st_t *st)
 	goto error_free_resources;
     }
     error_count = error_count_now;
-    
-    /* Verify statements for functions, function blocks and programs */
+
+    /* Finalize function, function block and program statements */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
-	struct function_t *fitr = NULL;
+	struct function_iface_t *fitr = NULL;
 	DL_FOREACH(cuitr->functions, fitr)
 	{
-	    st_verify_statements(fitr->statements, st->config, st->errors);
-	}
+	    fitr->finalize_statements(fitr,
+				     st->config,
+				     st->errors);
+	}	
 
 	struct program_t *pitr = NULL;
 	DL_FOREACH(cuitr->programs, pitr)
@@ -469,7 +441,7 @@ int st_link(struct st_t *st)
 	    st_verify_statements(fbitr->statements, st->config, st->errors);
 	}
     }
-
+    
     error_count_now = st->errors->count(st->errors,
 					ESSTEE_FILTER_ANY_ERROR);    
     if(error_count_now > error_count)

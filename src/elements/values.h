@@ -974,3 +974,19 @@ int st_direct_address_term_value_bool(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
+/**************************************************************************/
+/* Function output value                                                  */
+/**************************************************************************/
+int st_function_output_value_verify(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
+int st_function_output_value_step(
+    struct value_iface_t *self,
+    struct invoke_parameter_t *parameters,
+    struct cursor_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);

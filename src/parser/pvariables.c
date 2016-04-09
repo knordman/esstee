@@ -20,6 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <parser/parser.h>
 #include <linker/linker.h>
 #include <util/macros.h>
+#include <util/bitflag.h>
 
 #include <utlist.h>
 
@@ -33,7 +34,7 @@ struct variable_t * st_new_var_declaration_block(
 {
     struct variable_t *itr = NULL;
     if(variables)
-    {
+    {	
 	DL_FOREACH(variables, itr)
 	{
 	    itr->class |= (block_class|retain_flag|constant_flag);
