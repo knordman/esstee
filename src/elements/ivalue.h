@@ -30,14 +30,17 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct array_index_t;
 struct variable_t;
 struct enum_item_t;
-struct cursor_t;
-struct invoke_parameter_t;
+struct cursor_iface_t;
+struct invoke_parameters_iface_t;
 struct duration_t;
 struct date_t;
 struct tod_t;
 struct array_init_value_t;
 struct struct_init_value_t;
 struct type_iface_t;
+
+#define TEMPORARY_VALUE (1 << 0)
+#define CONSTANT_VALUE  (1 << 1)
 
 struct value_iface_t {
 
@@ -145,14 +148,14 @@ struct value_iface_t {
 
     int (*invoke_verify)(
 	struct value_iface_t *self,
-	struct invoke_parameter_t *parameters,
+	struct invoke_parameters_iface_t *parameters,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
     int (*invoke_step)(
 	struct value_iface_t *self,
-	struct invoke_parameter_t *parameters,
-	struct cursor_t *cursor,
+	struct invoke_parameters_iface_t *parameters,
+	struct cursor_iface_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);

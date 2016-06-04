@@ -22,7 +22,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/macros.h>
     
 
-int st_parser_reset(struct parser_t *parser)
+static int reset_parser(struct parser_t *parser)
 {
     parser->global_types = NULL;
     parser->global_variables = NULL;
@@ -35,13 +35,49 @@ int st_parser_reset(struct parser_t *parser)
     parser->scanner_options.query_mode_start = 0;
     parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 
+    if(parser->global_type_ref_pool)
+    {
+	parser->global_type_ref_pool->destroy(parser->global_type_ref_pool);
+    }
     parser->global_type_ref_pool = st_new_named_ref_pool(parser->errors);
+
+    if(parser->global_var_ref_pool)
+    {
+	parser->global_var_ref_pool->destroy(parser->global_var_ref_pool);
+    }
     parser->global_var_ref_pool = st_new_named_ref_pool(parser->errors);
+
+    if(parser->function_ref_pool)
+    {
+	parser->function_ref_pool->destroy(parser->function_ref_pool);
+    }
     parser->function_ref_pool = st_new_named_ref_pool(parser->errors);
+
+    if(parser->pou_type_ref_pool)
+    {
+	parser->pou_type_ref_pool->destroy(parser->pou_type_ref_pool);
+    }
     parser->pou_type_ref_pool = st_new_named_ref_pool(parser->errors);
+    
+    if(parser->pou_var_ref_pool)
+    {
+	parser->pou_var_ref_pool->destroy(parser->pou_var_ref_pool);
+    }
     parser->pou_var_ref_pool = st_new_named_ref_pool(parser->errors);
 
+    if(parser->program_ref_pool)
+    {
+	parser->program_ref_pool->destroy(parser->program_ref_pool);
+    }
+    parser->program_ref_pool = st_new_named_ref_pool(parser->errors);
+    
     parser->loop_level = 0;
+
+    if(parser->queries)
+    {
+	parser->queries->destroy(parser->queries);
+    }
+    parser->queries = NULL;
     
     if(!(parser->global_type_ref_pool
 	 && parser->global_var_ref_pool
@@ -55,12 +91,21 @@ int st_parser_reset(struct parser_t *parser)
     return ESSTEE_OK;
 }
 
-int st_reset_parser_pou_refs(
+int st_reset_parser_next_pou(
     struct parser_t *parser)
 {
+    if(parser->pou_type_ref_pool)
+    {
+	parser->pou_type_ref_pool->destroy(parser->pou_type_ref_pool);
+    }
     parser->pou_type_ref_pool = st_new_named_ref_pool(parser->errors);
+    
+    if(parser->pou_var_ref_pool)
+    {
+	parser->pou_var_ref_pool->destroy(parser->pou_var_ref_pool);
+    }
     parser->pou_var_ref_pool = st_new_named_ref_pool(parser->errors);
-
+ 
     if(!(parser->pou_type_ref_pool && parser->pou_var_ref_pool))
     {
 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
@@ -80,6 +125,11 @@ struct compilation_unit_t * st_parse_file(
     const char *path,
     struct parser_t *parser)
 {
+    if(reset_parser(parser) != ESSTEE_OK)
+    {
+	return NULL;
+    }
+    
     FILE *fp = NULL;
     YY_BUFFER_STATE yy_buffer = NULL;
     struct compilation_unit_t *cu = NULL;
@@ -92,7 +142,7 @@ struct compilation_unit_t * st_parse_file(
 				  "unable to open file '%s'",
 				  ESSTEE_IO_ERROR,
 				  path);
-	goto error_free_resources;
+	return NULL;
     }
 
     parser->scanner_options.query_mode_start = 0;
@@ -144,13 +194,43 @@ struct compilation_unit_t * st_parse_file(
     return cu;
     
 error_free_resources:
-    if(fp)
-    {
-	fclose(fp);
-    }
+    fclose(fp);
     yy_delete_buffer(yy_buffer, parser->yyscanner);
     free(cu);
     free(source_path);
 
+    return NULL;
+}
+
+struct queries_iface_t * st_parse_query_string(
+    const char *query_string,
+    struct parser_t *parser)
+{
+    if(reset_parser(parser) != ESSTEE_OK)
+    {
+	return NULL;
+    }
+    
+    parser->scanner_options.query_mode_start = 1;
+    
+    YY_BUFFER_STATE yy_buffer = yy_scan_string(query_string, parser->yyscanner);
+    yy_switch_to_buffer(yy_buffer, parser->yyscanner);
+    yyparse(parser->yyscanner, parser);
+
+    if(parser->errors->count(parser->errors, ESSTEE_FILTER_ANY_ERROR))
+    {
+	return NULL;
+    }
+
+    return parser->queries;
+}
+
+struct compilation_unit_t * st_parse_buffer(
+    const char *virtual_path,
+    const char *buffer,
+    size_t buffer_size,
+    struct parser_t *parser)
+{
+    /* TODO: parse buffer */
     return NULL;
 }

@@ -37,7 +37,7 @@ struct variable_t {
     struct type_iface_t *type;
     struct value_iface_t *value;
     struct direct_address_t *address;
-    struct st_location_t *identifier_location;
+    struct st_location_t *location;
     st_bitflag_t class;
     struct variable_t *external_alias;
     struct variable_t *prev;

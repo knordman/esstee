@@ -19,41 +19,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <esstee/locations.h>
-#include <util/iconfig.h>
-#include <util/iissues.h>
+#include <rt/icursor.h>
 
-struct invoke_iface_t;
-
-struct cursor_t {
-    struct invoke_iface_t *call_stack;
-    struct invoke_iface_t *exit_context;
-    struct invoke_iface_t *return_context;
-    struct invoke_iface_t *current;
-};
-
-void st_switch_current(
-    struct cursor_t *cursor,
-    struct invoke_iface_t *switch_to,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-    
-void st_push_return_context(
-    struct cursor_t *cursor,
-    struct invoke_iface_t *context);
-
-void st_pop_return_context(
-    struct cursor_t *cursor);
-
-int st_jump_return(
-    struct cursor_t *cursor);
-
-void st_push_exit_context(
-    struct cursor_t *cursor,
-    struct invoke_iface_t *context);
-
-void st_pop_exit_context(
-    struct cursor_t *cursor);
-
-void st_jump_exit(
-    struct cursor_t *cursor);
+struct cursor_iface_t * st_new_cursor();

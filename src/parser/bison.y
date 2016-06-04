@@ -76,6 +76,16 @@ void yyerror(
 
 #define DO_ERROR_STRATEGY(parser)					\
     do {								\
+	parser->pou_type_ref_pool->clear(parser->pou_type_ref_pool);	\
+	parser->pou_var_ref_pool->clear(parser->pou_var_ref_pool);	\
+	parser->global_type_ref_pool->clear(parser->global_type_ref_pool); \
+	parser->global_var_ref_pool->clear(parser->global_var_ref_pool); \
+	parser->function_ref_pool->clear(parser->function_ref_pool);	\
+	int fatal_error = parser->errors->fatal_error_occurred(parser->errors); \
+	if(fatal_error == ESSTEE_TRUE)					\
+	{								\
+	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;	\
+	}								\
 	if(parser->error_strategy == PARSER_SKIP_ERROR_STRATEGY)	\
 	{								\
 	    YYERROR;							\
@@ -89,18 +99,19 @@ void yyerror(
 	    YYABORT;							\
 	}								\
     } while(0)
-}
+ }
 
 %union {
     char *string;
 
     struct type_iface_t *type;
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
+    struct variable_stub_t *variable_stub;
     struct header_t *header;
 
     struct value_iface_t *value;
     struct listed_value_t *listed_value;
-    struct enum_item_t *enum_item;
+    struct enum_group_item_t *enum_item;
     struct array_init_value_t *array_init_value;
     struct struct_init_value_t *struct_init_value;
 
@@ -111,14 +122,19 @@ void yyerror(
     
     struct direct_address_t *direct_address;
     struct array_index_t *array_index;
-    struct qualified_identifier_t *qualified_identifier;
+    struct qualified_identifier_iface_t *qualified_identifier;
+    struct qualified_part_t *qualified_part;
     
     struct expression_iface_t *expression;
     struct invoke_iface_t *invoke;
     struct invoke_parameter_t *invoke_parameter;
+    struct invoke_parameters_iface_t *invoke_parameters;
     struct case_t *case_clause;
     struct if_statement_t *if_statement;
     struct case_list_element_t *case_list;
+
+    struct queries_iface_t *queries;
+    struct query_t *query;
     
     st_bitflag_t bitflag;
     int64_t integer;
@@ -258,18 +274,18 @@ void yyerror(
 %type	<bitflag>	var_start
 %type	<bitflag>	retain_specifier
 %type	<bitflag>	constant_specifier
-%type	<variable>	var_declarations			
-%type	<variable>	var_list
-%type	<variable>	var_declaration
+%type	<variable_stub>	var_declarations			
+%type	<variable_stub>	var_list
+%type	<variable_stub>	var_declaration
 %type	<direct_address> direct_address
 %type	<array_index>	array_index
 %type	<expression>	expression
-%type	<qualified_identifier> inner_reference
+%type	<qualified_part> inner_reference
 %type	<qualified_identifier> qualified_identifier
 %type	<expression>	term
-%type	<invoke_parameter> invoke_parameters
+%type	<invoke_parameters> invoke_parameters
 %type	<invoke_parameter> invoke_parameter
-%type	<invoke_parameter> possibly_no_invoke_parameters
+%type	<invoke_parameters> possibly_no_invoke_parameters
 %type	<invoke>	statements
 %type	<invoke>	statement
 %type	<invoke>	for_statement
@@ -280,6 +296,7 @@ void yyerror(
 %type	<case_clause>	a_case
 %type	<case_list>	case_list
 %type	<value>		case_list_element
+%type	<query>		query
 
 %destructor {printf("freeing: %s\n", $$);/*free($$);*/} <string>
 
@@ -288,33 +305,69 @@ void yyerror(
 start :
 pous				/* File parsing mode */
 | QUERY_MODE queries		/* Query mode */
+{
+    if(st_finish_queries(parser) == ESSTEE_ERROR)
+    	DO_ERROR_STRATEGY(parser);
+}
 ;
 
 queries :
 query
+{
+    if(st_append_query($1, parser) == ESSTEE_ERROR)
+	DO_ERROR_STRATEGY(parser);
+}
 | queries ';' query
+{
+    if(st_append_query($3, parser) == ESSTEE_ERROR)
+	DO_ERROR_STRATEGY(parser);
+}
 ;
 
 query :
-IDENTIFIER
+'[' IDENTIFIER ']'
 {
-    if(st_new_query_by_identifier($1, &@1, NULL, parser) == ESSTEE_ERROR)
+    if(($$ = st_new_query_by_program($2, &@2, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| IDENTIFIER
+{
+    if(($$ = st_new_query_by_identifier(NULL, NULL, $1, &@1, NULL, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | qualified_identifier
 {
-    if(st_new_query_by_qualified_identifier($1, NULL, parser) == ESSTEE_ERROR)
+    if(($$ = st_new_query_by_qualified_identifier(NULL, NULL, $1, NULL, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
-
+}
+| '[' IDENTIFIER ']' '.' IDENTIFIER
+{
+    if(($$ = st_new_query_by_identifier($2, &@2, $5, &@5, NULL, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| '[' IDENTIFIER ']' '.' qualified_identifier
+{
+    if(($$ = st_new_query_by_qualified_identifier($2, &@2, $5, NULL, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
 }
 | IDENTIFIER ASSIGN expression
 {
-    if(st_new_query_by_identifier($1, &@1, $3, parser) == ESSTEE_ERROR)
+    if(($$ = st_new_query_by_identifier(NULL, NULL, $1, &@1, $3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | qualified_identifier ASSIGN expression
 {
-    if(st_new_query_by_qualified_identifier($1, $3, parser) == ESSTEE_ERROR)
+    if(($$ = st_new_query_by_qualified_identifier(NULL, NULL, $1, $3, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| '[' IDENTIFIER ']' '.' IDENTIFIER ASSIGN expression
+{
+    if(($$ = st_new_query_by_identifier($2, &@2, $5, &@5, $7, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| '[' IDENTIFIER ']' '.' qualified_identifier ASSIGN expression
+{
+    if(($$ = st_new_query_by_qualified_identifier($2, &@2, $5, $7, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -322,12 +375,12 @@ IDENTIFIER
 pous :
 pou
 {
-    if(st_reset_parser_pou_refs(parser) == ESSTEE_ERROR)
+    if(st_reset_parser_next_pou(parser) == ESSTEE_ERROR)
 	DO_ERROR_STRATEGY(parser);
 }
 | pous pou
 {
-    if(st_reset_parser_pou_refs(parser) == ESSTEE_ERROR)
+    if(st_reset_parser_next_pou(parser) == ESSTEE_ERROR)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -576,7 +629,7 @@ simple_type_initial_value :
 literal
 | IDENTIFIER
 {
-    if(($$ = st_new_enum_inline_value($1, &@1, parser)) == NULL)
+    if(($$ = st_new_enum_value($1, &@1, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -607,12 +660,12 @@ subrange_point : literal_implicit_type_possible_sign_prefix;
 enum_type :
 '(' enum_items ')'
 {
-    if(($$ = st_new_enum_type($2, &@$, NULL, NULL, parser)) == NULL)
+    if(($$ = st_new_enum_type($2, NULL, NULL, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | '(' enum_items ')' ASSIGN IDENTIFIER
 {
-    if(($$ = st_new_enum_type($2, &@$, $5, &@5, parser)) == NULL)
+    if(($$ = st_new_enum_type($2, $5, &@5, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -691,7 +744,7 @@ array_initial_element :
 literal_implicit_type_possible_sign_prefix
 | IDENTIFIER
 {
-    if(($$ = st_new_enum_inline_value($1, &@1, parser)) == NULL)
+    if(($$ = st_new_enum_value($1, &@1, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | array_initialization
@@ -781,12 +834,12 @@ string_defined_length :
 string_defined_length_type :
 STRING_TYPE_NAME string_defined_length
 {
-    if(($$ = st_new_string_type($1, $2, NULL, parser)) == NULL)
+    if(($$ = st_new_string_type($1, $2, &@2, NULL, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | STRING_TYPE_NAME string_defined_length ASSIGN literal
 {
-    if(($$ = st_new_string_type($1, $2, $4, parser)) == NULL)
+    if(($$ = st_new_string_type($1, $2, &@2, $4, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -1060,12 +1113,12 @@ IDENTIFIER
 qualified_identifier :
 IDENTIFIER '[' array_index ']'
 {
-    if(($$ = st_new_qualified_identifier_array_index($1, $3, &@1, &@$, parser)) == NULL)
+    if(($$ = st_new_qualified_identifier_array_index($1, &@1, $3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 | IDENTIFIER '.' inner_reference
 {
-    if(($$ = st_new_qualified_identifier_inner_ref($1, $3, &@1, &@$, parser)) == NULL)
+    if(($$ = st_new_qualified_identifier_inner_ref($1, &@1, $3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -1114,6 +1167,11 @@ literal_no_sign_prefix
 
 invoke_parameters :
 invoke_parameter
+{
+    if(($$ = st_append_invoke_parameter(NULL, $1, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+
+}
 | invoke_parameters ',' invoke_parameter
 {
     if(($$ = st_append_invoke_parameter($1, $3, parser)) == NULL)
@@ -1296,7 +1354,7 @@ subrange
 | literal
 | IDENTIFIER_CASE_LABEL
 {
-    if(($$ = st_new_enum_inline_value($1, &@1, parser)) == NULL)
+    if(($$ = st_new_enum_value($1, &@1, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;

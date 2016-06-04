@@ -18,31 +18,35 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/user_functions.h>
+#include <elements/variable.h>
+#include <statements/statements.h>
 #include <util/macros.h>
 #include <linker/linker.h>
 
+#include <utlist.h>
+
+/**************************************************************************/
+/* Function interface                                                     */
+/**************************************************************************/
 struct user_function_t {
     struct function_iface_t function;
 
     struct header_t *header;    
-    struct variable_t result;
+    struct variable_iface_t *result;
 
     struct named_ref_pool_iface_t *type_refs;
     struct named_ref_pool_iface_t *var_refs;
     
     struct invoke_iface_t *statements;
 
-    struct function_t *prev;
-    struct function_t *next;
+    struct st_location_t *location;
     char *identifier;
-
-    UT_hash_handle hh;
 };
 
 static int user_function_finalize_header(
     struct function_iface_t *self,
     struct type_iface_t *global_type_table,
-    struct variable_t *global_var_table,
+    struct variable_iface_t *global_var_table,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -76,10 +80,10 @@ static int user_function_finalize_header(
      * next step is to create the values of the variables. */
     if(uf->header && uf->header->variables)
     {
-	/* Before createing the variable values check that variables are
+	/* Before creating the variable values check that variables are
 	 * properly defined */
 	int invalid_variables = 0;
-	struct variable_t *itr = NULL;
+	struct variable_iface_t *itr = NULL;
 	DL_FOREACH(uf->header->variables, itr)
 	{
 	    st_bitflag_t var_class = itr->class;
@@ -97,7 +101,7 @@ static int user_function_finalize_header(
 		    message,
 		    ESSTEE_TYPE_ERROR,
 		    1,
-		    itr->identifier_location);
+		    itr->location);
 		
 		invalid_variables = 1;
 	    }
@@ -109,8 +113,8 @@ static int user_function_finalize_header(
 
 	/* Check that there is no explicit variable by the same name
 	 * as the implict result variable */
-	struct variable_t *found = NULL;
-	HASH_FIND_STR(uf->header->variables, uf->identifier, found);
+	struct variable_iface_t *found = NULL;
+	HASH_FIND_STR(uf->header->variables, uf->function.identifier, found);
 	if(found)
 	{
 	    const char *message = issues->build_message(
@@ -123,31 +127,37 @@ static int user_function_finalize_header(
 		message,
 		ESSTEE_LINK_ERROR,
 		1,
-		found->identifier_location);
+		found->location);
 	}
 
 	/* Check restrictions on result variable? */
+
+	/* Create values of header variables */
+	DL_FOREACH(uf->header->variables, itr)
+	{
+	    int create_result = itr->create(itr,
+					    config,
+					    issues);
+
+	    if(create_result != ESSTEE_OK)
+	    {
+		return create_result;
+	    }
+	}
+
+	/* Create value of result variable */
+	int create_result = uf->result->create(uf->result,
+					       config,
+					       issues);
 	
-	int create_result = st_create_header_variable_values(uf->header->variables,
-							     config,
-							     issues);
 	if(create_result != ESSTEE_OK)
 	{
-	    return create_result;
+	    return ESSTEE_ERROR;
 	}
-    }
-
-    /* Create result variable */
-    uf->result.value = uf->result.type->create_value_of(uf->result.type,
-							config,
-							issues);
-    if(!uf->result.value)
-    {
-	return ESSTEE_ERROR;
-    }
     
-    /* Resolve variable references */
-    st_resolve_pou_var_refs(uf->var_refs, global_var_table, uf->header->variables);
+	/* Resolve variable references */
+	st_resolve_pou_var_refs(uf->var_refs, global_var_table, uf->header->variables);
+    }
 
     return uf->var_refs->trigger_resolve_callbacks(uf->var_refs,
 						   config,
@@ -177,41 +187,44 @@ static int user_function_finalize_statements(
 
 static int user_function_verify_invoke(
     struct function_iface_t *self,
-    struct invoke_parameter_t *parameters,
+    struct invoke_parameters_iface_t *parameters,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
-    
-    return st_verify_invoke_parameters(parameters,
-				       uf->header->variables,
-				       config,
-				       issues);
+
+    return parameters->verify(parameters,
+			      uf->header->variables,
+			      config,
+			      issues);
 }
 
 static int user_function_step(
     struct function_iface_t *self,
-    struct invoke_parameter_t *parameters,
-    struct cursor_t *cursor,
+    struct invoke_parameters_iface_t *parameters,
+    struct cursor_iface_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
-    
-    st_switch_current(cursor, uf->statements, config, issues);
+
+    cursor->switch_current(cursor,
+			   uf->statements,
+			   config,
+			   issues);
     return INVOKE_RESULT_IN_PROGRESS;
 }
 
-static struct value_iface_t * user_function_result_value(
+static const struct value_iface_t * user_function_result_value(
     struct function_iface_t *self)
 {
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
 
-    return uf->result.value;
+    return uf->result->value(uf->result);
 }
 
 static int user_function_reset(
@@ -224,13 +237,13 @@ static int user_function_reset(
 
     if(uf->header && uf->header->variables)
     {
-	struct variable_t *itr = NULL;
+	struct variable_iface_t *itr = NULL;
 	DL_FOREACH(uf->header->variables, itr)
 	{
-	    int reset_result = itr->type->reset_value_of(itr->type,
-							 itr->value,
-							 config,
-							 issues);
+	    int reset_result = itr->reset(itr,
+					  config,
+					  issues);
+	    
 	    if(reset_result != ESSTEE_OK)
 	    {
 		return reset_result;
@@ -241,41 +254,9 @@ static int user_function_reset(
     return ESSTEE_OK;
 }
 
-static int user_function_return_type_resolved(
-    void *referrer,
-    void *target,
-    st_bitflag_t remark,
-    const char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct user_function_t *uf =
-	(struct user_function_t *)referrer;
-    
-    if(target == NULL)
-    {
-	const char *message = issues->build_message(
-	    issues,
-	    "return type '%s' undefined in function '%s'",
-	    identifier,
-	    uf->function.identifier);
-
-	issues->new_issue_at(
-	    issues,
-	    message,
-	    ESSTEE_LINK_ERROR,
-	    1,
-	    location);
-	
-	return ESSTEE_ERROR;
-    }
-
-    uf->result.type = (struct type_iface_t *)target;
-
-    return ESSTEE_OK;
-}
-
+/**************************************************************************/
+/* Public interface                                                       */
+/**************************************************************************/
 struct function_iface_t * st_new_user_function(
     char *identifier,
     const struct st_location_t *location,
@@ -312,33 +293,30 @@ struct function_iface_t * st_new_user_function(
 	issues,
 	error_free_resources);
 
+    uf->identifier = identifier;
+    uf->location = uf_location;
     uf->header = header;
-    uf->result.identifier = identifier;
-    uf->result.class = OUTPUT_VAR_CLASS;
-    uf->result.type = NULL;
-    uf->result.identifier_location = uf_location;
-    
-    uf->type_refs = type_refs;
-    uf->var_refs = var_refs;
 
-    uf->statements = statements;
-        
-    int ref_result = global_type_refs->add(global_type_refs,
-					   return_type_identifier,
-					   uf,
-					   return_type_identifier_location,
-					   user_function_return_type_resolved,
-					   issues);
+    uf->result = st_create_variable_type_name(
+	uf->identifier,
+	uf->location,
+	return_type_identifier,
+	return_type_identifier_location,
+	OUTPUT_VAR_CLASS,
+	global_var_refs,
+	global_type_refs,
+	config,
+	issues);
 
-    if(ref_result != ESSTEE_OK)
+    if(!uf->result)
     {
 	goto error_free_resources;
     }
 
     memset(&(uf->function), 0, sizeof(struct function_iface_t));
     
-    uf->function.location = uf_location;
-    uf->function.identifier = identifier;
+    uf->function.location = uf->location;
+    uf->function.identifier = uf->identifier;
     
     uf->function.finalize_header = user_function_finalize_header;
     uf->function.finalize_statements = user_function_finalize_statements;

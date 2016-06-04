@@ -1,9 +1,17 @@
+qualified identifier
+remove dependency on program
+add post resolve function for resolving chain (simplifying term and assignment statement)
+
+? issues fatal warning state 
+
 built-in functions and function blocks
 *_TO_*, dint_to_bool
 TOF
 TON
 R_TRIG
 F_TRIG
+
+encapsulation fixes
 
 config
 103 /* TODO: implement set config */ ../src/esstee/esstee.c

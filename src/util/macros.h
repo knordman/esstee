@@ -95,3 +95,18 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 	    memcpy(var, loc, sizeof(struct st_location_t));		\
 	}								\
     } while(0)
+
+#define CHECK_WRITTEN_BYTES(X)			\
+    do {					\
+	if(X == 0)				\
+	{					\
+	    return ESSTEE_FALSE;		\
+	}					\
+	else if(X < 0)				\
+	{					\
+	    return ESSTEE_ERROR;		\
+	}					\
+    } while(0)
+
+#define TYPE_ANCESTOR(X) \
+    (X->ancestor) ? X->ancestor(X) : X

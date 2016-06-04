@@ -20,13 +20,12 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/itype.h>
-#include <elements/variables.h>
-#include <elements/shared.h>
+#include <elements/ivariable.h>
+#include <elements/iinvoke_parameter.h>
 #include <util/iissues.h>
 #include <util/iconfig.h>
 #include <rt/isystime.h>
 #include <rt/cursor.h>
-#include <esstee/locations.h>
 
 #include <uthash.h>
 
@@ -35,7 +34,7 @@ struct function_iface_t {
     int (*finalize_header)(
 	struct function_iface_t *self,
 	struct type_iface_t *global_type_table,
-	struct variable_t *global_var_table,
+	struct variable_iface_t *global_var_table,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
@@ -46,14 +45,14 @@ struct function_iface_t {
 
     int (*verify_invoke)(
 	struct function_iface_t *self,
-	struct invoke_parameter_t *parameters,
+	struct invoke_parameters_iface_t *parameters,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
     int (*step)(
 	struct function_iface_t *self,
-	struct invoke_parameter_t *parameters,
-	struct cursor_t *cursor,
+	struct invoke_parameters_iface_t *parameters,
+	struct cursor_iface_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
@@ -63,14 +62,14 @@ struct function_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
     
-    struct value_iface_t * (*result_value)(
+    const struct value_iface_t * (*result_value)(
 	struct function_iface_t *self);
 
     void (*destroy)(
 	struct function_iface_t *self);
 
-    char *identifier;
-    struct st_location_t *location;
+    const char *identifier;
+    const struct st_location_t *location;
     struct function_iface_t *prev;
     struct function_iface_t *next;
     UT_hash_handle hh;

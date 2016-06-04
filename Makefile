@@ -17,38 +17,45 @@ LDFLAGS :=			-lm
 OBJECTS := 		build/util/issue_context.o \
 			build/util/config.o \
 			build/util/named_ref_pool.o \
-			build/parser/ptypes.o \
-			build/parser/ppous.o \
 			build/parser/parser.o \
-			build/parser/pvalues.o \
-			build/parser/pliterals.o \
-			build/parser/pvariables.o \
+			build/parser/parray.o \
+			build/parser/pcases.o \
+			build/parser/pconditionals.o \
 			build/parser/pdirectmemory.o \
+			build/parser/penums.o \
+			build/parser/pheader.o \
+			build/parser/pinvokeparameters.o \
+			build/parser/pliterals.o \
+			build/parser/ppous.o \
+			build/parser/pqualified_identifier.o \
+			build/parser/pvariables.o \
+			build/parser/ptypes.o \
 			build/parser/pexpressions.o \
 			build/parser/pstatements.o \
-			build/parser/pshared.o \
 			build/parser/pquery.o \
-			build/elements/shared.o \
-			build/elements/types.o \
-			build/elements/values.o \
-			build/elements/pous.o \
+			build/elements/array.o \
+			build/elements/date_time.o \
+			build/elements/derived.o \
 			build/elements/directmemory.o \
-			build/elements/statements.o \
-			build/elements/expressions.o \
-			build/elements/query.o \
+			build/elements/enums.o \
+			build/elements/integers.o \
+			build/elements/invoke_parameters.o \
+			build/elements/qualified_identifier.o \
+			build/elements/queries.o \
+			build/elements/reals.o \
+			build/elements/strings.o \
+			build/elements/struct.o \
+			build/elements/subrange.o \
+			build/elements/user_programs.o \
 			build/elements/user_functions.o \
+			build/elements/user_function_blocks.o \
+			build/elements/values.o \
+			build/elements/types.o \
+			build/elements/variable.o \
 			build/api/esstee.o \
 			build/api/elements.o \
-			build/linker/lpous.o \
-			build/linker/lvariables.o \
-			build/linker/ltypes.o \
-			build/linker/lstatements.o \
-			build/linker/lexpressions.o \
 			build/linker/linker.o \
-			build/linker/lshared.o \
-			build/linker/lliterals.o \
 			build/rt/systime.o \
-			build/rt/runtime.o \
 			build/rt/cursor.o \
 			build/parser/bison.tab.o \
 			build/parser/flex.o

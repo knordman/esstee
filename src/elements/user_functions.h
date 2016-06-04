@@ -20,11 +20,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/ifunction.h>
-#include <elements/pous.h>
-#include <util/iconfig.h>
-#include <util/iissues.h>
+#include <elements/block_header.h>
 #include <util/inamed_ref_pool.h>
-#include <esstee/locations.h>
 
 struct function_iface_t * st_new_user_function(
     char *identifier,
