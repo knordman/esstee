@@ -44,23 +44,31 @@ struct variable_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    int (*assignable_from)(
-	struct variable_iface_t *self,
-	const struct value_iface_t *new_value,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
-
     int (*assign)(
 	struct variable_iface_t *self,
+	struct array_index_t *index,
 	const struct value_iface_t *new_value,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    int (*depends_on)(
-	struct variable_iface_t *self, /* CONTINUE HERE */
+    int (*has_index)(
+	struct variable_iface_t *self,
+	struct array_index_t *array_index,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    struct variable_iface_t * (*sub_variable)(
+	struct variable_iface_t *self,
+	struct array_index_t *index,
+	const char *identifier,
+    	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
     const struct value_iface_t * (*value)(
     	struct variable_iface_t *self);
+
+    const struct type_iface_t * (*type)(
+    	struct variable_iface_t *self);	
     
     void (*destroy)(
 	struct variable_iface_t *self);

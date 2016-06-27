@@ -1,0 +1,44 @@
+PROGRAM t
+
+VAR
+	b1 AT %MX0.0 : BOOL;
+	b2 AT %MX0.1 : BOOL;
+	b3 AT %MX0.2 : BOOL;
+	b4 AT %MX0.3 : BOOL;
+	b5 AT %MX0.4 : BOOL;
+	b6 AT %MX0.5 : BOOL;
+	b7 AT %MX0.6 : BOOL;
+	b8 AT %MX0.7 : BOOL;
+
+	b11 AT %MX7.0 : BOOL;
+	b12 AT %MX7.1 : BOOL;
+	b13 AT %MX7.2 : BOOL;
+	b14 AT %MX7.3 : BOOL;
+	b15 AT %MX7.4 : BOOL;
+	b16 AT %MX7.5 : BOOL;
+	b17 AT %MX7.6 : BOOL;
+	b18 AT %MX7.7 : BOOL;
+
+	s1 AT %MB0 : USINT;
+	s2 AT %MB1 : USINT;
+	s3 AT %MB2 : USINT;
+	s4 AT %MB3 : USINT;	
+	s5 AT %MB4 : USINT;
+	s6 AT %MB5 : USINT;
+	s7 AT %MB6 : USINT;
+	s8 AT %MB7 : USINT;	
+
+	i1 AT %MW0 : UINT;
+	i2 AT %MW1 : UINT;
+	i3 AT %MW2 : UINT;
+	i4 AT %MW3 : UINT;
+
+	d1 AT %MD0 : UDINT;
+	d2 AT %MD1 : UDINT;
+	
+	l1 AT %ML0 : ULINT;
+END_VAR
+
+;
+
+END_PROGRAM

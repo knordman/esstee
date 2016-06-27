@@ -194,34 +194,6 @@ void st_resolve_type_refs(
     }
 }
 
-void st_resolve_pou_var_refs(
-    struct named_ref_pool_iface_t *var_refs,
-    struct variable_iface_t *global_var_table,
-    struct variable_iface_t *var_table)
-{
-    const char *resolve = NULL;
-    while((resolve = var_refs->next_unresolved(var_refs)) != NULL)
-    {
-	struct variable_t *found = NULL;
-	HASH_FIND_STR(var_table, resolve, found);
-	if(found)
-	{
-	    if(ST_FLAG_IS_SET(found->class, EXTERNAL_VAR_CLASS))
-	    {
-		var_refs->resolve(var_refs,
-				  resolve,
-				  found->external_alias);
-	    }
-	    else
-	    {
-		var_refs->resolve(var_refs,
-				  resolve,
-				  found);
-	    }
-	}
-    }
-}
-
 void st_resolve_var_refs(
     struct named_ref_pool_iface_t *var_ref_pool,
     struct variable_iface_t *var_table)
@@ -229,9 +201,9 @@ void st_resolve_var_refs(
     const char *resolve = NULL;
     while((resolve = var_ref_pool->next_unresolved(var_ref_pool)) != NULL)
     {
-	struct variable_t *found = NULL;
+	struct variable_iface_t *found = NULL;
 	HASH_FIND_STR(var_table, resolve, found);
-	if(found != NULL)
+	if(found)
 	{
 	    var_ref_pool->resolve(var_ref_pool, resolve, found);
 	}
@@ -247,7 +219,7 @@ void st_resolve_program_refs(
     {
 	struct program_iface_t *found = NULL;
 	HASH_FIND_STR(prgm_table, resolve, found);
-	if(found != NULL)
+	if(found)
 	{
 	    prgm_ref_pool->resolve(prgm_ref_pool, resolve, found);
 	}
@@ -264,7 +236,7 @@ int st_resolve_function_refs(
     {
 	struct function_iface_t *found = NULL;
 	HASH_FIND_STR(function_table, resolve, found);
-	if(found != NULL)
+	if(found)
 	{
 	    function_ref_pool->resolve(function_ref_pool, resolve, found);
 	}

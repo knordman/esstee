@@ -223,7 +223,7 @@ static struct value_iface_t * enum_type_create_value_of(
     ev->value.destroy = enum_value_destroy;
     ev->value.equals = enum_value_equals;
     ev->value.enumeration = enum_value_enumeration;
-    ev->value.class = st_value_general_empty_class;
+    ev->value.class = st_general_value_empty_class;
     ev->value.override_type = enum_value_override_type;
 
     return &(ev->value);
@@ -482,4 +482,15 @@ struct type_iface_t * st_create_enum_type(
 error_free_resources:
     free(et);
     return NULL;
+}
+
+struct value_iface_t * st_create_enum_value(
+    char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return enum_type_create_value_of(NULL,
+				     config,
+				     issues);
 }

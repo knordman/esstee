@@ -19,7 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <statements/loops.h>
 #include <util/macros.h>
-#include <elements/variables.h>
+#include <elements/ivariable.h>
 #include <elements/integers.h>
 #include <statements/statements.h>
 
@@ -31,7 +31,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* For */
 struct for_statement_t {
     struct invoke_iface_t invoke;
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
     struct expression_iface_t *from;
     struct expression_iface_t *to;
     struct expression_iface_t *increment;
@@ -62,6 +62,7 @@ static int for_statement_step(
     const struct value_iface_t *from_value = fs->from->return_value(fs->from);
     const struct value_iface_t *to_value = fs->to->return_value(fs->to);
     int variable_assign_result = ESSTEE_ERROR;
+    struct value_iface_t *var_value = NULL;
     
     switch(fs->invoke_state)
     {
@@ -79,10 +80,10 @@ static int for_statement_step(
 	}
 
     case 1:
-	variable_assign_result = fs->variable->value->assign(fs->variable->value,
-							     from_value,
-							     config,
-							     issues);
+	variable_assign_result = fs->variable->assign(fs->variable,
+						      from_value,
+						      config,
+						      issues);
 	if(variable_assign_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
@@ -100,7 +101,9 @@ static int for_statement_step(
 	}
 
     case 3:
-	if(fs->variable->value->greater(fs->variable->value, to_value, config, issues) == ESSTEE_TRUE)
+	var_value = fs->variable->value(fs->variable);
+	
+	if(var_value->greater(var_value, to_value, config, issues) == ESSTEE_TRUE)
 	{
 	    break;
 	}
@@ -125,7 +128,9 @@ static int for_statement_step(
 	}
 	
     case 6:
-	if(fs->variable->value->plus(fs->variable->value, increment_value, config, issues) != ESSTEE_OK)
+	var_value = fs->variable->value(fs->variable);
+	
+	if(var_value->plus(var_value, increment_value, config, issues) != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
 	}
@@ -181,8 +186,8 @@ static int for_statement_verify(
     }
 
     const struct value_iface_t *from_value = fs->from->return_value(fs->from);
-
     const struct value_iface_t *to_value = fs->to->return_value(fs->to);
+    struct value_iface_t *var_value = fs->variable->value(fs->variable);
 
     st_integer_value_set(fs->implicit_increment, 1);
     const struct value_iface_t *increment_value = fs->implicit_increment;
@@ -190,28 +195,12 @@ static int for_statement_verify(
     {
 	increment_value = fs->increment->return_value(fs->increment);
     }
-
-    if(!fs->variable->value->assignable_from)
-    {
-	const char *message = issues->build_message(
-	    issues,
-	    "iteration variable '%s' cannot be assigned a value",
-	    fs->variable->identifier);
-	
-	issues->new_issue_at(issues,
-			     message,
-			     ESSTEE_TYPE_ERROR,
-			     1,
-			     fs->identifier_location);
-
-	return ESSTEE_ERROR;
-    }
     
     issues->begin_group(issues);
-    int var_from_assignable = fs->variable->value->assignable_from(fs->variable->value,
-								   from_value,
-								   config,
-								   issues);
+    int var_from_assignable = fs->variable->assignable_from(fs->variable,
+							    from_value,
+							    config,
+							    issues);
     if(var_from_assignable != ESSTEE_TRUE)
     {
 	issues->new_issue(issues,
@@ -230,9 +219,8 @@ static int for_statement_verify(
     {
 	return ESSTEE_ERROR;
     }
-    
-    const struct type_iface_t *var_type =
-	fs->variable->value->type_of(fs->variable->value);
+
+    const struct type_iface_t *var_type = var_value->type_of(var_value);
 
     issues->begin_group(issues);
     int type_can_hold_to_value = var_type->can_hold(var_type,
@@ -259,10 +247,10 @@ static int for_statement_verify(
     }
 
     issues->begin_group(issues);
-    int var_increment_operates = fs->variable->value->operates_with(fs->variable->value,
-								    increment_value,
-								    config,
-								    issues);
+    int var_increment_operates = var_value->operates_with(var_value,
+							  increment_value,
+							  config,
+							  issues);
 
     if(var_increment_operates != ESSTEE_TRUE)
     {
@@ -284,10 +272,10 @@ static int for_statement_verify(
     }
 
     issues->begin_group(issues);
-    int var_to_comparable = fs->variable->value->comparable_to(fs->variable->value,
-							       to_value,
-							       config,
-							       issues);
+    int var_to_comparable = var_value->comparable_to(var_value,
+						     to_value,
+						     config,
+						     issues);
 
     if(var_to_comparable != ESSTEE_TRUE)
     {
@@ -824,7 +812,7 @@ static int for_statement_variable_resolved(
     struct for_statement_t *fs =
 	(struct for_statement_t *)referrer;
 
-    fs->variable = (struct variable_t *)target;
+    fs->variable = (struct variable_iface_t *)target;
 
     return ESSTEE_OK;
 }
@@ -866,6 +854,16 @@ struct invoke_iface_t * st_create_for_statement(
 	issues,
 	error_free_resources);
 
+    fs->implicit_increment = st_new_typeless_integer_value(0,
+							   0,
+							   config,
+							   issues);
+
+    if(!fs->implicit_increment)
+    {
+	goto error_free_resources;
+    }
+    
     int ref_add_result = var_refs->add(var_refs,
 				       variable_identifier,
 				       fs,

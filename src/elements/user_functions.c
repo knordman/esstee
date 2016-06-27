@@ -53,6 +53,12 @@ static int user_function_finalize_header(
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
 
+    int header_valid = st_create_header_tables(uf->header, issues);
+    if(header_valid != ESSTEE_OK)
+    {
+	return header_valid;
+    }
+    
     uf->type_refs->reset_resolved(uf->type_refs);
     uf->var_refs->reset_resolved(uf->var_refs);
 
@@ -156,7 +162,7 @@ static int user_function_finalize_header(
 	}
     
 	/* Resolve variable references */
-	st_resolve_pou_var_refs(uf->var_refs, global_var_table, uf->header->variables);
+	st_resolve_var_refs(uf->var_refs, uf->header->variables);
     }
 
     return uf->var_refs->trigger_resolve_callbacks(uf->var_refs,
@@ -273,13 +279,6 @@ struct function_iface_t * st_new_user_function(
 {
     struct user_function_t *uf = NULL;
     struct st_location_t *uf_location = NULL;
-
-    int header_valid = st_create_header_tables(header, issues);
-
-    if(!header_valid)
-    {
-	goto error_free_resources;
-    }
     
     ALLOC_OR_ERROR_JUMP(
 	uf,

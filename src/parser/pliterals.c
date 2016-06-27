@@ -658,7 +658,7 @@ static int numberize_date_strings(
     {
 	const char *message = parser->errors->build_message(
 	    parser->errors,
-	    "day must be at least 1 and at most 31, not 'lu'",
+	    "day must be at least 1 and at most 31, not '%lu'",
 	    nday);
 
 	parser->errors->new_issue_at(
@@ -841,14 +841,14 @@ static int numberize_tod_strings(
 	    string_location);
 
 	return ESSTEE_ERROR;
-    }
+    }    
 
     if(hours > 23)
     {
 	const char *message = parser->errors->build_message(
 	    parser->errors,
-	    "hours must be at most 23, not '%s'",
-	    fs);
+	    "hours must be at most 23, not '%lu'",
+	    hours);
 	
 	parser->errors->new_issue_at(
 	    parser->errors,
@@ -1101,7 +1101,6 @@ static struct value_iface_t * new_string_literal(
 {
     return st_new_string_value(string_type,
 			       string,
-			       parser->global_type_ref_pool,
 			       parser->config,
 			       parser->errors);
 }    

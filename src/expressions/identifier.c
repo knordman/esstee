@@ -20,7 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <expressions/identifier.h>
 #include <elements/enums.h>
 #include <util/macros.h>
-#include <elements/variables.h>
+#include <elements/ivariable.h>
 
 struct single_identifier_term_t {
     struct expression_iface_t expression;
@@ -32,7 +32,7 @@ struct single_identifier_term_t {
     struct enum_item_t item;
 
     /* Identifier term refers to a variable */
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
 };
 
 /**************************************************************************/
@@ -44,15 +44,7 @@ static const struct value_iface_t * identifier_term_variable_return_value(
     struct single_identifier_term_t *sit =
 	CONTAINER_OF(self, struct single_identifier_term_t, expression);
 
-    if(sit->variable->address)
-    {
-	sit->variable->type->sync_direct_memory(sit->variable->type,
-						sit->variable->value,
-						sit->variable->address,
-						0);
-    }
-    
-    return sit->variable->value;
+    return sit->variable->value(sit->variable);
 }
 
 static void identifier_term_destroy(
@@ -175,9 +167,7 @@ static int identifier_variable_resolved(
     
     if(target != NULL)
     {
-	sit->variable = (struct variable_t *)target;
-	sit->expression.return_value = identifier_term_variable_return_value;
-	sit->expression.clone = identifier_term_variable_clone;
+	sit->variable = (struct variable_iface_t *)target;
     }
     else
     {
@@ -185,6 +175,7 @@ static int identifier_variable_resolved(
 	sit->variable = NULL;
 	
 	sit->expression.return_value = identifier_term_enum_return_value;
+	sit->expression.clone = NULL;
 
 	sit->item.identifier = sit->identifier;
 	sit->item.location = sit->location;
@@ -244,6 +235,8 @@ struct expression_iface_t * st_create_identifier_term(
 
     sit->expression.invoke.location = sit->location;
     sit->expression.destroy = identifier_term_destroy;
+    sit->expression.return_value = identifier_term_variable_return_value;
+    sit->expression.clone = identifier_term_variable_clone;
 
     return &(sit->expression);
     

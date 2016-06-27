@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2015 Kristian Nordman
+Copyright (C) 2016 Kristian Nordman
 
 This file is part of esstee. 
 
@@ -19,13 +19,12 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <elements/subrange.h>
 #include <elements/ivalue.h>
+#include <util/iconfig.h>
+#include <util/iissues.h>
 
-st_bitflag_t st_general_value_empty_class(
-    const struct value_iface_t *self);
-
-int st_general_value_equals(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
+struct value_iface_t * st_create_subrange_case_selector(
+    struct subrange_t *subrange,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

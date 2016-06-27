@@ -18,7 +18,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <statements/simple_assignment.h>
-#include <elements/variables.h>
+#include <elements/ivariable.h>
 #include <util/macros.h>
 
 /**************************************************************************/
@@ -26,7 +26,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /**************************************************************************/
 struct simple_assignment_statement_t {
     struct invoke_iface_t invoke;
-    struct variable_t *lhs;
+    struct variable_iface_t *lhs;
     struct st_location_t *lhs_location;
     struct st_location_t *location;
     struct expression_iface_t *rhs;
@@ -55,28 +55,12 @@ static int assignment_statement_simple_verify(
     }
 
     const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
-
-    if(!sa->lhs->value->assignable_from)
-    {
-	const char *message = issues->build_message(issues,
-						    "variable '%s' cannot be assigned a new value",
-						    ESSTEE_ARGUMENT_ERROR,
-						    sa->lhs->identifier);
-	issues->new_issue_at(
-	    issues,
-	    message,
-	    ESSTEE_CONTEXT_ERROR,
-	    1,
-	    sa->lhs_location);
-
-	return ESSTEE_ERROR;
-    }
     
     issues->begin_group(issues);
-    int assignable_result = sa->lhs->value->assignable_from(sa->lhs->value,
-							    rhs_value,
-							    config,
-							    issues);
+    int assignable_result = sa->lhs->assignable_from(sa->lhs,
+						     rhs_value,
+						     config,
+						     issues);
     if(assignable_result != ESSTEE_TRUE)
     {
 	issues->new_issue(issues,
@@ -126,10 +110,10 @@ static int assignment_statement_simple_step(
 	const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
 	
 	issues->begin_group(issues);
-	int assign_result = sa->lhs->value->assign(sa->lhs->value,
-						   rhs_value,
-						   config,
-						   issues);
+	int assign_result = sa->lhs->assign(sa->lhs,
+					    rhs_value,
+					    config,
+					    issues);
 
 	if(assign_result != ESSTEE_OK)
 	{
@@ -148,14 +132,6 @@ static int assignment_statement_simple_step(
 	if(assign_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
-	}
-
-	if(sa->lhs->address)
-	{
-	    sa->lhs->type->sync_direct_memory(sa->lhs->type,
-					      sa->lhs->value,
-					      sa->lhs->address,
-					      1);
 	}
     }
     }
@@ -291,7 +267,7 @@ static int simple_assignment_variable_resolved(
     struct simple_assignment_statement_t *sa =
 	(struct simple_assignment_statement_t *)referrer;
 
-    sa->lhs = (struct variable_t *)target;
+    sa->lhs = (struct variable_iface_t *)target;
 
     return ESSTEE_OK;
 }

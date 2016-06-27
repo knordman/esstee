@@ -34,9 +34,9 @@ struct type_iface_t * st_create_derived_type(
 
 struct type_iface_t * st_create_derived_type_by_name(
     char *type_name,
+    const struct st_location_t *location,
     char *parent_type_name,
     const struct st_location_t *parent_type_name_location,
-    const struct st_location_t *location,
     struct value_iface_t *default_value,
     const struct st_location_t *default_value_location,
     struct named_ref_pool_iface_t *type_refs,

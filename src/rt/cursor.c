@@ -18,7 +18,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <rt/cursor.h>
-#include <elements/iinvoke.h>
+#include <statements/iinvoke.h>
 #include <util/iconfig.h>
 #include <util/iissues.h>
 #include <util/macros.h>
@@ -76,6 +76,11 @@ static struct invoke_iface_t * cursor_step(
     struct cursor_t *cur =
 	CONTAINER_OF(self, struct cursor_t, cursor);
 
+    if(!cur->current)
+    {
+	return NULL;
+    }
+    
     struct invoke_iface_t *start = cur->current;
     int start_result = INVOKE_RESULT_IN_PROGRESS;
     
@@ -203,11 +208,14 @@ static int cursor_switch_current(
     {
 	return reset_result;
     }
-    
-    DL_PREPEND2(cur->call_stack,
-		cur->current,
-		call_stack_prev,
-		call_stack_next);
+
+    if(cur->current)
+    {
+	DL_PREPEND2(cur->call_stack,
+		    cur->current,
+		    call_stack_prev,
+		    call_stack_next);
+    }
     cur->current = switch_to;
 
     return ESSTEE_OK;
@@ -347,12 +355,54 @@ static void cursor_reset(
     cur->cycle_start = NULL;    
 }
 
+static int cursor_switch_cycle_start(
+    struct cursor_iface_t *self,
+    struct invoke_iface_t *start,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    cursor_reset(self);
+    
+    int switch_result = cursor_switch_current(self,
+					      start,
+					      config,
+					      issues);
+    if(switch_result != ESSTEE_OK)
+    {
+	return switch_result;
+    }
+    
+    struct cursor_t *cur =
+	CONTAINER_OF(self, struct cursor_t, cursor);
+
+    cur->cycle_start = cur->current;
+
+    return ESSTEE_OK;
+}
+
+const struct st_location_t * cursor_current_location(
+    struct cursor_iface_t *self)
+{
+    struct cursor_t *cur =
+	CONTAINER_OF(self, struct cursor_t, cursor);
+
+    if(cur->current)
+    {
+	return cur->current->location;
+    }
+
+    return NULL;
+}
+
 static void cursor_destroy(
     struct cursor_iface_t *self)
 {
     /* TODO: cursor destructor*/
 }
 
+/**************************************************************************/
+/* Public interface                                                       */
+/**************************************************************************/
 struct cursor_iface_t * st_new_cursor()
 {
     struct cursor_t *cur = NULL;
@@ -375,6 +425,8 @@ struct cursor_iface_t * st_new_cursor()
     cur->cursor.push_exit_context = cursor_push_exit_context;
     cur->cursor.pop_exit_context = cursor_pop_exit_context;
     cur->cursor.jump_exit = cursor_jump_exit;
+    cur->cursor.switch_cycle_start = cursor_switch_cycle_start;
+    cur->cursor.current_location = cursor_current_location;
     cur->cursor.destroy = cursor_destroy;
     
     return &(cur->cursor);

@@ -18,12 +18,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/types.h>
-#include <elements/pous.h>
-#include <elements/values.h>
-#include <elements/variables.h>
-#include <util/macros.h>
-#include <util/bitflag.h>
-#include <linker/linker.h>
+#include <elements/integers.h>
+#include <elements/reals.h>
+#include <elements/strings.h>
+#include <elements/date_time.h>
 
 #include <utlist.h>
 
@@ -67,77 +65,40 @@ int st_type_general_compatible(
 struct type_iface_t * st_new_elementary_types() 
 {
     struct type_iface_t *elementary_types = NULL; 
-    struct integer_type_t *integer_types = NULL;
-    struct real_type_t *real_types = NULL;
-    struct string_type_t *string_types = NULL;
+    struct type_iface_t *types = NULL;
     
-    /* Real types */
+    types = st_new_elementary_integer_types();
+    if(!types)
+    {
+	return NULL;
+    }
+    elementary_types = types;
 
-    /* String types */
+    types = st_new_elementary_real_types();
+    if(!types)
+    {
+	st_destroy_types_in_list(elementary_types);
+	return NULL;
+    }
+    DL_CONCAT(elementary_types, types);
 
-    /* Duration type */
-    ALLOC_OR_JUMP(
-	duration_type,
-	struct duration_type_t,
-	error_free_resources);
-
-    memcpy(
-	duration_type,
-	&(duration_type_template),
-	sizeof(struct duration_type_t));
-
-    DL_APPEND(elementary_types, &(duration_type->type));
+    types = st_new_elementary_string_types();
+    if(!types)
+    {
+	st_destroy_types_in_list(elementary_types);
+	return NULL;
+    }
+    DL_CONCAT(elementary_types, types);
     
-    /* Date type */
-    ALLOC_OR_JUMP(
-	date_type,
-	struct date_type_t,
-	error_free_resources);
-
-    memcpy(
-	date_type,
-	&(date_type_template),
-	sizeof(struct date_type_t));
-
-    DL_APPEND(elementary_types, &(date_type->type));
-    
-    /* Tod type */
-    ALLOC_OR_JUMP(
-	tod_type,
-	struct tod_type_t,
-	error_free_resources);
-
-    memcpy(
-	tod_type,
-	&(tod_type_template),
-	sizeof(struct tod_type_t));
-
-    DL_APPEND(elementary_types, &(tod_type->type));
-
-    /* Date and tod type */
-    ALLOC_OR_JUMP(
-	date_tod_type,
-	struct date_tod_type_t,
-	error_free_resources);
-
-    memcpy(
-	date_tod_type,
-	&(date_tod_type_template),
-	sizeof(struct date_tod_type_t));
-
-    DL_APPEND(elementary_types, &(date_tod_type->type));
+    types = st_new_elementary_date_time_types();
+    if(!types)
+    {
+	st_destroy_types_in_list(elementary_types);
+	return NULL;
+    }
+    DL_CONCAT(elementary_types, types);
 
     return elementary_types;
-    
-error_free_resources:
-    free(integer_types);
-    free(real_types);
-    free(string_types);
-    free(duration_type);
-    free(date_type);
-    free(tod_type);
-    free(date_tod_type);
-    return NULL;
 }
 
 void st_destroy_types_in_list(

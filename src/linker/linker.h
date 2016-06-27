@@ -62,8 +62,3 @@ int st_resolve_function_refs(
 void st_resolve_program_refs(
     struct named_ref_pool_iface_t *prgm_ref_pool,
     struct program_iface_t *prgm_table);
-
-void st_resolve_pou_var_refs(
-    struct named_ref_pool_iface_t *var_refs,
-    struct variable_iface_t *global_var_table,
-    struct variable_iface_t *var_table);

@@ -32,7 +32,7 @@ struct query_t {
 
     struct program_iface_t *program;
 
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
     struct qualified_identifier_iface_t *qid;
     struct expression_iface_t *assignment;
     
@@ -84,7 +84,7 @@ static int queries_finish(
 
 static int queries_link(
     struct queries_iface_t *self,
-    struct variable_t *global_variables,
+    struct variable_iface_t *global_variables,
     struct function_iface_t *functions,
     struct program_iface_t *programs,
     const struct config_iface_t *config,
@@ -129,6 +129,33 @@ static int queries_link(
 	return callback_result;
     }
 
+    struct query_t *qitr = NULL;
+    DL_FOREACH(query_list->entries, qitr)
+    {
+	if(qitr->assignment && qitr->assignment->invoke.allocate)
+	{
+	    int allocate_result = qitr->assignment->invoke.allocate(
+		&(qitr->assignment->invoke),
+		issues);
+
+	    if(allocate_result != ESSTEE_OK)
+	    {
+		return allocate_result;
+	    }
+
+	    int verify_result = qitr->assignment->invoke.verify(
+		&(qitr->assignment->invoke),
+		config,
+		issues);
+
+	    if(verify_result != ESSTEE_OK)
+	    {
+		return verify_result;
+	    }
+	}
+    }
+
+    
     return ESSTEE_OK;
 }
 
@@ -203,7 +230,7 @@ static int queries_evaluate(
 
 	    if(itr->variable)
 	    {
-		target = itr->variable->value;
+		target = itr->variable->value(itr->variable);
 		target_name = itr->variable->identifier;
 	    }
 	    else if(itr->qid)
@@ -312,7 +339,7 @@ static int queries_display(
 	    
 	    if(itr->variable)
 	    {
-		target = itr->variable->value;
+		target = itr->variable->value(itr->variable);
 	    }
 	    else
 	    {
@@ -406,10 +433,10 @@ static int program_resolved(
 
     if(query->identifier)
     {
-	struct variable_t *prgm_var = query->program->variable(query->program,
-							       query->identifier,
-							       config,
-							       issues);
+	struct variable_iface_t *prgm_var = query->program->variable(query->program,
+								     query->identifier,
+								     config,
+								     issues);
 	if(!prgm_var)
 	{
 	    return ESSTEE_ERROR;
@@ -423,7 +450,7 @@ static int program_resolved(
 								  config,
 								  issues);
 
-	struct variable_t *prgm_var = query->program->variable(query->program,
+	struct variable_iface_t *prgm_var = query->program->variable(query->program,
 							       base_identifier,
 							       config,
 							       issues);
@@ -454,7 +481,7 @@ static int global_var_resolved(
     {
 	const char *message = issues->build_message(
 	    issues,
-	    "reference to unknown global varialble '%s'",
+	    "reference to unknown global variable '%s'",
 	    identifier);
 
 	issues->new_issue_at(
@@ -469,7 +496,7 @@ static int global_var_resolved(
 
     struct query_t *query = (struct query_t *)referrer;
 
-    query->variable = (struct variable_t *)target;
+    query->variable = (struct variable_iface_t *)target;
 
     return ESSTEE_OK;
 }

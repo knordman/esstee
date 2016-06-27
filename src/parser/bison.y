@@ -298,7 +298,7 @@ void yyerror(
 %type	<value>		case_list_element
 %type	<query>		query
 
-%destructor {printf("freeing: %s\n", $$);/*free($$);*/} <string>
+%destructor {/*printf("freeing: %s\n", $$);free($$);*/} <string>
 
 %%
 

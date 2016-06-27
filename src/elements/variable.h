@@ -85,3 +85,11 @@ struct variable_iface_t * st_create_variable_type_name(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
+struct variable_iface_t * st_create_variable_type(
+    char *identifier,
+    const struct st_location_t *location, 
+    const struct type_iface_t *type,
+    st_bitflag_t class,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+

@@ -52,6 +52,12 @@ struct cursor_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    int (*switch_cycle_start)(
+	struct cursor_iface_t *self,
+	struct invoke_iface_t *start,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     void (*push_return_context)(
 	struct cursor_iface_t *self,
 	struct invoke_iface_t *context);
@@ -77,5 +83,5 @@ struct cursor_iface_t {
     
     void (*destroy)(
 	struct cursor_iface_t *self);
-
+    
 };

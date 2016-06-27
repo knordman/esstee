@@ -419,6 +419,7 @@ struct if_statement_t * st_create_elsif_clause(
     ifs->invoke.step = if_statement_step;
     ifs->invoke.verify = if_statement_verify;
     ifs->invoke.reset = if_statement_reset;
+    ifs->invoke.allocate = if_statement_allocate;
     ifs->invoke.clone = if_statement_clone;
 	
     return ifs;

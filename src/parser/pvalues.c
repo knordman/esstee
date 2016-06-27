@@ -24,27 +24,3 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* Inline values                                                          */
 /**************************************************************************/
 
-struct value_iface_t * st_new_subrange_case_value(
-    struct subrange_t *subrange,
-    struct parser_t *parser)
-{
-    struct subrange_case_value_t *sv = NULL;
-    ALLOC_OR_ERROR_JUMP(
-	sv,
-	struct subrange_case_value_t,
-	parser->errors,
-	error_free_resources);
-
-    sv->subrange = subrange;
-
-    memset(&(sv->value), 0, sizeof(struct value_iface_t));
-
-    sv->value.comparable_to = st_subrange_case_value_comparable_to;
-    sv->value.equals = st_subrange_case_value_equals;
-    sv->value.destroy = st_subrange_case_value_destroy;
-
-    return &(sv->value);
-
-error_free_resources:
-    return NULL;
-}

@@ -19,10 +19,9 @@
 
 #include <elements/user_function_blocks.h>
 #include <elements/ifunction_block.h>
+#include <statements/statements.h>
 #include <util/macros.h>
 #include <linker/linker.h>
-#include <elements/ivalue.h>
-#include <elements/types.h>
 
 #include <utlist.h>
 
@@ -75,7 +74,7 @@ static int user_fb_resolve_header_type_references(
 
 static int user_fb_finalize_header(
     struct function_block_iface_t *self,
-    struct variable_t *global_var_table,
+    struct variable_iface_t *global_var_table,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -86,18 +85,21 @@ static int user_fb_finalize_header(
      * next step is to create the values of the variables. */
     if(ufb->header && ufb->header->variables)
     {
-        struct variable_t *itr = NULL;
+        struct variable_iface_t *itr = NULL;
         DL_FOREACH(ufb->header->variables, itr)
         {
-            st_bitflag_t type_class = itr->type->class(itr->type);
+	    const struct type_iface_t *var_type = itr->type(itr);
+            st_bitflag_t type_class = var_type->class(var_type);
 
 	    /* If a variable has a function block as a type, some
 	     * extra checks are needed to avoid circular
 	     * references. */
             if(ST_FLAG_IS_SET(type_class, FB_TYPE))
             {
-		const struct type_iface_t *var_type =
-		    (itr->type->ancestor) ? itr->type->ancestor(itr->type) : itr->type;
+		if(var_type->ancestor)
+		{
+		    var_type = var_type->ancestor(var_type);
+		}
 
 		/* Check that a variable in the function block does
 		 * not have its own container function block as a
@@ -143,17 +145,19 @@ static int user_fb_finalize_header(
 	}
 
 	/* Then, create values of header variables */
-	int create_result = st_create_header_variable_values(ufb->header->variables,
-							     config,
-							     issues);
-	if(create_result != ESSTEE_OK)
+	DL_FOREACH(ufb->header->variables, itr)
 	{
-	    return create_result;
+	    int create_result = itr->create(itr, config, issues);
+
+	    if(create_result != ESSTEE_OK)
+	    {
+		return create_result;
+	    }
 	}
     }
 
     /* Resolve variable references */
-    st_resolve_pou_var_refs(ufb->var_refs, global_var_table, ufb->header->variables);
+    st_resolve_var_refs(ufb->var_refs, ufb->header->variables);
 
     return ufb->var_refs->trigger_resolve_callbacks(ufb->var_refs,
 						    config,
@@ -188,10 +192,12 @@ int user_fb_depends_on(
     struct user_function_block_t *ufb =
         CONTAINER_OF(self, struct user_function_block_t, function_block);
 
-    struct variable_t *itr = NULL;
+    struct variable_iface_t *itr = NULL;
     DL_FOREACH(ufb->header->variables, itr)
     {
-	if(itr->type == type)
+	const struct type_iface_t *var_type = itr->type(itr);
+	
+	if(var_type == type)
 	{
 	    return ESSTEE_TRUE;
 	}
@@ -213,7 +219,7 @@ struct user_fb_instance_t {
     struct value_iface_t value;
     struct user_function_block_t *fb;
     
-    struct variable_t *variables;
+    struct variable_iface_t *variables;
     struct invoke_iface_t *statements;
     int invoke_state;
 };
@@ -236,7 +242,7 @@ static int user_fb_value_display(
     buffer += start_written_bytes;
     buffer_size -= start_written_bytes;
 
-    struct variable_t *itr = NULL;
+    struct variable_iface_t *itr = NULL;
     DL_FOREACH(fv->variables, itr)
     {
 	int var_name_bytes = snprintf(buffer,
@@ -246,11 +252,13 @@ static int user_fb_value_display(
 	CHECK_WRITTEN_BYTES(var_name_bytes);
 	buffer += var_name_bytes;
 	buffer_size -= var_name_bytes;
+
+	const struct value_iface_t *var_value = itr->value(itr);
 	
-	int var_written_bytes = itr->value->display(itr->value,
-						    buffer,
-						    buffer_size,
-						    config);
+	int var_written_bytes = var_value->display(var_value,
+						   buffer,
+						   buffer_size,
+						   config);
 	CHECK_WRITTEN_BYTES(var_written_bytes);
 	buffer += var_written_bytes;
 	buffer_size -= var_written_bytes;
@@ -291,7 +299,7 @@ static void user_fb_value_destroy(
     /* TODO: function block value destructor */
 }
 
-static struct variable_t * user_fb_value_sub_variable(
+static struct variable_iface_t * user_fb_value_sub_variable(
     struct value_iface_t *self,
     const char *identifier,
     const struct config_iface_t *config,
@@ -300,7 +308,7 @@ static struct variable_t * user_fb_value_sub_variable(
     struct user_fb_instance_t *fv =
 	CONTAINER_OF(self, struct user_fb_instance_t, value);
 
-    struct variable_t *found = NULL;
+    struct variable_iface_t *found = NULL;
     HASH_FIND_STR(fv->variables, identifier, found);
     if(!found)
     {
@@ -396,18 +404,18 @@ static struct value_iface_t * user_fb_type_create_value_of(
 	issues,
 	error_free_resources);
     
-    struct variable_t *vitr = NULL;
-    struct variable_t *variable_copies = NULL;
+    struct variable_iface_t *vitr = NULL;
+    struct variable_iface_t *variable_copies = NULL;
     for(vitr = fb->header->variables; vitr != NULL; vitr = vitr->hh.next)
     {
-	struct variable_t *copy = NULL;
+	struct variable_iface_t *copy = NULL;
 	ALLOC_OR_ERROR_JUMP(
 	    copy,
-	    struct variable_t,
+	    struct variable_iface_t,
 	    issues,
 	    error_free_resources);
 
-	memcpy(copy, vitr, sizeof(struct variable_t));
+	memcpy(copy, vitr, sizeof(struct variable_iface_t));
 
 	copy->value = NULL;
 	copy->prev = NULL;
@@ -415,7 +423,7 @@ static struct value_iface_t * user_fb_type_create_value_of(
 	DL_APPEND(variable_copies, copy);
     }
     
-    struct variable_t *variable_copies_table =
+    struct variable_iface_t *variable_copies_table =
 	st_link_variables(variable_copies, NULL, issues);
 
     fb->var_refs->reset_resolved(fb->var_refs);
@@ -425,12 +433,15 @@ static struct value_iface_t * user_fb_type_create_value_of(
 					    config,
 					    issues);
 
-    int create_result = st_create_header_variable_values(variable_copies_table,
-							 config,
-							 issues);
-    if(create_result != ESSTEE_OK)
+    struct variable_iface_t *vc_itr = NULL;
+    DL_FOREACH(variable_copies_table, vc_itr)
     {
-	goto error_free_resources;
+	int create_result = vc_itr->create(vc_itr, config, issues);
+	
+	if(create_result != ESSTEE_OK)
+	{
+	    goto error_free_resources;
+	}
     }
     
     struct invoke_iface_t *statement_copies = NULL;
@@ -481,24 +492,16 @@ static int user_fb_type_reset_value_of(
     struct user_fb_instance_t *fv =
 	CONTAINER_OF(value_of, struct user_fb_instance_t, value);
 
-    struct variable_t *vitr = NULL;
+    struct variable_iface_t *vitr = NULL;
     DL_FOREACH(fv->variables, vitr)
     {
-	int reset_result = vitr->type->reset_value_of(vitr->type,
-						      vitr->value,
-						      config,
-						      issues);	
+	int reset_result = vitr->reset(vitr,
+				       config,
+				       issues);
+	
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
-	}
-
-	if(vitr->address)
-	{
-	    vitr->type->sync_direct_memory(vitr->type,
-					   vitr->value,
-					   vitr->address,
-					   1);
 	}
     }
 

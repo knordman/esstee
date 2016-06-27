@@ -52,6 +52,12 @@ static int user_program_finalize_header(
     struct user_program_t *p =
 	CONTAINER_OF(self, struct user_program_t, program);
 
+    int header_valid = st_create_header_tables(p->header, issues);
+    if(header_valid != ESSTEE_OK)
+    {
+	return header_valid;
+    }
+    
     p->type_refs->reset_resolved(p->type_refs);
     p->var_refs->reset_resolved(p->var_refs);
 
@@ -87,7 +93,7 @@ static int user_program_finalize_header(
     }
 
     /* Resolve variable references */
-    st_resolve_pou_var_refs(p->var_refs, global_var_table, p->header->variables);
+    st_resolve_var_refs(p->var_refs, p->header->variables);
 
     return p->var_refs->trigger_resolve_callbacks(p->var_refs,
 						   config,
@@ -131,17 +137,16 @@ static int user_program_start(
 				      config,
 				      issues);
 	
-	if(reset_result != ESSTEE_ERROR)
+	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;
 	}
     }
 
-    cursor->reset(cursor);
-    cursor->switch_current(cursor,
-			   p->statements,
-			   config,
-			   issues);
+    cursor->switch_cycle_start(cursor,
+			       p->statements,
+			       config,
+			       issues);
     
     return ESSTEE_OK;
 }
@@ -292,7 +297,8 @@ struct program_iface_t * st_new_user_program(
 
     p->identifier = identifier;
     p->location = p_location;
-
+    p->header = header;
+    p->statements = statements;
     p->type_refs = type_refs;
     p->var_refs = var_refs;
 

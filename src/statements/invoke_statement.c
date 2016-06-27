@@ -28,7 +28,7 @@ struct invoke_statement_t {
     struct invoke_iface_t invoke;
     struct st_location_t *location;
     struct invoke_parameters_iface_t *parameters;
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
     struct function_iface_t *function;
     int invoke_state;
 };
@@ -67,9 +67,11 @@ static int invoke_statement_step(
     case 1:
 	if(is->variable)
 	{
+	    struct value_iface_t *var_value = is->variable->value(is->variable);
+	    
 	    is->invoke_state = 2;
-	    int step_result = is->variable->value->invoke_step(
-		is->variable->value,
+	    int step_result = var_value->invoke_step(
+		var_value,
 		is->parameters,
 		cursor,
 		time,
@@ -132,7 +134,9 @@ static int invoke_statement_verify(
 		is->location);
 	}
 
-	if(!is->variable->value->invoke_step)
+	struct value_iface_t *var_value = is->variable->value(is->variable);
+	
+	if(!var_value->invoke_step)
 	{
 	    const char *message = issues->build_message(issues,
 							"variable '%s' cannot be invoked",
@@ -147,10 +151,10 @@ static int invoke_statement_verify(
 	    return ESSTEE_ERROR;
 	}
 
-	int verify_result = is->variable->value->invoke_verify(is->variable->value,
-							       is->parameters,
-							       config,
-							       issues);
+	int verify_result = var_value->invoke_verify(var_value,
+						     is->parameters,
+						     config,
+						     issues);
 
 	if(verify_result != ESSTEE_OK)
 	{
@@ -211,15 +215,19 @@ static int invoke_statement_reset(
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    if(is->variable && is->variable->value->invoke_reset)
+    if(is->variable)
     {
-        int reset_result = is->variable->value->invoke_reset(is->variable->value,
-							     config,
-							     issues);
-	if(reset_result != ESSTEE_OK)
+	struct value_iface_t *var_value = is->variable->value(is->variable);
+	if(var_value->invoke_reset)
 	{
-	    return reset_result;
-	}
+	    int reset_result = var_value->invoke_reset(var_value,
+						       config,
+						       issues);
+	    if(reset_result != ESSTEE_OK)
+	    {
+		return reset_result;
+	    }
+	}	
     }
     else if(is->function)
     {
@@ -311,7 +319,7 @@ static int invoke_statement_as_variable_resolved(
     struct invoke_statement_t *is =
 	(struct invoke_statement_t *)referrer;
 
-    is->variable = (struct variable_t *)target;
+    is->variable = (struct variable_iface_t *)target;
 
     return ESSTEE_OK;
 }

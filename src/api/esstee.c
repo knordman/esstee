@@ -46,6 +46,7 @@ struct st_t {
     struct variable_iface_t *global_variables; /* Table of global variables */
     struct function_iface_t *functions;	   /* Table of functions */
     struct program_iface_t *programs;	   /* Table of programs */
+    struct program_iface_t *main;
 
     struct cursor_iface_t *cursor;
 
@@ -113,6 +114,7 @@ struct st_t * st_new_instance(
     st->global_variables = NULL;
     st->functions = NULL;
     st->programs = NULL;
+    st->main = NULL;
     st->cursor = cur;
     st->errors = e;
     st->compilation_units = NULL;
@@ -213,6 +215,11 @@ int st_link(struct st_t *st)
 	st->programs = st_link_programs(cuitr->programs, st->programs, st->errors);
     }
 
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    
     /* Resolve global type references */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
@@ -223,6 +230,11 @@ int st_link(struct st_t *st)
 							       st->errors);
     }
 
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    
     /* Resolve function block type references. References are resolved
      * separately, so that a function block's variables that have a
      * function block as type, may create the values of the variables
@@ -239,6 +251,11 @@ int st_link(struct st_t *st)
         }
     }
 
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    
     /* Create values of global variables */
     struct variable_iface_t *vitr = NULL;
     DL_FOREACH(st->global_variables, vitr)
@@ -246,6 +263,11 @@ int st_link(struct st_t *st)
 	vitr->create(vitr, st->config, st->errors);
     }
 
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
+    
     /* Resolve global variable references */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
@@ -254,6 +276,11 @@ int st_link(struct st_t *st)
 	cuitr->global_var_ref_pool->trigger_resolve_callbacks(cuitr->global_var_ref_pool,
 							      st->config,
 							      st->errors);
+    }
+
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
     }
     
     /* Finalize function block headers */
@@ -296,6 +323,11 @@ int st_link(struct st_t *st)
                       st->errors);
         }
     }
+
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
     
     /* Resolve function references (global) */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
@@ -304,6 +336,11 @@ int st_link(struct st_t *st)
 	cuitr->function_ref_pool->trigger_resolve_callbacks(cuitr->function_ref_pool,
 							    st->config,
 							    st->errors);
+    }
+
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
     }
     
     /* Finalize function block statements */
@@ -342,17 +379,11 @@ int st_link(struct st_t *st)
         }
     }
 
-    /* size_t error_count = st->errors->count(st->errors, */
-    /* 					   ESSTEE_FILTER_ANY_ERROR); */
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
     
-    /* error_count_now = st->errors->count(st->errors, */
-    /* 					ESSTEE_FILTER_ANY_ERROR);     */
-    /* if(error_count_now > error_count) */
-    /* { */
-    /* 	goto error_free_resources; */
-    /* } */
-    /* error_count = error_count_now; */
-
     st->needs_linking = 0;
     return ESSTEE_OK;
 }
@@ -374,7 +405,7 @@ const struct st_location_t * st_start(
 
 	return NULL;
     }
-    
+
     int start_result = found->start(found,
 				    st->cursor,
 				    st->config,
@@ -385,6 +416,8 @@ const struct st_location_t * st_start(
 	return NULL;
     }
 
+    st->main = found;
+    
     return st->cursor->current_location(st->cursor);
 }
 
@@ -425,7 +458,7 @@ int st_query(
 	st->errors->merge(st->errors, st->parser.errors);
 	return ESSTEE_ERROR;
     }
-
+    
     int link_result = queries->link(queries,
 				    st->global_variables,
 				    st->functions,
@@ -472,9 +505,29 @@ int st_run_cycle(
     struct st_t *st,
     uint64_t ms)
 {
+    if(!st->main)
+    {
+	st->errors->new_issue(st->errors,
+			      "no program started",
+			      ESSTEE_CONTEXT_ERROR);
+
+	return ESSTEE_ERROR;
+    }
+
+    int cycle_result = st->main->run_cycle(st->main,
+					   st->cursor,
+					   st->systime,
+					   st->config,
+					   st->errors);
+
+    if(cycle_result != ESSTEE_OK)
+    {
+	return cycle_result;
+    }
+    
     st->systime->add_time_ms(st->systime, ms);
     
-    return 1;
+    return ESSTEE_OK;
 }
 
 

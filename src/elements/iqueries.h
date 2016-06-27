@@ -20,7 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/iprogram.h>
-#include <elements/variables.h>
+#include <elements/ivariable.h>
 #include <elements/ifunction.h>
 #include <util/inamed_ref_pool.h>
 #include <util/iconfig.h>

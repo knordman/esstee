@@ -291,7 +291,7 @@ static int date_value_display(
 
     int written_bytes = snprintf(buffer,
 				 buffer_size,
-				 "%" PRIu64 "-%" PRIu8 "-%" PRIu8,
+				 "%.4" PRIu64 "-%.2" PRIu8 "-%.2" PRIu8,
 				 dv->date.y,
 				 dv->date.m,
 				 dv->date.d);
@@ -451,7 +451,7 @@ static int tod_value_display(
 
     int written_bytes = snprintf(buffer,
 				 buffer_size,
-				 "%" PRIu8 "h%" PRIu8 "m%" PRIu8 ".%" PRIu8 "s",
+				 "%" PRIu8 "h%" PRIu8 "m%" PRIu8 ".%.2" PRIu8 "s",
 				 tv->tod.h,
 				 tv->tod.m,
 				 tv->tod.s,
@@ -624,16 +624,17 @@ static int date_tod_value_display(
     int total_written_bytes = 0;
     int written_bytes = snprintf(buffer,
 				 buffer_size,
-				 "%" PRIu64 "-%" PRIu8 "-%" PRIu8,
+				 "%.4" PRIu64 "-%.2" PRIu8 "-%.2" PRIu8 "-",
 				 dv->dt.date.y,
 				 dv->dt.date.m,
 				 dv->dt.date.d);
     CHECK_WRITTEN_BYTES(written_bytes);
     total_written_bytes += written_bytes;
+    buffer += written_bytes;
     
     written_bytes = snprintf(buffer,
 			     buffer_size,
-			     "%" PRIu8 "h%" PRIu8 "m%" PRIu8 ".%" PRIu8 "s",
+			     "%" PRIu8 "h%" PRIu8 "m%" PRIu8 ".%.2" PRIu8 "s",
 			     dv->dt.tod.h,
 			     dv->dt.tod.m,
 			     dv->dt.tod.s,
@@ -857,7 +858,7 @@ static struct value_iface_t * duration_type_create_value_of(
 
     dv->value.greater = duration_value_greater;
     dv->value.lesser = duration_value_lesser;
-    dv->value.equals = st_value_general_equals;
+    dv->value.equals = st_general_value_equals;
     dv->value.duration = duration_value_duration;
     dv->value.class = duration_value_class;
 
@@ -952,7 +953,7 @@ static struct value_iface_t * date_type_create_value_of(
 
     dv->value.greater = date_value_greater;
     dv->value.lesser = date_value_lesser;
-    dv->value.equals = st_value_general_equals;
+    dv->value.equals = st_general_value_equals;
     dv->value.date = date_value_date;
     dv->value.class = date_value_class;
 
@@ -1046,7 +1047,7 @@ static struct value_iface_t * tod_type_create_value_of(
 
     tv->value.greater = tod_value_greater;
     tv->value.lesser = tod_value_lesser;
-    tv->value.equals = st_value_general_equals;
+    tv->value.equals = st_general_value_equals;
     tv->value.tod = tod_value_tod;
     tv->value.class = tod_value_class;
 
@@ -1144,7 +1145,7 @@ static struct value_iface_t * date_tod_type_create_value_of(
 
     dv->value.greater = date_tod_value_greater;
     dv->value.lesser = date_tod_value_lesser;
-    dv->value.equals = st_value_general_equals;
+    dv->value.equals = st_general_value_equals;
     dv->value.date_tod = date_tod_value_tod;
     dv->value.class = date_tod_value_class;
 

@@ -18,7 +18,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/struct.h>
-#include <elements/variables.h>
+#include <elements/variable.h>
 #include <elements/values.h>
 #include <util/macros.h>
 
@@ -65,7 +65,7 @@ static void struct_init_value_destroy(
 struct struct_value_t {
     struct value_iface_t value;
     const struct type_iface_t *type;
-    struct variable_t *elements;
+    struct variable_iface_t *elements;
 };
 
 static int struct_value_display(
@@ -86,7 +86,7 @@ static int struct_value_display(
     buffer += start_written_bytes;
     buffer_size -= start_written_bytes;
 
-    struct variable_t *itr = NULL;
+    struct variable_iface_t *itr = NULL;
     int first_element = 1;
     for(itr = sv->elements; itr != NULL; itr = itr->hh.next)
     {
@@ -116,10 +116,12 @@ static int struct_value_display(
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
 
-	written_bytes = itr->value->display(itr->value,
-					    buffer,
-					    buffer_size,
-					    config);
+	struct value_iface_t *var_value = itr->value(itr);
+	
+	written_bytes = var_value->display(var_value,
+					   buffer,
+					   buffer_size,
+					   config);
 	CHECK_WRITTEN_BYTES(written_bytes);
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
@@ -178,7 +180,7 @@ static int struct_value_assign(
     struct struct_element_init_t *itr = NULL;
     for(itr = isv->init_table; itr != NULL; itr = itr->hh.next)
     {
-	struct variable_t *found = NULL;
+	struct variable_iface_t *found = NULL;
 	HASH_FIND_STR(sv->elements, itr->element_identifier, found);
 	if(!found)
 	{
@@ -191,10 +193,10 @@ static int struct_value_assign(
 	    return ESSTEE_ERROR;
 	}
 
-	int assign_result = found->value->assign(found->value,
-						 itr->element_default_value,
-						 config,
-						 issues);
+	int assign_result = found->assign(found,
+					  itr->element_default_value,
+					  config,
+					  issues);
 	if(assign_result != ESSTEE_OK)
 	{
 	    return assign_result;
@@ -224,7 +226,7 @@ static void struct_value_destroy(
     /* TODO: struct value destructor */
 }
 
-static struct variable_t * struct_value_sub_variable(
+static struct variable_iface_t * struct_value_sub_variable(
     struct value_iface_t *self,
     const char *identifier,
     const struct config_iface_t *config,
@@ -233,7 +235,7 @@ static struct variable_t * struct_value_sub_variable(
     const struct struct_value_t *sv =
 	CONTAINER_OF(self, struct struct_value_t, value);
 
-    struct variable_t *found = NULL;
+    struct variable_iface_t *found = NULL;
     HASH_FIND_STR(sv->elements, identifier, found);
     if(!found)
     {
@@ -274,36 +276,35 @@ static struct value_iface_t * struct_type_create_value_of(
 
     sv->elements = NULL;
     struct struct_element_t *itr = NULL;
+    struct variable_iface_t *itr_var = NULL;
     for(itr = st->elements; itr != NULL; itr = itr->hh.next)
     {
-	struct variable_t *ev = NULL;
-	ALLOC_OR_JUMP(
-	    ev,
-	    struct variable_t,
-	    error_free_resources);
+	itr_var = st_create_variable_type(
+	    itr->element_identifier,
+	    itr->identifier_location,
+	    itr->element_type,
+	    0,
+	    config,
+	    issues);
 
-	ev->identifier = itr->element_identifier;
-	ev->location = NULL;
-
-	ev->next = NULL;
-	ev->prev = NULL;
-	ev->address = NULL;
-	
-	ev->value = itr->element_type->create_value_of(itr->element_type,
-						       config,
-						       issues);
-	if(!ev->value)
+	if(!itr_var)
 	{
 	    goto error_free_resources;
 	}
 
-	ev->type = itr->element_type;
+	int create_result = itr_var->create(itr_var,
+					    config,
+					    issues);
+	if(create_result != ESSTEE_OK)
+	{
+	    goto error_free_resources;
+	}
 
 	HASH_ADD_KEYPTR(hh, 
 			sv->elements, 
-			ev->identifier, 
-			strlen(ev->identifier), 
-			ev);
+			itr_var->identifier, 
+			strlen(itr_var->identifier), 
+		        itr_var);
     }
 
     sv->type = self;
@@ -316,7 +317,7 @@ static struct value_iface_t * struct_type_create_value_of(
     sv->value.override_type = struct_value_override_type;
     sv->value.destroy = struct_value_destroy;
     sv->value.sub_variable = struct_value_sub_variable;
-    sv->value.class = st_value_general_empty_class;
+    sv->value.class = st_general_value_empty_class;
 
     return &(sv->value);
     
@@ -334,10 +335,10 @@ static int struct_type_reset_value_of(
     struct struct_value_t *sv =
 	CONTAINER_OF(value_of, struct struct_value_t, value);
 
-    struct variable_t *itr = NULL;
+    struct variable_iface_t *itr = NULL;
     for(itr = sv->elements; itr != NULL; itr = itr->hh.next)
     {
-	int reset_result = itr->type->reset_value_of(itr->type, itr->value, config, issues);
+	int reset_result = itr->reset(itr, config, issues);
 
 	if(reset_result != ESSTEE_OK)
 	{

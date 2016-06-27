@@ -28,7 +28,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 
 struct array_index_t;
-struct variable_t;
+struct variable_iface_t;
 struct enum_item_t;
 struct cursor_iface_t;
 struct invoke_parameters_iface_t;
@@ -133,7 +133,7 @@ struct value_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    struct variable_t * (*sub_variable)(
+    struct variable_iface_t * (*sub_variable)(
 	struct value_iface_t *self,
 	const char *identifier,
     	const struct config_iface_t *config,

@@ -20,7 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/itype.h>
-#include <elements/variables.h>
+#include <elements/ivariable.h>
 #include <util/iissues.h>
 #include <util/iconfig.h>
 #include <esstee/locations.h>

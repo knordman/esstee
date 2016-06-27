@@ -35,6 +35,5 @@ struct type_iface_t * st_new_custom_length_string_type(
 struct value_iface_t * st_new_string_value(
     const char *type_name,
     char *content,
-    struct named_ref_pool_iface_t *global_type_refs,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

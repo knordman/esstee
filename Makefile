@@ -23,6 +23,8 @@ OBJECTS := 		build/util/issue_context.o \
 			build/parser/pconditionals.o \
 			build/parser/pdirectmemory.o \
 			build/parser/penums.o \
+			build/parser/psubrange.o \
+			build/parser/pstruct.o \
 			build/parser/pheader.o \
 			build/parser/pinvokeparameters.o \
 			build/parser/pliterals.o \
@@ -52,6 +54,24 @@ OBJECTS := 		build/util/issue_context.o \
 			build/elements/values.o \
 			build/elements/types.o \
 			build/elements/variable.o \
+			build/elements/block_header.o \
+			build/elements/subrange_case.o \
+			build/statements/case.o \
+			build/statements/conditionals.o \
+			build/statements/empty.o \
+			build/statements/invoke_statement.o \
+			build/statements/loops.o \
+			build/statements/pop_call_stack.o \
+			build/statements/qualified_assignment.o \
+			build/statements/simple_assignment.o \
+			build/statements/statements.o \
+			build/expressions/binary_expressions.o \
+			build/expressions/direct_address_term.o \
+			build/expressions/function_invocation.o \
+			build/expressions/identifier.o \
+			build/expressions/inline_expression.o \
+			build/expressions/negative_prefix.o \
+			build/expressions/qualified_identifier_term.o \
 			build/api/esstee.o \
 			build/api/elements.o \
 			build/linker/linker.o \

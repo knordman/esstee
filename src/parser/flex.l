@@ -93,7 +93,7 @@ duration_literal                (t|time)#{duration_part}(_?{duration_part}){0,4}
 
 /* Date and time literals */
 date_numbers                    [[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}
-tod_numbers                     [[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}.[[:digit:]]{2}
+tod_numbers                     [[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}\.[[:digit:]]{2}
 date_literal                    (d|date)#{date_numbers}
 tod_literal                     (tod|time_of_day)#{tod_numbers}
 date_tod_literal                (dt|date_and_time)#{date_numbers}-{tod_numbers}
@@ -260,3 +260,5 @@ until                                                   RETURN(UNTIL);
 .                                                       RETURN(yytext[0]);
 
 %%
+
+

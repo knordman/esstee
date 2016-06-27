@@ -19,7 +19,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/qualified_identifier.h>
 #include <elements/array.h>
-#include <elements/variables.h>
+#include <elements/ivariable.h>
 #include <util/macros.h>
 
 #include <utlist.h>
@@ -28,7 +28,7 @@ struct qualified_part_t {
     char *identifier;
     struct st_location_t *location;
     struct array_index_t *index;
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
     struct qualified_part_t *prev;
     struct qualified_part_t *next;
 };
@@ -54,9 +54,11 @@ static int qualified_identifier_resolve_chain(
     struct qualified_part_t *itr = NULL;
     DL_FOREACH(qi->path, itr)
     {
+	struct value_iface_t *var_value = itr->variable->value(itr->variable);
+	
 	if(itr->index != NULL)
 	{
-	    if(!itr->variable->value->index)
+	    if(!var_value->index)
 	    {
 		const char *message = issues->build_message(
 		    issues,
@@ -72,8 +74,8 @@ static int qualified_identifier_resolve_chain(
 		return ESSTEE_ERROR;
 	    }
 	    
-	    struct value_iface_t *array_target = itr->variable->value->index(
-		itr->variable->value,
+	    struct value_iface_t *array_target = var_value->index(
+		var_value,
 		itr->index,
 		config,
 		issues);
@@ -103,11 +105,10 @@ static int qualified_identifier_resolve_chain(
 		}
 
 		issues->begin_group(issues);
-		struct variable_t *subvar =
-		    array_target->sub_variable(array_target,
-					       itr->next->identifier,
-					       config,
-					       issues);
+		struct variable_iface_t *subvar = array_target->sub_variable(array_target,
+									     itr->next->identifier,
+									     config,
+									     issues);
 		if(!subvar)
 		{
 		    issues->set_group_location(issues,
@@ -126,7 +127,7 @@ static int qualified_identifier_resolve_chain(
 	}
 	else if(itr->next)
 	{
-	    if(!itr->variable->value->sub_variable)
+	    if(!var_value->sub_variable)
 	    {
 		const char *message = issues->build_message(
 		    issues,
@@ -144,11 +145,10 @@ static int qualified_identifier_resolve_chain(
 	    }
 
 	    issues->begin_group(issues);
-	    struct variable_t *subvar =
-		itr->variable->value->sub_variable(itr->variable->value,
-						   itr->next->identifier,
-						   config,
-						   issues);
+	    struct variable_iface_t *subvar = var_value->sub_variable(var_value,
+								      itr->next->identifier,
+								      config,
+								      issues);
 	    if(!subvar)
 	    {
 		issues->set_group_location(issues,
@@ -169,7 +169,7 @@ static int qualified_identifier_resolve_chain(
 	}
 	else
 	{
-	    qi->target = itr->variable->value;
+	    qi->target = var_value;
 	    qi->target_name = itr->variable->identifier;
 	}
     }
@@ -364,7 +364,7 @@ error_free_resources:
 
 static int qualified_identifier_set_base(
     struct qualified_identifier_iface_t *self,
-    struct variable_t *base,
+    struct variable_iface_t *base,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -442,7 +442,7 @@ static int qualified_identifier_base_resolved(
 	return ESSTEE_ERROR;
     }
 
-    qi->path->variable = (struct variable_t *)target;
+    qi->path->variable = (struct variable_iface_t *)target;
 
     return ESSTEE_OK;
 }

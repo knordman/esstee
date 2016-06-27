@@ -19,11 +19,138 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/strings.h>
 #include <elements/values.h>
+#include <elements/types.h>
 #include <util/macros.h>
 
 #include <utlist.h>
 #include <stdio.h>
 #include <string.h>
+
+/**************************************************************************/
+/* String literals                                                        */
+/**************************************************************************/
+/* Handled as its own value/type due to the strong connection between
+ * the literal and its type */
+struct literal_string_t {
+    struct type_iface_t type;
+    struct value_iface_t value;
+    char *content;
+    st_bitflag_t class;
+};
+
+static st_bitflag_t literal_string_type_class(
+    const struct type_iface_t *self)
+{
+    const struct literal_string_t *ls =
+	CONTAINER_OF(self, struct literal_string_t, type);
+
+    return ls->class;
+}
+
+static int literal_string_display(
+    const struct value_iface_t *self,
+    char *buffer,
+    size_t buffer_size,
+    const struct config_iface_t *config)
+{
+    const struct literal_string_t *ls =
+	CONTAINER_OF(self, struct literal_string_t, value);
+
+    int written_bytes = snprintf(buffer,
+				 buffer_size,
+				 "%s",
+				 ls->content);
+    CHECK_WRITTEN_BYTES(written_bytes);
+    return written_bytes;
+}
+
+static int literal_string_compares(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    const struct literal_string_t *ls =
+	CONTAINER_OF(self, struct literal_string_t, value);
+
+    if(!other_value->string)
+    {
+	issues->new_issue(
+	    issues,
+	    "string literal '%s' can only be compared to string values",
+	    ESSTEE_TYPE_ERROR,
+	    ls->content);
+
+	return ESSTEE_FALSE;
+    }
+
+    if(other_value->type_of)
+    {
+	const struct type_iface_t *value_type = other_value->type_of(other_value);
+	st_bitflag_t value_type_class = value_type->class(value_type);
+	st_bitflag_t mask = STRING_TYPE|WSTRING_TYPE;
+	
+	if(ls->class != (value_type_class & mask))
+	{
+	    issues->new_issue(
+		issues,
+		"string literal '%s' can only be compared to strings of type '%s'",
+		ESSTEE_TYPE_ERROR,
+		ls->content,
+		ls->type.identifier);
+
+	    return ESSTEE_FALSE;
+	}
+    }
+
+    return ESSTEE_TRUE;
+}
+
+static const struct type_iface_t * literal_string_type_of(
+    const struct value_iface_t *self)
+{
+    const struct literal_string_t *ls =
+	CONTAINER_OF(self, struct literal_string_t, value);
+
+    return &(ls->type);
+}
+
+static void literal_string_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: literal string destroy */
+}
+
+static int literal_string_equals(
+    const struct value_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    const struct literal_string_t *ls =
+	CONTAINER_OF(self, struct literal_string_t, value);
+
+    const char *other_string =
+	other_value->string(other_value, config, issues);
+
+    if(strcmp(ls->content, other_string) == 0)
+    {
+	return ESSTEE_TRUE;
+    }
+
+    return ESSTEE_FALSE;
+}
+
+static const char * literal_string_string(
+    const struct value_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    const struct literal_string_t *ls =
+	CONTAINER_OF(self, struct literal_string_t, value);
+
+    return ls->content;
+}
 
 /**************************************************************************/
 /* Value interface                                                        */
@@ -40,7 +167,7 @@ static int string_value_display(
     size_t buffer_size,
     const struct config_iface_t *config)
 {
-    struct string_value_t *sv =
+    const struct string_value_t *sv =
 	CONTAINER_OF(self, struct string_value_t, value);
 
     int written_bytes = snprintf(buffer,
@@ -168,7 +295,7 @@ static struct value_iface_t * string_type_create_value_of(
     sv->value.assign = string_value_assign;
     sv->value.assignable_from = string_value_assigns_and_compares;
     sv->value.comparable_to = string_value_assigns_and_compares;
-    sv->value.class = st_value_general_empty_class;
+    sv->value.class = st_general_value_empty_class;
     sv->value.type_of = string_value_type_of;
     sv->value.destroy = string_value_destroy;
     sv->value.equals = string_value_equals;
@@ -312,37 +439,6 @@ static void custom_string_type_destroy(
     struct type_iface_t *self)
 {
     /* TODO: custom string type destructor */
-}
-
-/**************************************************************************/
-/* Linker callbacks                                                       */
-/**************************************************************************/
-static int string_value_type_resolved(
-    void *referrer,
-    void *target,
-    st_bitflag_t remark,
-    const char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    if(!target)
-    {
-	issues->internal_error(
-	    issues,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
-	return ESSTEE_ERROR;
-    }
-
-    struct string_value_t *sv =
-	(struct string_value_t *)referrer;
-
-    sv->type = (struct type_iface_t *)target;
-
-    return ESSTEE_OK;
 }
 
 /**************************************************************************/
@@ -500,38 +596,52 @@ error_free_resources:
 struct value_iface_t * st_new_string_value(
     const char *type_name,
     char *content,
-    struct named_ref_pool_iface_t *global_type_refs,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct value_iface_t *v =
-	string_type_create_value_of(NULL, config, issues);
+    struct literal_string_t *ls = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ls,
+	struct literal_string_t,
+	issues,
+	error_free_resources);
 
-    if(!v)
+    memset(&(ls->type), 0, sizeof(struct type_iface_t));
+
+    if(strcmp(type_name, "STRING") == 0)
     {
+	ls->type.identifier = "STRING";
+	ls->type.class = literal_string_type_class;
+	ls->class = STRING_TYPE;
+    }
+    else if(strcmp(type_name, "WSTRING") == 0)
+    {
+	ls->type.identifier = "WSTRING";
+	ls->type.class = literal_string_type_class;
+	ls->class = WSTRING_TYPE;
+    }
+    else
+    {
+	issues->internal_error(issues,
+			       __FILE__,
+			       __FUNCTION__,
+			       __LINE__);
 	goto error_free_resources;
     }
 
-    struct string_value_t *sv =
-	CONTAINER_OF(v, struct string_value_t, value);
+    memset(&(ls->value), 0, sizeof(struct value_iface_t));
+    ls->value.display = literal_string_display;
+    ls->value.comparable_to = literal_string_compares;
+    ls->value.type_of = literal_string_type_of;
+    ls->value.equals = literal_string_equals;
+    ls->value.destroy = literal_string_destroy;
+    ls->value.string = literal_string_string;
 
-    int ref_result = global_type_refs->add(global_type_refs,
-					   type_name,
-					   sv,
-					   NULL,
-					   string_value_type_resolved,
-					   issues);
-    if(ref_result != ESSTEE_OK)
-    {
-	goto error_free_resources;
-    }
-
-    return v;
-
+    ls->content = content;
+    
+    return &(ls->value);
+    
 error_free_resources:
-    if(v)
-    {
-	v->destroy(v);
-    }
+    free(ls);
     return NULL;
 }

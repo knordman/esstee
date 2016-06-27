@@ -81,9 +81,9 @@ struct type_iface_t * st_new_derived_type_by_name(
     struct type_iface_t *dt =
 	st_create_derived_type_by_name(
 	    type_name,
+	    location,
 	    parent_type_name,
 	    parent_type_name_location,
-	    location,
 	    default_value,
 	    default_value_location,
 	    parser->pou_type_ref_pool,

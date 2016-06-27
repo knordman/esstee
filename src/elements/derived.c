@@ -482,9 +482,9 @@ error_free_resources:
 
 struct type_iface_t * st_create_derived_type_by_name(
     char *type_name,
+    const struct st_location_t *location,
     char *parent_type_name,
     const struct st_location_t *parent_type_name_location,
-    const struct st_location_t *location,
     struct value_iface_t *default_value,
     const struct st_location_t *default_value_location,
     struct named_ref_pool_iface_t *type_refs,
@@ -501,11 +501,14 @@ struct type_iface_t * st_create_derived_type_by_name(
 	issues,
 	error_free_resources);
 
-    LOCDUP_OR_ERROR_JUMP(
-	dt_location,
-	location,
-	issues,
-	error_free_resources);
+    if(location)
+    {
+	LOCDUP_OR_ERROR_JUMP(
+	    dt_location,
+	    location,
+	    issues,
+	    error_free_resources);
+    }
 
     if(default_value_location)
     {
@@ -543,6 +546,8 @@ struct type_iface_t * st_create_derived_type_by_name(
     dt->type.create_value_of = derived_type_create_value_of;
     dt->type.reset_value_of = derived_type_reset_value_of;
     dt->type.can_hold = derived_type_can_hold;
+    dt->type.validate_direct_address = derived_type_validate_direct_address;
+    dt->type.sync_direct_memory = derived_type_sync_direct_memory;
     dt->type.compatible = derived_type_compatible;
     dt->type.class = derived_type_class;
     dt->type.destroy = derived_type_destroy;

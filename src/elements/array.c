@@ -569,7 +569,7 @@ static struct value_iface_t * array_type_create_value_of(
     av->value.type_of = array_value_type_of;
     av->value.index = array_value_index;
     av->value.destroy = array_value_destroy;
-    av->value.class = st_value_general_empty_class;
+    av->value.class = st_general_value_empty_class;
     av->value.override_type = array_value_override_type;
 
     return &(av->value);

@@ -1,0 +1,10 @@
+conditionals.ST!t_if!0![t_if].i1:=1![t_if].i2!10
+conditionals.ST!t_if!0![t_if].i1:=2![t_if].i2!20
+conditionals.ST!t_if!0![t_if].i1:=3![t_if].i2!30
+conditionals.ST!t_if!0![t_if].i1:=9![t_if].i2!40
+conditionals.ST!t_if_simple!0![t_if_simple].i1:=1![t_if_simple].i2!10
+conditionals.ST!t_if_simple!0![t_if_simple].i1:=0![t_if_simple].i2!20
+conditionals.ST!t_case!0![t_case].i1:=1![t_case].i2!10
+conditionals.ST!t_case!0![t_case].i1:=2![t_case].i2!20
+conditionals.ST!t_case!0![t_case].i1:=3![t_case].i2!30
+conditionals.ST!t_case!0![t_case].i1:=9![t_case].i2!40

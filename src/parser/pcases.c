@@ -20,6 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <parser/parser.h>
 #include <statements/case.h>
 #include <statements/statements.h>
+#include <elements/subrange_case.h>
 
 
 struct case_list_element_t * st_append_case_value(
@@ -81,4 +82,21 @@ struct case_t * st_append_case(
     }
 
     return extended_cases;
+}
+
+struct value_iface_t * st_new_subrange_case_value(
+    struct subrange_t *subrange,
+    struct parser_t *parser)
+{
+    struct value_iface_t *scv = st_create_subrange_case_selector(
+	subrange,
+	parser->config,
+	parser->errors);
+
+    if(scv)
+    {
+	st_destroy_subrange(subrange);
+    }
+
+    return scv;
 }

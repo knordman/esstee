@@ -92,7 +92,7 @@ static int negative_prefix_term_verify(
     
     struct negative_prefix_term_t *nt =
 	CONTAINER_OF(expr, struct negative_prefix_term_t, expression);
-
+	
     if(nt->to_negate->invoke.verify)
     {
 	int negate_result = nt->to_negate->invoke.verify(&(nt->to_negate->invoke),
@@ -107,7 +107,10 @@ static int negative_prefix_term_verify(
     const struct value_iface_t *to_negate_value =
 	nt->to_negate->return_value(nt->to_negate);
 
-    if(!to_negate_value->negate)
+    negation_operation_t *operation
+	= (negation_operation_t *)(((char *)to_negate_value) + nt->operation_offset);
+    
+    if(!operation)
     {
 	issues->new_issue_at(
 	    issues,

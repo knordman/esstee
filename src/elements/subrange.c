@@ -321,7 +321,7 @@ static struct value_iface_t * subrange_type_create_value_of(
     sv->value.create_temp_from = subrange_value_create_temp_from;
     sv->value.destroy = subrange_value_destroy;
     sv->value.integer = subrange_value_integer;
-    sv->value.class = st_value_general_empty_class;
+    sv->value.class = st_general_value_empty_class;
     sv->value.greater = subrange_value_greater;
     sv->value.lesser = subrange_value_lesser;
     sv->value.equals = subrange_value_equals;

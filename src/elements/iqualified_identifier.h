@@ -54,7 +54,7 @@ struct qualified_identifier_iface_t {
 
     int (*set_base)(
     	struct qualified_identifier_iface_t *self,
-	struct variable_t *base,
+	struct variable_iface_t *base,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
@@ -63,8 +63,14 @@ struct qualified_identifier_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
     
-    struct value_iface_t * (*target)(
+    const struct value_iface_t * (*target)(
 	struct qualified_identifier_iface_t *self);
+
+    int (*assign_target)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *new_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
     const char * (*target_name)(
 	struct qualified_identifier_iface_t *self);

@@ -28,7 +28,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /**************************************************************************/
 struct variable_stub_t {
     char *identifier;
-    struct type_iface_t *type;
+    const struct type_iface_t *type;
     char *type_name;
     struct st_location_t *location;
     struct direct_address_t *address;
@@ -38,9 +38,7 @@ struct variable_stub_t {
 
 struct variable_t {
     struct variable_iface_t variable;
-    struct type_iface_t *type;
     struct value_iface_t *value;
-    struct direct_address_t *address;
     struct variable_stub_t *stub;
     struct variable_iface_t *external_alias;
 };
@@ -53,7 +51,7 @@ static int variable_create(
     struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
-    var->value = var->type->create_value_of(var->type, config, issues);
+    var->value = var->stub->type->create_value_of(var->stub->type, config, issues);
 
     if(!var->value)
     {
@@ -79,10 +77,10 @@ static int variable_reset(
     struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
-    return var->type->reset_value_of(var->type,
-				     var->value,
-				     config,
-				     issues);
+    return var->stub->type->reset_value_of(var->stub->type,
+					   var->value,
+					   config,
+					   issues);
 }
 
 static int external_variable_reset(
@@ -157,10 +155,10 @@ static int variable_assign(
     {
 	if(var->stub->address)
 	{
-	    var->type->sync_direct_memory(var->type,
-					  var->value,
-					  var->address,
-					  1);
+	    var->stub->type->sync_direct_memory(var->stub->type,
+						var->value,
+						var->stub->address,
+						1);
 	}
     }
 
@@ -182,16 +180,33 @@ static int external_variable_assign(
 				       issues);
 }
 
-static const struct value_iface_t * variable_value(
+static struct value_iface_t * variable_value(
     struct variable_iface_t *self)
 {
     struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
+    if(var->stub->address)
+    {
+	var->stub->type->sync_direct_memory(var->stub->type,
+					    var->value,
+					    var->stub->address,
+					    0);
+    }
+    
     return var->value;
 }
 
-static const struct value_iface_t * external_variable_value(
+static const struct type_iface_t * variable_type(
+    struct variable_iface_t *self)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->stub->type;
+}
+
+static struct value_iface_t * external_variable_value(
     struct variable_iface_t *self)
 {
     struct variable_t *var =
@@ -236,7 +251,7 @@ static int variable_type_resolved(
     }
 
     struct variable_t *var = (struct variable_t *)referrer;
-    var->type = (struct type_iface_t *)target;
+    var->stub->type = (struct type_iface_t *)target;
     
     return ESSTEE_OK;
 }
@@ -280,9 +295,9 @@ static int direct_variable_type_post_resolve(
 {
     struct variable_t *var = (struct variable_t *)referrer;
     
-    if(!var->type->sync_direct_memory)
+    if(!var->stub->type->sync_direct_memory)
     {
-	const char *type_name = (var->type->identifier) ? var->type->identifier : "(no explicit name)";
+	const char *type_name = (var->stub->type->identifier) ? var->stub->type->identifier : "(no explicit name)";
 	
 	const char *message = issues->build_message(
 	    issues,
@@ -299,7 +314,7 @@ static int direct_variable_type_post_resolve(
 	return ESSTEE_ERROR;
     }
 
-    if(!var->type->validate_direct_address)
+    if(!var->stub->type->validate_direct_address)
     {
 	issues->internal_error(issues,
 			       __FILE__,
@@ -309,9 +324,9 @@ static int direct_variable_type_post_resolve(
     }
 
     issues->begin_group(issues);
-    int valid_result = var->type->validate_direct_address(var->type,
-							  var->address,
-							  issues);
+    int valid_result = var->stub->type->validate_direct_address(var->stub->type,
+								var->stub->address,
+								issues);
     if(valid_result != ESSTEE_OK)
     {
 	issues->new_issue(issues,
@@ -440,9 +455,9 @@ struct variable_stub_t * st_create_direct_variable_stub(
     stub->address = address;
     stub->location = stub_location;
     stub->type = st_create_derived_type_by_name(NULL,
+						NULL,
 						type_name,
 						type_name_location,
-						NULL,
 						default_value,
 						default_value_location,
 						type_refs,
@@ -452,8 +467,10 @@ struct variable_stub_t * st_create_direct_variable_stub(
     {
 	goto error_free_resources;
     }
-    
-    return stub;
+
+    struct variable_stub_t *stub_list = NULL;
+    DL_APPEND(stub_list, stub);
+    return stub_list;
     
 error_free_resources:
     free(stub);
@@ -487,7 +504,8 @@ struct variable_iface_t * st_create_variable_block(
 	var->variable.class = block_class|retain_flag|constant_flag;
 	var->variable.identifier = itr->identifier;
 	var->variable.location = itr->location;
-	var->type = itr->type;
+	var->variable.type = variable_type;
+	var->variable.destroy = variable_destroy;
 	var->stub = itr;
 	    
 	if(ST_FLAG_IS_SET(block_class, EXTERNAL_VAR_CLASS))
@@ -497,7 +515,6 @@ struct variable_iface_t * st_create_variable_block(
 	    var->variable.assignable_from = external_variable_assignable_from;
 	    var->variable.assign = external_variable_assign;
 	    var->variable.value = external_variable_value;
-	    var->variable.destroy = variable_destroy;
 
 	    int ref_result = global_var_refs->add(
 		global_var_refs,
@@ -519,7 +536,6 @@ struct variable_iface_t * st_create_variable_block(
 	    var->variable.assignable_from = variable_assignable_from;
 	    var->variable.assign = variable_assign;
 	    var->variable.value = variable_value;
-	    var->variable.destroy = variable_destroy;
 
 	    if(itr->type_name)
 	    {
@@ -595,7 +611,6 @@ struct variable_iface_t * st_create_variable_type_name(
 	issues,
 	error_free_resources);
 	
-
     stub->identifier = identifier;
     stub->type = NULL;
     stub->type_name = type_name;
@@ -603,21 +618,20 @@ struct variable_iface_t * st_create_variable_type_name(
     stub->address = NULL;
 
     var->stub = stub;
-    var->type = NULL;
     var->value = NULL;
-    var->address = NULL;
     var->external_alias = NULL;
 
     memset(&(var->variable), 0, sizeof(struct variable_iface_t));
     var->variable.identifier = stub->identifier;
     var->variable.location = stub->location;
+    var->variable.destroy = variable_destroy;
+    var->variable.class = class;
     
     var->variable.create = variable_create;
     var->variable.reset = variable_reset;
     var->variable.assignable_from = variable_assignable_from;
     var->variable.assign = variable_assign;
     var->variable.value = variable_value;
-    var->variable.destroy = variable_destroy;
 
     int ref_result = type_refs->add(
 	type_refs,
@@ -631,6 +645,66 @@ struct variable_iface_t * st_create_variable_type_name(
     {
 	goto error_free_resources;
     }
+
+    return &(var->variable);
+
+error_free_resources:
+    free(stub);
+    free(var);
+    return NULL;
+}
+
+struct variable_iface_t * st_create_variable_type(
+    char *identifier,
+    const struct st_location_t *location, 
+    const struct type_iface_t *type,
+    st_bitflag_t class,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_stub_t *stub = NULL;
+    struct variable_t *var = NULL;
+    struct st_location_t *var_location = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	stub,
+	struct variable_stub_t,
+	issues,
+	error_free_resources);
+    
+    ALLOC_OR_ERROR_JUMP(
+	var,
+	struct variable_t,
+	issues,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	var_location,
+	location,
+	issues,
+	error_free_resources);
+	
+    stub->identifier = identifier;
+    stub->type = type;
+    stub->type_name = NULL;
+    stub->location = var_location;
+    stub->address = NULL;
+
+    var->stub = stub;
+    var->value = NULL;
+    var->external_alias = NULL;
+
+    memset(&(var->variable), 0, sizeof(struct variable_iface_t));
+    var->variable.identifier = stub->identifier;
+    var->variable.location = stub->location;
+    var->variable.destroy = variable_destroy;
+    var->variable.class = class;
+    
+    var->variable.create = variable_create;
+    var->variable.reset = variable_reset;
+    var->variable.assignable_from = variable_assignable_from;
+    var->variable.assign = variable_assign;
+    var->variable.value = variable_value;
 
     return &(var->variable);
 

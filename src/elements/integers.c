@@ -802,11 +802,15 @@ static int integer_type_validate_direct_address(
     {
 	if(type_size > address->field_size_bits)
 	{
+	    const char *bits_text = (address->field_size_bits == 1) ? "bit" : "bits";
+	    
 	    issues->new_issue(issues,
-			      "type needs '%lu' bits of storage and does not fit into explicilty given '%lu' bits",
+			      "type '%s' needs '%lu' bits of storage and does not fit into explicilty given '%lu' %s",
 			      ESSTEE_CONTEXT_ERROR,
+			      self->identifier,
 			      type_size,
-			      address->field_size_bits);
+			      address->field_size_bits,
+			      bits_text);
 
 	    return ESSTEE_ERROR;
 	}
@@ -1268,6 +1272,18 @@ struct value_iface_t * st_new_typeless_integer_value(
     iv->class = value_class;
 
     return v;
+}
+
+int st_integer_value_set(
+    struct value_iface_t *value,
+    int64_t num)
+{
+    struct integer_value_t *iv
+	= CONTAINER_OF(value, struct integer_value_t, value);
+
+    iv->num = num;
+
+    return ESSTEE_OK;
 }
 
 struct value_iface_t * st_new_bool_value(
