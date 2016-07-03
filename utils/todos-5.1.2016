@@ -1,9 +1,21 @@
-std lib functions and function blocks
-*_to_*, dint_to_bool
-tof
-ton
-r_trig
-f_trig
+/**************************************************************************/
+/* DEPRECEATED, see todo-3.7.2016                                         */
+/**************************************************************************/
+
+qualified identifier
+remove dependency on program
+add post resolve function for resolving chain (simplifying term and assignment statement)
+
+? issues fatal warning state 
+
+built-in functions and function blocks
+*_TO_*, dint_to_bool
+TOF
+TON
+R_TRIG
+F_TRIG
+
+encapsulation fixes
 
 config
 103 /* TODO: implement set config */ ../src/esstee/esstee.c
@@ -12,7 +24,8 @@ config
 unsorted
 105 /* TODO: implement loading of buffer */ ../src/esstee/esstee.c
 107 /* TODO: Functionality, resetting linking prior to link operation */ ../src/esstee/esstee.c
-109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c
+
+python bindings
 
 destructors
 83 /* TODO: enum type destructor */ ../src/elements/types.c
@@ -206,3 +219,4 @@ DONE 111 /* TODO: initialization of direct memory by explicit value */ ../src/pa
 DONE 112 /* TODO: new direct variable */ ../src/parser/pvariables.c
 DONE 113 /* TODO: new direct var by explicit initial value */ ../src/parser/pvariables.c
 DONE 18 /* TODO: add data of direct memory */ ../src/elements/directmemory.h
+IGNORED 109 /* TODO: finalize variables by edge */ ../src/parser/pvariables.c

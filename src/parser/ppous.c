@@ -18,8 +18,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <parser/parser.h>
-#include <linker/linker.h>
-#include <util/macros.h>
+#include <elements/user_functions.h>
+#include <elements/user_function_blocks.h>
+#include <elements/user_programs.h>
+#include <statements/statements.h>
 
 #include <utlist.h>
 
@@ -28,100 +30,45 @@ int st_new_function_pou(
     char *identifier,
     const struct st_location_t *location,
     char *return_type_identifier,
-    const struct st_location_t *type_identifier_location,
+    const struct st_location_t *return_type_identifier_location,
     struct header_t *header,
     struct invoke_iface_t *statements,
     struct parser_t *parser)
 {
-    struct function_t *f = NULL;
-    struct st_location_t *f_location = NULL;
-
-    ALLOC_OR_ERROR_JUMP(
-	f,
-	struct function_t,
-	parser->errors,
-	error_free_resources);
-    LOCDUP_OR_ERROR_JUMP(
-	f_location,
+    struct function_iface_t *function = st_new_user_function(
+	identifier,
 	location,
-	parser->errors,
-	error_free_resources);
-
-    f->location = f_location;
-    f->type_ref_pool = parser->pou_type_ref_pool;
-    f->var_ref_pool = parser->pou_var_ref_pool;
-    parser->pou_type_ref_pool = NULL;
-    parser->pou_var_ref_pool = NULL;
-
-    f->header = header;
-    f->statements = statements;
-    f->identifier = identifier;
-    
-    f->output.identifier = identifier;
-    f->output.class = OUTPUT_VAR_CLASS;
-    f->output.type = NULL;
-    f->output.identifier_location = f_location;
-    
-    int ref_add_result = parser->global_type_ref_pool->add(
-	parser->global_type_ref_pool,
 	return_type_identifier,
-	f,
-	type_identifier_location,
-	st_function_return_type_resolved,
+	return_type_identifier_location,
+	header,
+	parser->global_type_ref_pool,
+	parser->pou_type_ref_pool,
+	parser->global_var_ref_pool,
+	parser->pou_var_ref_pool,
+	statements,
+	parser->config,
 	parser->errors);
 
-    if(ref_add_result != ESSTEE_OK)
+    if(!function)
     {
-	goto error_free_resources;
+	free(return_type_identifier);
+	st_destroy_header(header);
+	st_destroy_statements(statements);
     }
-    
-    DL_APPEND(parser->functions, f);
-    return ESSTEE_OK;
+    else
+    {
+	parser->pou_type_ref_pool = NULL;
+	parser->pou_var_ref_pool = NULL;
+    }
 
-error_free_resources:
-    free(f);
-    free(f_location);
-    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-    return ESSTEE_ERROR;
-}
+    if(function)
+    {
+	/* TODO: commit of references */
+	DL_APPEND(parser->functions, function);
+	return ESSTEE_OK;
+    }
 
-int st_new_program_pou(
-    char *identifier,
-    const struct st_location_t *location,
-    struct header_t *header,
-    struct invoke_iface_t *statements,
-    struct parser_t *parser)
-{
-    struct program_t *p = NULL;
-    struct st_location_t *loc = NULL;
-    ALLOC_OR_ERROR_JUMP(
-	p,
-	struct program_t,
-	parser->errors,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	loc,
-	location,
-	parser->errors,
-	error_free_resources);
-
-    p->identifier = identifier;
-    p->type_ref_pool = parser->pou_type_ref_pool;
-    p->var_ref_pool = parser->pou_var_ref_pool;
-    parser->pou_type_ref_pool = NULL;
-    parser->pou_var_ref_pool = NULL;
-
-    p->header = header;
-    p->statements = statements;    
-    p->location = loc;
-    
-    DL_APPEND(parser->programs, p);
-    return ESSTEE_OK;
-
-error_free_resources:
-    free(p);
-    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
+    /* TODO: check clearing of references */
     return ESSTEE_ERROR;
 }
 
@@ -132,42 +79,77 @@ int st_new_function_block_pou(
     struct invoke_iface_t *statements,
     struct parser_t *parser)
 {
-    struct function_block_t *fb = NULL;
-    struct st_location_t *loc = NULL;
-    ALLOC_OR_ERROR_JUMP(
-	fb,
-	struct function_block_t,
-	parser->errors,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	loc,
+    struct type_iface_t *fb = st_new_user_function_block(
+	identifier,
 	location,
-	parser->errors,
-	error_free_resources);
+	header,
+	statements,
+	parser->pou_type_ref_pool,
+	parser->pou_var_ref_pool,
+	parser->config,
+	parser->errors);
 
-    memset(&(fb->type), 0, sizeof(struct type_iface_t));
-    fb->type.identifier = identifier;
-    fb->type.location = st_function_block_type_location;
-    fb->type.create_value_of = st_function_block_type_create_value_of;
-    fb->type.reset_value_of = st_function_block_type_reset_value_of;
-    fb->type.class = st_function_block_type_class;
-    
-    fb->header = header;
-    fb->statements = statements;
-    fb->location = loc;
-    fb->type_ref_pool = parser->pou_type_ref_pool;
-    fb->var_ref_pool = parser->pou_var_ref_pool;
-    parser->pou_type_ref_pool = NULL;
-    parser->pou_var_ref_pool = NULL;
-    
-    DL_APPEND(parser->function_blocks, fb);
-    DL_APPEND(parser->global_types, &(fb->type));
+    if(!fb)
+    {
+	free(identifier);
+	st_destroy_header(header);
+	st_destroy_statements(statements);
+    }
+    else
+    {
+	parser->pou_type_ref_pool = NULL;
+	parser->pou_var_ref_pool = NULL;
+    }
 
-    return ESSTEE_OK;
-    
-error_free_resources:
-    /* TODO: determine what to destroy */
+    if(fb)
+    {
+	DL_APPEND(parser->global_types, fb);
+	DL_APPEND(parser->function_blocks, fb->function_block_handle(fb));
+	return ESSTEE_OK;
+    }
+
+    return ESSTEE_ERROR;
+}
+
+
+int st_new_program_pou(
+    char *identifier,
+    const struct st_location_t *location,
+    struct header_t *header,
+    struct invoke_iface_t *statements,
+    struct parser_t *parser)
+{
+    struct program_iface_t *program = st_new_user_program(
+	identifier,
+	location,
+	header,
+	statements,
+	parser->pou_type_ref_pool,
+	parser->pou_var_ref_pool,
+	parser->config,
+	parser->errors);
+
+    if(!program)
+    {
+	free(identifier);
+	st_destroy_header(header);
+	st_destroy_statements(statements);
+    }
+    else
+    {
+	parser->pou_type_ref_pool = NULL;
+	parser->pou_var_ref_pool = NULL;
+    }
+
+    if(st_reset_parser_next_pou(parser) == ESSTEE_OK)
+    {
+	if(program)
+	{
+	    DL_APPEND(parser->programs, program);
+	    return ESSTEE_OK;
+	}
+    }
+
     return ESSTEE_ERROR;
 }
 
@@ -176,66 +158,21 @@ int st_new_type_block_pou(
     struct parser_t *parser)
 {
     DL_CONCAT(parser->global_types, types);
-    return ESSTEE_OK;
+
+    parser->global_type_ref_pool->merge(parser->global_type_ref_pool,
+					parser->pou_type_ref_pool);
+    
+    return st_reset_parser_next_pou(parser);
 }
 
 int st_new_var_block_pou(
-    struct variable_t *variables,
+    struct variable_iface_t *variables,
     struct parser_t *parser)
-{
+{   
     DL_CONCAT(parser->global_variables, variables);
-    return ESSTEE_OK;
-}
 
-struct header_t * st_append_types_to_header(
-    struct header_t *header, 
-    struct type_iface_t *type_block, 
-    struct parser_t *parser)
-{
-    if(!header)
-    {
-	ALLOC_OR_ERROR_JUMP(
-	    header,
-	    struct header_t,
-	    parser->errors,
-	    error_free_resources);
-
-	header->types = NULL;
-	header->variables = NULL;
-    }
-
-    DL_CONCAT(header->types, type_block);
-    return header;
-
-error_free_resources:
-    /* TODO: clear named references in header */
-    /* TODO: destroy types block */
-    return NULL;
-}
-
-struct header_t * st_append_vars_to_header(
-    struct header_t *header,
-    struct variable_t *var_block,
-    struct parser_t *parser)
-{
-    if(!header)
-    {
-	ALLOC_OR_ERROR_JUMP(
-	    header,
-	    struct header_t,
-	    parser->errors,
-	    error_free_resources);
-
-	header->types = NULL;
-	header->variables = NULL;
-    }
-
-    DL_CONCAT(header->variables, var_block);
-
-    return header;
-
-error_free_resources:
-    /* TODO: clear named references in header */    
-    // TODO: destroy vars block
-    return NULL;
+    parser->global_type_ref_pool->merge(parser->global_type_ref_pool,
+					parser->pou_type_ref_pool);
+    
+    return st_reset_parser_next_pou(parser);
 }

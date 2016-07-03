@@ -51,13 +51,13 @@ static void print_all_errors(struct st_t *st) {
     const struct st_issue_t *i = NULL;
     while((i = st_fetch_issue(st, ESSTEE_FILTER_ANY_ISSUE)) != NULL)
     {
-	printf("%s\n", i->message);
+	fprintf(stderr, "%s\n", i->message);
 	if(i->has_sub_issues)
 	{
 	    const struct st_issue_t *si = NULL;
 	    while((si = st_fetch_sub_issue(st, i, ESSTEE_FILTER_ANY_ISSUE)) != NULL)
 	    {
-		printf("%s\n", si->message);
+		fprintf(stderr, "%s\n", si->message);
 	    }
 	}
 
@@ -66,11 +66,11 @@ static void print_all_errors(struct st_t *st) {
 	    struct st_location_t *itr = NULL;
 	    for(itr = i->locations; itr != NULL; itr = itr->next)
 	    {
-		printf("@ L(%d:%d) C(%d:%d)\n",
-		       itr->first_line,
-		       itr->last_line,
-		       itr->first_column,
-		       itr->last_column);
+		fprintf(stderr, "@ L(%d:%d) C(%d:%d)\n",
+			itr->first_line,
+			itr->last_line,
+			itr->first_column,
+			itr->last_column);
 	    }
 	}
     }
@@ -190,9 +190,21 @@ int main(int argc, char * const argv[])
 	    printf("%s\n", output_buffer);
 	}
     }
-    
+
+    int cycle_result = ESSTEE_OK;
     for(int i = 0; i < run_cycles; i++) {
-	st_run_cycle(st, 20);
+	cycle_result = st_run_cycle(st, 20);
+
+	if(cycle_result != ESSTEE_OK)
+	{
+	    break;
+	}
+    }
+
+    if(cycle_result != ESSTEE_OK)
+    {
+	print_all_errors(st);
+	return EXIT_FAILURE;
     }
     
     if(post_run_queries) {

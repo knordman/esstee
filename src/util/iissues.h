@@ -62,7 +62,7 @@ struct issues_iface_t {
 	struct issues_iface_t *self,
 	int location_count,
 	...);
-
+    
     void (*end_group)(
 	struct issues_iface_t *self);
 
@@ -94,6 +94,9 @@ struct issues_iface_t {
 	struct issues_iface_t *self,
 	st_bitflag_t issue_filter);
 
+    int (*fatal_error_occurred)(
+	struct issues_iface_t *self);
+    
     void (*destroy)(
 	struct issues_iface_t *self,
 	st_bitflag_t issue_filter);	

@@ -51,6 +51,7 @@ struct issue_context_t {
     struct issue_node_t *internal_error;
     struct issue_node_t *memory_error;
 
+    int fatal_error;
     int internal_error_added;
     int memory_error_added;
     char *message_buffer;
@@ -232,6 +233,8 @@ static void issue_context_memory_error(
     struct issue_context_t *ic =
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
+    ic->fatal_error = ESSTEE_TRUE;
+    
     if(!ic->memory_error_added)
     {
 	snprintf(ic->memory_error->issue.message,
@@ -255,6 +258,8 @@ static void issue_context_internal_error(
     struct issue_context_t *ic =
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
+    ic->fatal_error = ESSTEE_TRUE;
+    
     if(!ic->internal_error_added)
     {
 	snprintf(ic->internal_error->issue.message,
@@ -501,6 +506,13 @@ static struct issues_iface_t * issue_context_merge(
     {
 	ic_to_merge->memory_error = NULL;
     }
+
+    /* If merge context has the fatal flag set, also set in the result
+     * context */
+    if(ic_to_merge->fatal_error == ESSTEE_TRUE)
+    {
+	ic->fatal_error = ESSTEE_TRUE;
+    }
     
     DL_CONCAT(ic->nodes, ic_to_merge->nodes);
 
@@ -551,6 +563,15 @@ static int issue_context_count(
     }
 
     return count;
+}
+
+static int issue_context_fatal_error_occurred(
+    struct issues_iface_t *self)
+{
+    struct issue_context_t *ic =
+	CONTAINER_OF(self, struct issue_context_t, issues);
+
+    return ic->fatal_error;
 }
 
 static void issue_context_destroy(
@@ -623,6 +644,7 @@ struct issues_iface_t * st_new_issue_context()
     ic->message_buffer = message_buffer;
     ic->group_mode = 0;
     ic->group_nodes = NULL;
+    ic->fatal_error = ESSTEE_FALSE;
     
     ic->issues.new_issue = issue_context_new_issue;
     ic->issues.new_issue_at = issue_context_new_issue_at;
@@ -639,6 +661,7 @@ struct issues_iface_t * st_new_issue_context()
     ic->issues.merge = issue_context_merge;
     ic->issues.unfetched_issues = issue_context_unfetched_issues;
     ic->issues.count = issue_context_count;
+    ic->issues.fatal_error_occurred = issue_context_fatal_error_occurred;
     ic->issues.destroy = issue_context_destroy;
     
     return &(ic->issues);

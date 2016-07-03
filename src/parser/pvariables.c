@@ -18,114 +18,116 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <parser/parser.h>
-#include <linker/linker.h>
-#include <util/macros.h>
-
-#include <utlist.h>
+#include <elements/variable.h>
 
 
-struct variable_t * st_new_var_declaration_block(
+struct variable_iface_t * st_new_var_declaration_block(
     st_bitflag_t block_class,
     st_bitflag_t retain_flag,
     st_bitflag_t constant_flag,
-    struct variable_t *variables,
+    struct variable_stub_t *stubs,
     struct parser_t *parser)
 {
-    struct variable_t *itr = NULL;
-    if(variables)
+    struct variable_iface_t *vars = st_create_variable_block(
+	block_class,
+	retain_flag,
+	constant_flag,
+	stubs,
+	parser->global_var_ref_pool,
+	parser->pou_type_ref_pool,
+	parser->config,
+	parser->errors);
+
+    if(!vars)
     {
-	DL_FOREACH(variables, itr)
-	{
-	    itr->class |= (block_class|retain_flag|constant_flag);
-	}
+	st_destroy_variable_stubs(stubs);
     }
 
-    return variables;
+    return vars;
 }
 
-struct variable_t * st_append_var_declarations(
-    struct variable_t *variable_group,
-    struct variable_t *new_variables,
+struct variable_stub_t * st_append_var_declarations(
+    struct variable_stub_t *variable_group,
+    struct variable_stub_t *new_variables,
     struct parser_t *parser)
 {
-    DL_CONCAT(variable_group, new_variables);
-    return variable_group;
+    struct variable_stub_t *merged = st_concatenate_variable_stubs(
+	variable_group,
+	new_variables,
+	parser->config,
+	parser->errors);
+
+    if(!merged)
+    {
+	st_destroy_variable_stubs(variable_group);
+	st_destroy_variable_stubs(new_variables);
+    }
+
+    return merged;
 }
 
-struct variable_t * st_append_new_var(
-    struct variable_t *variable_group,
+struct variable_stub_t * st_append_new_var(
+    struct variable_stub_t *variable_group,
     char *variable_name,
     const struct st_location_t *name_location,
     struct parser_t *parser)
 {
-    struct variable_t *v = NULL;
-    ALLOC_OR_ERROR_JUMP(
-	v,
-	struct variable_t,
-	parser->errors,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	v->identifier_location,
+    struct variable_stub_t *extended = st_extend_variable_stubs(
+	variable_group,
+	variable_name,
 	name_location,
-	parser->errors,
-	error_free_resources);
+	parser->config,
+	parser->errors);
 
-    v->identifier = variable_name;
-    v->type = NULL;
-    v->value = NULL;
-    v->address = NULL;
+    if(!extended)
+    {
+	st_destroy_variable_stubs(variable_group);
+    }
 
-    DL_APPEND(variable_group, v);
-    return variable_group;
-    
-error_free_resources:
-    free(v);
-    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-    return NULL;
+    return extended;
 }
 
-struct variable_t * st_finalize_var_list(
-    struct variable_t *var_list,
+struct variable_stub_t * st_finalize_var_list(
+    struct variable_stub_t *var_list,
     struct type_iface_t *var_type,
     struct parser_t *parser)
 {
-    struct variable_t *itr = NULL;
-    DL_FOREACH(var_list, itr)
+    struct variable_stub_t *vars = st_set_variable_stubs_type(
+	var_list,
+	var_type,
+	parser->config,
+	parser->errors);
+
+    if(!vars)
     {
-	itr->type = var_type;
+	st_destroy_variable_stubs(vars);
     }
 
-    return var_list;
+    return vars;
 }
 
-struct variable_t * st_finalize_var_list_by_name(
-    struct variable_t *var_list,
+struct variable_stub_t * st_finalize_var_list_by_name(
+    struct variable_stub_t *var_list,
     char *type_name,
     const struct st_location_t *type_name_location,
     struct parser_t *parser)
 {
-    struct variable_t *itr = NULL;
-    DL_FOREACH(var_list, itr)
+    struct variable_stub_t *vars = st_set_variable_stubs_type_name(
+	var_list,
+	type_name,
+	parser->config,
+	parser->errors);
+
+    if(!vars)
     {
-	if(parser->pou_type_ref_pool->add(
-	       parser->pou_type_ref_pool,
-	       type_name,
-	       itr,
-	       type_name_location,
-	       st_variable_type_resolved,
-	       parser->errors) != ESSTEE_OK)
-	{
-	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	    return NULL;
-	}
+	st_destroy_variable_stubs(vars);
     }
 
-    return var_list;
+    return vars;
 }
 
-struct variable_t * st_finalize_var_list_by_edge(
-    struct variable_t *var_list,
+struct variable_stub_t * st_finalize_var_list_by_edge(
+    struct variable_stub_t *var_list,
     char *type_name,
     const struct st_location_t *name_location,
     int rising_edge,
@@ -138,7 +140,6 @@ struct variable_t * st_finalize_var_list_by_edge(
 	1,
 	name_location);
 
-    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
     return NULL;
 }
 
@@ -156,7 +157,6 @@ int st_initialize_direct_memory(
 	1,
 	location);
 
-    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
     return ESSTEE_ERROR;
 }
 
@@ -175,11 +175,10 @@ int st_initialize_direct_memory_explicit(
 	1,
 	location);
 
-    parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
     return ESSTEE_ERROR;
 }
 
-struct variable_t * st_new_direct_var(
+struct variable_stub_t * st_new_direct_var(
     char *name,
     const struct st_location_t *name_location,
     const struct st_location_t *declaration_location,
@@ -188,61 +187,29 @@ struct variable_t * st_new_direct_var(
     struct direct_address_t *address,
     struct parser_t *parser)
 {
-    struct variable_t *v = NULL;
-    struct st_location_t *loc = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	v,
-	struct variable_t,
-	parser->errors,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	loc,
+    struct variable_stub_t *var = st_create_direct_variable_stub(
+	name,
+	address,
+	type_name,
+	type_name_location,
 	name_location,
-	parser->errors,
-	error_free_resources);
+	NULL,
+	NULL,
+	parser->pou_type_ref_pool,
+	parser->config,
+	parser->errors);
 
-    v->identifier_location = loc;
-    v->identifier = name;
-    v->type = NULL;
-    v->value = NULL;
-    v->address = address;
-
-    if(parser->pou_type_ref_pool->add(
-	   parser->pou_type_ref_pool,
-	   type_name,
-	   v,
-	   type_name_location,
-	   st_variable_type_resolved,
-	   parser->errors) != ESSTEE_OK)
+    if(!var)
     {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
+	free(name);
+	free(type_name);
+	free(address);
     }
 
-    if(parser->pou_type_ref_pool->add_post_resolve(
-	   parser->pou_type_ref_pool,
-	   v,
-	   st_direct_variable_type_post_resolve,
-	   parser->errors) != ESSTEE_OK)
-    {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
-    }
-    
-    /* Return a list to fit var_list format */
-    struct variable_t *list = NULL;
-    DL_APPEND(list, v);
-    return list;
-    
-error_free_resources:
-    free(v);
-    free(loc);
-    return NULL;
+    return var;
 }
 
-struct variable_t * st_new_direct_var_explicit(
+struct variable_stub_t * st_new_direct_var_explicit(
     char *name,
     const struct st_location_t *name_location,
     const struct st_location_t *declaration_location,
@@ -253,57 +220,25 @@ struct variable_t * st_new_direct_var_explicit(
     const struct st_location_t *default_value_location,
     struct parser_t *parser)
 {
-    struct variable_t *v = NULL;
-    struct st_location_t *loc = NULL;
-    
-    struct type_iface_t *dt = st_new_derived_type_by_name(NULL,
-							  type_name,
-							  type_name_location,
-							  declaration_location,
-							  default_value,
-							  default_value_location,
-							  parser);
-    
-    if(!dt)
-    {
-	goto error_free_resources;
-    }
-
-    ALLOC_OR_ERROR_JUMP(
-	v,
-	struct variable_t,
-	parser->errors,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	loc,
+    struct variable_stub_t *var = st_create_direct_variable_stub(
+	name,
+	address,
+	type_name,
+	type_name_location,
 	name_location,
-	parser->errors,
-	error_free_resources);
+	NULL,
+	NULL,
+	parser->pou_type_ref_pool,
+	parser->config,
+	parser->errors);
 
-    v->identifier_location = loc;
-    v->identifier = name;
-    v->type = dt;
-    v->value = NULL;
-    v->address = address;
-
-    if(parser->pou_type_ref_pool->add_post_resolve(
-	   parser->pou_type_ref_pool,
-	   v,
-	   st_direct_variable_type_post_resolve,
-	   parser->errors) != ESSTEE_OK)
+    if(!var)
     {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
+	free(name);
+	free(address);
+	free(type_name);
+	default_value->destroy(default_value);
     }
-    
-    struct variable_t *list = NULL;
-    DL_APPEND(list, v);
-    return list;
-    
-error_free_resources:
-    /* TODO: check what to destroy */
-    free(v);
-    free(loc);
-    return NULL;					  
+	
+    return var;
 }

@@ -48,6 +48,7 @@ typedef uint64_t st_bitflag_t;
 #define ESSTEE_IO_ERROR                   (1 << 9)
 
 #define ESSTEE_SYNTAX_WARNING            (1 << 10)
+#define ESSTEE_BUFFER_WARNING            (1 << 11)
 
 #define ESSTEE_FILTER_ANY_ERROR              0x3ff
 #define ESSTEE_FILTER_ANY_WARNING         (1 << 9)

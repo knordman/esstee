@@ -28,16 +28,19 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 
 struct array_index_t;
-struct variable_t;
+struct variable_iface_t;
 struct enum_item_t;
-struct cursor_t;
-struct invoke_parameter_t;
+struct cursor_iface_t;
+struct invoke_parameters_iface_t;
 struct duration_t;
 struct date_t;
 struct tod_t;
 struct array_init_value_t;
 struct struct_init_value_t;
 struct type_iface_t;
+
+#define TEMPORARY_VALUE (1 << 0)
+#define CONSTANT_VALUE  (1 << 1)
 
 struct value_iface_t {
 
@@ -126,11 +129,11 @@ struct value_iface_t {
 
     struct value_iface_t * (*index)(
 	struct value_iface_t *self,
-	struct array_index_t *array_index,
+	const struct array_index_t *array_index,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    struct variable_t * (*sub_variable)(
+    struct variable_iface_t * (*sub_variable)(
 	struct value_iface_t *self,
 	const char *identifier,
     	const struct config_iface_t *config,
@@ -144,15 +147,15 @@ struct value_iface_t {
 	struct value_iface_t *self);
 
     int (*invoke_verify)(
-	struct value_iface_t *self,
-	struct invoke_parameter_t *parameters,
+	const struct value_iface_t *self,
+	const struct invoke_parameters_iface_t *parameters,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
     int (*invoke_step)(
 	struct value_iface_t *self,
-	struct invoke_parameter_t *parameters,
-	struct cursor_t *cursor,
+	const struct invoke_parameters_iface_t *parameters,
+	struct cursor_iface_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
@@ -161,16 +164,6 @@ struct value_iface_t {
 	struct value_iface_t *self,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);	
-
-    int (*not)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
-
-    int (*negate)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
     
     /* Binary comparison operations */
     int (*greater)(
@@ -191,6 +184,16 @@ struct value_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    int (*not)(
+	struct value_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*negate)(
+	struct value_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     /**@addtogroup value_binary_operations Binary operatios
      *
      * @brief Binary operations perfomed with self as the left operand
@@ -207,7 +210,7 @@ struct value_iface_t {
      * If the value does not support one operation that function
      * pointer should be set to NULL.
      */
-
+    
     /**
      * Modifies self by xor:ing with the other_value.
      * @return ESSTEE_OK if operation succeeded

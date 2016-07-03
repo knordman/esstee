@@ -147,17 +147,18 @@ struct parser_t;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 94 "src/parser/bison.y" /* yacc.c:1909  */
+#line 104 "src/parser/bison.y" /* yacc.c:1909  */
 
     char *string;
 
     struct type_iface_t *type;
-    struct variable_t *variable;
+    struct variable_iface_t *variable;
+    struct variable_stub_t *variable_stub;
     struct header_t *header;
 
     struct value_iface_t *value;
     struct listed_value_t *listed_value;
-    struct enum_item_t *enum_item;
+    struct enum_group_item_t *enum_item;
     struct array_init_value_t *array_init_value;
     struct struct_init_value_t *struct_init_value;
 
@@ -168,19 +169,24 @@ union YYSTYPE
     
     struct direct_address_t *direct_address;
     struct array_index_t *array_index;
-    struct qualified_identifier_t *qualified_identifier;
+    struct qualified_identifier_iface_t *qualified_identifier;
+    struct qualified_part_t *qualified_part;
     
     struct expression_iface_t *expression;
     struct invoke_iface_t *invoke;
     struct invoke_parameter_t *invoke_parameter;
+    struct invoke_parameters_iface_t *invoke_parameters;
     struct case_t *case_clause;
     struct if_statement_t *if_statement;
     struct case_list_element_t *case_list;
+
+    struct queries_iface_t *queries;
+    struct query_t *query;
     
     st_bitflag_t bitflag;
     int64_t integer;
 
-#line 184 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 190 "src/parser/bison.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

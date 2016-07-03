@@ -18,10 +18,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <parser/parser.h>
-#include <elements/values.h>
-#include <util/macros.h>
-#include <linker/linker.h>
-#include <util/bitflag.h>
+#include <elements/integers.h>
+#include <elements/reals.h>
+#include <elements/date_time.h>
+#include <elements/strings.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -55,20 +55,99 @@ static char * strip_underscores(char *string)
     return string;	
 }
 
+static int explicit_literal_type_resolved(
+    void *referrer,
+    void *target,
+    st_bitflag_t remark,
+    const char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    if(!target)
+    {
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined type '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_LINK_ERROR,
+	    1,
+	    location);
+	
+	return ESSTEE_ERROR;
+    }
+
+    struct type_iface_t *literal_type =
+	(struct type_iface_t *)target;
+
+    struct value_iface_t *literal =
+	(struct value_iface_t *)referrer;
+
+    issues->begin_group(issues);
+    int can_hold_result = literal_type->can_hold(literal_type,
+						 literal,
+						 config,
+						 issues);    
+    if(can_hold_result != ESSTEE_TRUE)
+    {
+	issues->new_issue(issues,
+			  "type '%s' cannot be specified as an explicit type for literal",
+			  ESSTEE_TYPE_ERROR,
+			  literal_type->identifier);
+	
+	issues->set_group_location(issues,
+				   1,
+				   location);
+    }
+    issues->end_group(issues);
+    
+    if(can_hold_result != ESSTEE_TRUE)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    issues->begin_group(issues);
+    int override_result = literal->override_type(literal,
+						 literal_type,
+						 config,
+						 issues);
+    if(override_result != ESSTEE_OK)
+    {
+	issues->new_issue(issues,
+			  "type override failed",
+			  ESSTEE_TYPE_ERROR);
+	
+	issues->set_group_location(issues,
+				   1,
+				   location);
+    }
+    issues->end_group(issues);
+
+    if(override_result != ESSTEE_OK)
+    {
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
 
 struct value_iface_t * st_new_explicit_literal(
     char *type_identifier,
     const struct st_location_t *type_identifier_location,
     struct value_iface_t *implicit_literal,
-    struct parser_t *parser)
-{
+    struct parser_t *parser){
+
     int ref_add_result = parser->pou_type_ref_pool->add_two_step(
 	parser->pou_type_ref_pool,
 	type_identifier,
 	implicit_literal,
 	type_identifier_location,
 	NULL,
-	st_explicit_literal_type_resolved,
+	explicit_literal_type_resolved,
 	parser->errors);
 
     if(ref_add_result != ESSTEE_OK)
@@ -99,22 +178,19 @@ static struct value_iface_t * new_integer_literal(
     const char *error_message,
     struct parser_t *parser)
 {
-    struct value_iface_t *v =
-	st_integer_type_create_value_of(NULL, parser->config, parser->errors);
-
-    if(!v)
-    {
-	goto error_free_resources;
-    }
-    
-    struct integer_value_t *iv =
-	CONTAINER_OF(v, struct integer_value_t, value);
+    const char *message = parser->errors->build_message(
+	parser->errors,
+	error_message,
+	string);
     
     strip_underscores(string);
     if(strlen(string) < min_string_length)
     {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
+	parser->errors->internal_error(parser->errors,
+				       __FILE__,
+				       __FUNCTION__,
+				       __LINE__);
+	return NULL;
     }
 
     errno = 0;
@@ -125,31 +201,20 @@ static struct value_iface_t * new_integer_literal(
     {
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    error_message,
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
-	goto error_free_resources;
+
+	return NULL;
     }
 
-    ST_SET_FLAGS(iv->class, CONSTANT_VALUE);
-    
-    iv->num = interpreted * sign_prefix;
-    iv->value.type_of = NULL;
-    iv->value.assignable_from = NULL;
-    iv->value.override_type = st_integer_literal_override_type;
-    
-    free(string);
-    return &(iv->value);
+    interpreted *= sign_prefix;
 
-error_free_resources:
-    if(v)
-    {
-	v->destroy(v);
-    }
-    free(string);
-    return NULL;
+    return st_new_typeless_integer_value(interpreted,
+					 CONSTANT_VALUE,
+					 parser->config,
+					 parser->errors);
 }
 
 struct value_iface_t * st_new_integer_literal(
@@ -164,7 +229,7 @@ struct value_iface_t * st_new_integer_literal(
 			       1,
 			       0,
 			       10,
-			       "cannot interpret integer literal",
+			       "cannot interpret integer literal '%s'",
 			       parser);
 }
 
@@ -179,7 +244,7 @@ struct value_iface_t * st_new_integer_literal_binary(
 			       3,
 			       2,
 			       2,
-			       "cannot interpret binary literal",
+			       "cannot interpret binary literal '%s'",
 			       parser);
 }
 
@@ -194,7 +259,7 @@ struct value_iface_t * st_new_integer_literal_octal(
 			       3,
 			       2,
 			       8,
-			       "cannot interpret octal literal",
+			       "cannot interpret octal literal '%s'",
 			       parser);
 }
 
@@ -209,7 +274,7 @@ struct value_iface_t * st_new_integer_literal_hex(
 			       4,
 			       3,
 			       16,
-			       "cannot interpret hexadecimal literal",
+			       "cannot interpret hexadecimal literal '%s'",
 			       parser);
 }
 
@@ -219,57 +284,37 @@ struct value_iface_t * st_new_real_literal(
     int64_t sign_prefix,
     struct parser_t *parser)
 {
-    struct value_iface_t *v = NULL;
     double sp = (double)sign_prefix;
     
     strip_underscores(string);
     if(strlen(string) < 1)
     {
 	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
-    }
-
-    v = st_real_type_create_value_of(NULL, parser->config, parser->errors);
-
-    if(!v)
-    {
-	goto error_free_resources;
+	return NULL;
     }
         
     errno = 0;
     double interpreted = strtod(string, NULL);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret real literal '%s'");
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret real literal",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
-	goto error_free_resources;
+	
+	return NULL;
     }
 
-    struct real_value_t *rv =
-	CONTAINER_OF(v, struct real_value_t, value);
-
-    ST_SET_FLAGS(rv->class, CONSTANT_VALUE);
-    
-    rv->num = interpreted * sp;
-    rv->value.type_of = NULL;
-    rv->value.assignable_from = NULL;
-    rv->value.override_type = st_real_literal_override_type;
-    
-    free(string);
-    return &(rv->value);
-
-error_free_resources:
-    if(v)
-    {
-	v->destroy(v);
-    }
-    free(string);
-    return NULL;
+    return st_new_typeless_real_value(sp*interpreted,
+				      CONSTANT_VALUE,
+				      parser->config,
+				      parser->errors);
 }
 
 enum duration_part_t {
@@ -398,19 +443,8 @@ struct value_iface_t * st_new_duration_literal(
     char defined = 0x00;
     char fractions = 0x00;
     unsigned parts_defined = 0;
-
-    struct value_iface_t *v = st_duration_type_create_value_of(NULL,
-							       parser->config,
-							       parser->errors);
-
-    if(!v)
-    {
-	goto error_free_resources;
-    }
+    struct duration_t duration;
     
-    struct duration_value_t *dv =
-	CONTAINER_OF(v, struct duration_value_t, value);
-
     strip_underscores(string);
     if(find_start(string, &(work_buffer)) == ESSTEE_ERROR)
     {
@@ -420,7 +454,6 @@ struct value_iface_t * st_new_duration_literal(
 	    __FUNCTION__,
 	    __LINE__);
 	    
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 	
@@ -432,35 +465,35 @@ struct value_iface_t * st_new_duration_literal(
 	    goto error_free_resources;
 			
 	case PLITERALS_D:
-	    dv->duration.d = part_content;
+	    duration.d = part_content;
 	    defined |= (1 << 0);
 	    fractions |= is_fraction(part_content, 0);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_H:
-	    dv->duration.h = part_content;
+	    duration.h = part_content;
 	    defined |= (1 << 1);
 	    fractions |= is_fraction(part_content, 1);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_M:
-	    dv->duration.m = part_content;
+	    duration.m = part_content;
 	    defined |= (1 << 2);
 	    fractions |= is_fraction(part_content, 2);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_S:
-	    dv->duration.s = part_content;
+	    duration.s = part_content;
 	    defined |= (1 << 3);
 	    fractions |= is_fraction(part_content, 3);
 	    parts_defined++;
 	    break;
 
 	case PLITERALS_MS:
-	    dv->duration.ms = part_content;
+	    duration.ms = part_content;
 	    defined |= (1 << 4);
 	    fractions |= is_fraction(part_content, 4);
 	    parts_defined++;
@@ -473,7 +506,6 @@ struct value_iface_t * st_new_duration_literal(
 		__FUNCTION__,
 		__LINE__);
 
-	    parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	    goto error_free_resources;
 	}
     }
@@ -486,27 +518,32 @@ struct value_iface_t * st_new_duration_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
     else if(fractions > defined || (parts_defined > 1 && fractions == defined))
     {
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "only the last duration part may contain a fraction.",
-	    ISSUE_ERROR_CLASS,
+	    "only the last duration part may contain a fraction",
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 	    
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	goto error_free_resources;
     }
     
     free(string);
-    return v;
+    return st_new_typeless_duration_value(duration.d,
+					  duration.h,
+					  duration.m,
+					  duration.s,
+					  duration.ms,
+					  CONSTANT_VALUE,
+					  parser->config,
+					  parser->errors);
 
 error_free_resources:
-    /* TODO: determine what to destroy */
+    free(string);
     return NULL;
 }
 
@@ -545,55 +582,71 @@ static int numberize_date_strings(
     date->y = (uint64_t)(strtoul(year, NULL, 10));
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret year '%s'",
+	    year);
+	    
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret year",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 	
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
 
     unsigned long nmonth = strtoul(month, NULL, 10);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret month '%s'",
+	    year);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret month",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 	
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     
     unsigned long nday = strtoul(day, NULL, 10);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret day '%s'",
+	    day);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret day",
-	    ISSUE_ERROR_CLASS,
+	    message, 
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 	
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
 
     if(nmonth < 1 || nmonth > 12)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "month must be at least 1 and at most 12, not '%lu'",
+	    nmonth);
+	
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "month must be at least 1 and at most 12",
-	    ISSUE_ERROR_CLASS,
+	    message, 
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 	
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     else
@@ -603,14 +656,18 @@ static int numberize_date_strings(
     
     if(nday < 1 || nday > 31)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "day must be at least 1 and at most 31, not '%lu'",
+	    nday);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "day must be at least 1 and at most 31",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 	
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     else
@@ -636,7 +693,6 @@ struct value_iface_t * st_new_date_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
@@ -648,31 +704,13 @@ struct value_iface_t * st_new_date_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
+
+    struct date_t date;
     
-    struct value_iface_t *v = st_date_type_create_value_of(NULL,
-							   parser->config,
-							   parser->errors);
-
-    if(!v)
-    {
-	parser->errors->memory_error(
-	    parser->errors,
-	    __FILE__,
-	    __FUNCTION__,
-	    __LINE__);
-
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
-    }
-    
-    struct date_value_t *dv =
-	CONTAINER_OF(v, struct date_value_t, value);
-
     if(numberize_date_strings(
-	   &(dv->date),
+	   &date,
 	   year,
 	   month,
 	   day,
@@ -683,10 +721,14 @@ struct value_iface_t * st_new_date_literal(
     }
 
     free(string);
-    return &(dv->value);
+    return st_new_typeless_date_value(date.y,
+				      date.m,
+				      date.d,
+				      CONSTANT_VALUE,
+				      parser->config,
+				      parser->errors);
 
 error_free_resources:
-    /* TODO: determine what to destroy */
     free(string);
     return NULL;
 }
@@ -731,38 +773,51 @@ static int numberize_tod_strings(
     unsigned long hours = strtoul(h, NULL, 10);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret hours '%s'",
+	    h);
+	
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret hours",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     
     unsigned long minutes = strtoul(m, NULL, 10);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret minutes '%s'",
+	    m);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret minutes",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
 
     unsigned long seconds = strtoul(s, NULL, 10);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret minutes '%s'",
+	    s);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret seconds",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
@@ -773,27 +828,35 @@ static int numberize_tod_strings(
     unsigned long fractional_seconds = strtoul(fs, NULL, 10);
     if(errno != 0)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "cannot interpret fractional seconds '%s'",
+	    fs);
+	
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "cannot interpret fractional seconds",
-	    ISSUE_ERROR_CLASS,
+	    message, 
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
-    }
+    }    
 
     if(hours > 23)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "hours must be at most 23, not '%lu'",
+	    hours);
+	
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "hours must be at most 23",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     else
@@ -803,14 +866,18 @@ static int numberize_tod_strings(
     
     if(minutes > 59)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "minutes must be at most 59, not '%lu'",
+	    minutes);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "minutes must be at most 59",
-	    ISSUE_ERROR_CLASS,
+	    message, 
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     else
@@ -820,14 +887,18 @@ static int numberize_tod_strings(
     
     if(seconds > 59)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "seconds must be at most 59, not '%lu'",
+	    seconds);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "seconds must be at most 59",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     else
@@ -837,14 +908,18 @@ static int numberize_tod_strings(
     
     if(fractional_seconds > 99)
     {
+	const char *message = parser->errors->build_message(
+	    parser->errors,
+	    "fractional seconds must be at most 99, not '%lu'",
+	    minutes);
+
 	parser->errors->new_issue_at(
 	    parser->errors,
-	    "fractional seconds must be at most 99",
-	    ISSUE_ERROR_CLASS,
+	    message,
+	    ESSTEE_IO_ERROR,
 	    1,
 	    string_location);
 
-	parser->error_strategy = PARSER_SKIP_ERROR_STRATEGY;
 	return ESSTEE_ERROR;
     }
     else
@@ -870,7 +945,6 @@ struct value_iface_t * st_new_tod_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
@@ -882,24 +956,13 @@ struct value_iface_t * st_new_tod_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
-    struct value_iface_t *v = st_tod_type_create_value_of(NULL,
-							  parser->config,
-							  parser->errors);
-    if(!v)
-    {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
-    }
-
-    struct tod_value_t *tv =
-	CONTAINER_OF(v, struct tod_value_t, value);
+    struct tod_t tod;
     
     if(numberize_tod_strings(
-	   &(tv->tod),
+	   &tod,
 	   h,
 	   m,
 	   s,
@@ -911,11 +974,16 @@ struct value_iface_t * st_new_tod_literal(
     }
 
     free(string);
-    return v;
+    return st_new_typeless_tod_value(tod.h,
+				     tod.m,
+				     tod.s,
+				     tod.fs,
+				     CONSTANT_VALUE,
+				     parser->config,
+				     parser->errors);
 
 error_free_resources:
     free(string);
-    /* TODO: determine what to destroy */
     return NULL;
 }
 
@@ -934,7 +1002,6 @@ struct value_iface_t * st_new_date_tod_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
@@ -946,7 +1013,6 @@ struct value_iface_t * st_new_date_tod_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
@@ -958,7 +1024,6 @@ struct value_iface_t * st_new_date_tod_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
@@ -970,25 +1035,14 @@ struct value_iface_t * st_new_date_tod_literal(
 	    __FUNCTION__,
 	    __LINE__);
 
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
 	goto error_free_resources;
     }
 
-    struct value_iface_t *v = st_date_tod_type_create_value_of(NULL,
-							       parser->config,
-							       parser->errors);
+    struct date_t date;
+    struct tod_t tod;
 
-    if(!v)
-    {
-	parser->error_strategy = PARSER_ABORT_ERROR_STRATEGY;
-	goto error_free_resources;
-    }
-
-    struct date_tod_value_t *dv =
-	CONTAINER_OF(v, struct date_tod_value_t, value);
-    
     if(numberize_date_strings(
-	   &(dv->dt.date),
+	   &date,
 	   y,
 	   mon,
 	   d,
@@ -999,7 +1053,7 @@ struct value_iface_t * st_new_date_tod_literal(
     }
 
     if(numberize_tod_strings(
-	   &(dv->dt.tod),
+	   &tod,
 	   h,
 	   min,
 	   s,
@@ -1011,11 +1065,20 @@ struct value_iface_t * st_new_date_tod_literal(
     }
 
     free(string);
-    return v;
+    return st_new_typeless_date_tod_value(date.y,
+					  date.m,
+					  date.d,
+					  tod.h,
+					  tod.m,
+					  tod.s,
+					  tod.fs,
+					  CONSTANT_VALUE,
+					  parser->config,
+					  parser->errors);
 
 error_free_resources:
     free(string);
-    /* TODO: determine what to destroy */
+
     return NULL;
 }
 
@@ -1024,36 +1087,10 @@ struct value_iface_t * st_new_boolean_literal(
     const struct st_location_t *string_location,
     struct parser_t *parser)
 {
-    struct value_iface_t *v = st_bool_type_create_value_of(NULL,
-							   parser->config,
-							   parser->errors);
-
-    if(!v)
-    {
-	goto error_free_resources;
-    }
-    
-    struct integer_value_t *iv =
-	CONTAINER_OF(v, struct integer_value_t, value);
-
-    if(integer == 0)
-    {
-	iv->num = 0;
-    }
-    else
-    {
-	iv->num = 1;
-    }
-    
-    iv->value.type_of = NULL;
-    iv->value.assignable_from = NULL;
-    iv->value.assign = NULL;
-    iv->value.override_type = st_integer_literal_override_type;
-    
-    return &(iv->value);
-
-error_free_resources:
-    return NULL;
+    return st_new_bool_value((integer) ? ESSTEE_TRUE : ESSTEE_FALSE,
+			     CONSTANT_VALUE,
+			     parser->config,
+			     parser->errors);
 }
 
 static struct value_iface_t * new_string_literal(
@@ -1062,40 +1099,10 @@ static struct value_iface_t * new_string_literal(
     const char *string_type,
     struct parser_t *parser)
 {
-    struct value_iface_t *v = st_string_type_create_value_of(NULL,
-							     parser->config,
-							     parser->errors);
-
-    if(!v)
-    {
-	goto error_free_resources;
-    }
-
-    struct string_value_t *sv =
-	CONTAINER_OF(v, struct string_value_t, value);
-
-    int ref_add_result = parser->global_type_ref_pool->add(
-	parser->global_type_ref_pool,
-	string_type,
-	sv,
-	string_location,
-	st_string_literal_type_resolved,
-	parser->errors);
-
-    if(ref_add_result != ESSTEE_OK)
-    {
-	goto error_free_resources;
-    }
-
-    sv->str = string;
-    sv->value.assignable_from = NULL;
-    sv->value.destroy = st_string_literal_value_destroy;
-    
-    return &(sv->value);
-    
-error_free_resources:
-    /* TODO: determine what to destroy */
-    return NULL;
+    return st_new_string_value(string_type,
+			       string,
+			       parser->config,
+			       parser->errors);
 }    
 
 struct value_iface_t * st_new_single_string_literal(
@@ -1113,11 +1120,3 @@ struct value_iface_t * st_new_double_string_literal(
 {
     return new_string_literal(string, string_location, "WSTRING", parser);
 }
-
-
-
-
-
-
-
-

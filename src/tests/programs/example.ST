@@ -37,22 +37,45 @@ END_FUNCTION_BLOCK
 
 PROGRAM testprgm
 
+(*
 TYPE
 	mytype : USINT;
 
 END_TYPE
+*)
 
 VAR
-	a : INT;
-
+	i : INT;
+	a : UINT;
+(*
 	myvar AT %MB0 : USINT;
 	m2 : DINT;
 
 	b1 AT %MX0.0 : BOOL := true;
 	b2 : BOOL;
 
+*)
+
 END_VAR
 
-m2 := myvar * 20;
+(*
+i := 5;
+
+a := i - 10;
+*)
+
+
+FOR i := 1 to 20 DO
+
+    if i > 10 then
+       a := 99;
+    else
+
+        a := 10-i;
+
+    end_if;
+
+END_FOR;
+
 
 END_PROGRAM
