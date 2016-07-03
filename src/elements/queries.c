@@ -200,9 +200,6 @@ static int queries_evaluate(
 	    }
 	}
 
-	struct value_iface_t *target = NULL;
-	const char *target_name = NULL;
-	
 	if(itr->assignment)
 	{
 	    if(itr->assignment->invoke.step)
@@ -228,53 +225,49 @@ static int queries_evaluate(
 		}
 	    }
 
-	    if(itr->variable)
-	    {
-		target = itr->variable->value(itr->variable);
-		target_name = itr->variable->identifier;
-	    }
-	    else if(itr->qid)
-	    {
-		target = itr->qid->target(itr->qid);
-		target_name = itr->qid->target_name(itr->qid);
-	    }
-	}
-
-	if(target)
-	{
-	    if(!target->assignable_from)
-	    {
-		const char *message = issues->build_message(
-		    issues,
-		    "'%s' cannot be assigned a new value",
-		    target_name);
-		
-		issues->new_issue_at(
-		    issues,
-		    message,
-		    1,
-		    ESSTEE_CONTEXT_ERROR,
-		    itr->qid->location);
-
-		return ESSTEE_ERROR;
-	    }
-
 	    const struct value_iface_t *assign_value =
 		itr->assignment->return_value(itr->assignment);
 
-	    int assignable_from_result = target->assignable_from(target,
-								 assign_value,
-								 config,
-								 issues);
+	    int assignable_from_result = ESSTEE_TRUE;
+	    if(itr->variable)
+	    {
+		assignable_from_result = itr->variable->assignable_from(
+		    itr->variable,
+		    NULL,
+		    assign_value,
+		    config,
+		    issues);
+	    }
+	    else if(itr->qid)
+	    {
+		assignable_from_result = itr->qid->target_assignable_from(
+		    itr->qid,
+		    assign_value,
+		    config,
+		    issues);
+	    }
+
 	    if(assignable_from_result != ESSTEE_TRUE)
 	    {
 		return ESSTEE_ERROR;
 	    }
 
-	    int assignment_status = target->assign(target,
-						   assign_value,
-						   config,
-						   issues);
+	    int assignment_status = ESSTEE_OK;
+	    if(itr->variable)
+	    {
+		assignment_status = itr->variable->assign(itr->variable,
+							  NULL,
+							  assign_value,
+							  config,
+							  issues);
+	    }
+	    else if(itr->qid)
+	    {
+		assignment_status = itr->qid->target_assign(itr->qid,
+							    assign_value,
+							    config,
+							    issues);
+	    }
 
 	    if(assignment_status != ESSTEE_OK)
 	    {
@@ -334,16 +327,15 @@ static int queries_display(
 	}
 	else
 	{
-	    struct value_iface_t *target = NULL;
+	    const struct value_iface_t *target = NULL;
 
-	    
 	    if(itr->variable)
 	    {
 		target = itr->variable->value(itr->variable);
 	    }
 	    else
 	    {
-		target = itr->qid->target(itr->qid);
+		target = itr->qid->target_value(itr->qid);
 	    }
 	    	    
 	    query_written_bytes = target->display(

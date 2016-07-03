@@ -6,3 +6,5 @@ src/testground
 bison.output
 build
 trash
+src/tests/integration/error.output
+src/tests/integration/test.gdb.commands

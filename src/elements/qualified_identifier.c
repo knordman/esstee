@@ -35,7 +35,9 @@ struct qualified_part_t {
 
 struct qualified_identifier_t {
     struct qualified_identifier_iface_t qid;
-    struct value_iface_t *target;
+    struct variable_iface_t *target_variable;
+    struct array_index_t *target_index;
+    const struct value_iface_t *target;
     const char *target_name;
     struct qualified_part_t *path;
     int invoke_state;
@@ -54,122 +56,83 @@ static int qualified_identifier_resolve_chain(
     struct qualified_part_t *itr = NULL;
     DL_FOREACH(qi->path, itr)
     {
-	struct value_iface_t *var_value = itr->variable->value(itr->variable);
-	
 	if(itr->index != NULL)
 	{
-	    if(!var_value->index)
-	    {
-		const char *message = issues->build_message(
-		    issues,
-		    "variable '%s' is not indexable");
-		
-		issues->new_issue_at(
-		    issues,
-		    message,
-		    ESSTEE_CONTEXT_ERROR,
-		    1,
-		    itr->location);
-
-		return ESSTEE_ERROR;
-	    }
+	    issues->begin_group(issues);
 	    
-	    struct value_iface_t *array_target = var_value->index(
-		var_value,
-		itr->index,
-		config,
-		issues);
-
-	    if(!array_target)
-	    {
-		return ESSTEE_ERROR;
-	    }
-
 	    if(itr->next)
 	    {
-		if(!array_target->sub_variable)
-		{
-		    const char *message = issues->build_message(
-			issues,
-			"an element of array variable '%s' does not have any sub-variables",
-			itr->identifier);
-		
-		    issues->new_issue_at(
-			issues,
-			message,
-			ESSTEE_CONTEXT_ERROR,
-			1,
-			itr->location);
-		
-		    return ESSTEE_ERROR;
-		}
+		struct variable_iface_t *subvar = itr->variable->sub_variable(
+		    itr->variable,
+		    itr->index,
+		    itr->next->identifier,
+		    config,
+		    issues);
 
-		issues->begin_group(issues);
-		struct variable_iface_t *subvar = array_target->sub_variable(array_target,
-									     itr->next->identifier,
-									     config,
-									     issues);
 		if(!subvar)
 		{
 		    issues->set_group_location(issues,
 					       1,
 					       itr->location);
+		    issues->end_group(issues);
+		    return ESSTEE_ERROR;
 		}
-		issues->end_group(issues);
-
+		
 		itr->next->variable = subvar;
 	    }
 	    else
 	    {
-		qi->target = array_target;
+		const struct value_iface_t *index_value = itr->variable->index_value(
+		    itr->variable,
+		    itr->index,
+		    config,
+		    issues);
+
+		if(!index_value)
+		{
+		    issues->set_group_location(issues,
+					       1,
+					       itr->location);
+		    issues->end_group(issues);
+		    return ESSTEE_ERROR;
+		}
+
+		qi->target_variable = itr->variable;
+		qi->target_index = itr->index;
+		qi->target = index_value;
 		qi->target_name = itr->variable->identifier;
 	    }
+
+	    issues->end_group(issues);
 	}
 	else if(itr->next)
 	{
-	    if(!var_value->sub_variable)
-	    {
-		const char *message = issues->build_message(
-		    issues,
-		    "variable '%s' does not have any sub-variables",
-		    itr->identifier);
-		
-		issues->new_issue_at(
-		    issues,
-		    message,
-		    ESSTEE_CONTEXT_ERROR,
-		    1,
-		    itr->location);
-		
-		return ESSTEE_ERROR;
-	    }
-
 	    issues->begin_group(issues);
-	    struct variable_iface_t *subvar = var_value->sub_variable(var_value,
-								      itr->next->identifier,
-								      config,
-								      issues);
+	    
+	    struct variable_iface_t *subvar = itr->variable->sub_variable(
+		itr->variable,
+		NULL,
+		itr->next->identifier,
+		config,
+		issues);
+
 	    if(!subvar)
 	    {
 		issues->set_group_location(issues,
 					   1,
-					   itr->next->location);
-	    }
-	    
-	    issues->end_group(issues);
-	    
-	    if(!subvar)
-	    {
+					   itr->location);
+		issues->end_group(issues);
 		return ESSTEE_ERROR;
 	    }
-	    else
-	    {
-		itr->next->variable = subvar;
-	    }
+
+	    issues->end_group(issues);
+	    itr->next->variable = subvar;
 	}
 	else
 	{
-	    qi->target = var_value;
+	    qi->target_variable = itr->variable;
+	    qi->target_index = NULL;
+	    qi->target = itr->variable->value(itr->variable);
 	    qi->target_name = itr->variable->identifier;
 	}
     }
@@ -181,7 +144,7 @@ static int qualified_identifier_resolve_chain(
 /* Qualified identifier interface                                         */
 /**************************************************************************/
 static int qualified_identifier_verify(
-    struct qualified_identifier_iface_t *self,
+    const struct qualified_identifier_iface_t *self,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -362,6 +325,7 @@ error_free_resources:
     return NULL;
 }
 
+/* Path base interaction */
 static int qualified_identifier_set_base(
     struct qualified_identifier_iface_t *self,
     struct variable_iface_t *base,
@@ -387,7 +351,59 @@ static const char * qualified_identifier_base_identifier(
     return (qi->path->variable) ? qi->path->variable->identifier : NULL;
 }
 
-static struct value_iface_t * qualified_identifier_target(
+/* Target invoke */
+static int qualified_identifier_target_invoke_verify(
+    const struct qualified_identifier_iface_t *self,
+    const struct invoke_parameters_iface_t *parameters,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    const struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->invoke_verify(qi->target_variable,
+					      qi->target_index,
+					      parameters,
+					      config,
+					      issues);
+}
+    
+static int qualified_identifier_target_invoke_step(
+    struct qualified_identifier_iface_t *self,
+    const struct invoke_parameters_iface_t *parameters,
+    struct cursor_iface_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->invoke_step(qi->target_variable,
+					    qi->target_index,
+					    parameters,
+					    cursor,
+					    time,
+					    config,
+					    issues);
+}
+
+static int qualified_identifier_target_invoke_reset(
+    struct qualified_identifier_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->invoke_reset(qi->target_variable,
+					     qi->target_index,
+					     config,
+					     issues);
+}
+
+/* Target access */
+static const struct value_iface_t * qualified_identifier_target_value(
     struct qualified_identifier_iface_t *self)
 {
     struct qualified_identifier_t *qi =
@@ -403,6 +419,219 @@ static const char * qualified_identifier_target_name(
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
 
     return qi->target_name;
+}
+
+/* Target modificaton check */
+static int qualified_identifier_target_assignable_from(
+    const struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    const struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->assignable_from(qi->target_variable,
+						qi->target_index,
+						new_value,
+						config,
+						issues);
+}
+
+/* Target modification */
+static int qualified_identifier_target_assign(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->assign(qi->target_variable,
+				       qi->target_index,
+				       new_value,
+				       config,
+				       issues);
+}
+
+static int qualified_identifier_target_not(
+    struct qualified_identifier_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->not(qi->target_variable,
+				    qi->target_index,
+				    config,
+				    issues);
+}
+
+static int qualified_identifier_target_negate(
+    struct qualified_identifier_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->negate(qi->target_variable,
+				       qi->target_index,
+				       config,
+				       issues);
+}
+
+static int qualified_identifier_target_xor(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->xor(qi->target_variable,
+				    qi->target_index,
+				    other_value,
+				    config,
+				    issues);
+}
+
+static int qualified_identifier_target_and(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->and(qi->target_variable,
+				    qi->target_index,
+				    other_value,
+				    config,
+				    issues);
+}
+
+static int qualified_identifier_target_or(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->or(qi->target_variable,
+				   qi->target_index,
+				   other_value,
+				   config,
+				   issues);
+}
+
+static int qualified_identifier_target_plus(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->plus(qi->target_variable,
+				     qi->target_index,
+				     other_value,
+				     config,
+				     issues);
+}
+
+static int qualified_identifier_target_minus(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->minus(qi->target_variable,
+				      qi->target_index,
+				      other_value,
+				      config,
+				      issues);
+}
+
+static int qualified_identifier_target_multiply(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->multiply(qi->target_variable,
+					 qi->target_index,
+					 other_value,
+					 config,
+					 issues);
+}
+
+static int qualified_identifier_target_divide(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->divide(qi->target_variable,
+				       qi->target_index,
+				       other_value,
+				       config,
+				       issues);
+}
+
+static int qualified_identifier_target_modulus(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->modulus(qi->target_variable,
+					qi->target_index,
+					other_value,
+					config,
+					issues);
+}
+
+static int qualified_identifier_target_to_power(
+    struct qualified_identifier_iface_t *self,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->target_variable->to_power(qi->target_variable,
+					 qi->target_index,
+					 other_value,
+					 config,
+					 issues);
+}
+
+/* Destructor */
+static void qualified_identifier_destroy(
+    struct qualified_identifier_iface_t *self)
+{
+    /* TODO: qualified identifier destructor */
 }
 
 /**************************************************************************/
@@ -561,32 +790,63 @@ struct qualified_identifier_iface_t * st_create_qualified_identifier(
     struct qualified_part_t *itr = NULL;
     for(itr = inner_path; itr != NULL; itr = itr->next)
     {
-	if(itr->index)
+	struct array_index_t *index_itr;
+	for(index_itr = itr->index; index_itr != NULL; index_itr = index_itr->next)
 	{
-	    if(itr->index->index_expression->invoke.step || itr->index->index_expression->clone)
+	    if(index_itr->index_expression->invoke.step || index_itr->index_expression->clone)
 	    {
 		constant_ref = ESSTEE_FALSE;
+		break;
 	    }
 	}
+
+	if(constant_ref != ESSTEE_TRUE)
+	{
+	    break;
+	}
     }
-    qi->qid.constant_reference = constant_ref;
 
     qi->path = inner_path;
     qi->target_name = NULL;
     
     /* Set up interface functions */
     memset(&(qi->qid), 0, sizeof(struct qualified_identifier_iface_t));
+    qi->qid.constant_reference = constant_ref;
     qi->qid.location = qi->path->location;
-    qi->qid.reset = qualified_identifier_reset;
+    
     qi->qid.verify = qualified_identifier_verify;
+    qi->qid.step = qualified_identifier_step;
+    qi->qid.reset = qualified_identifier_reset;
     qi->qid.allocate = qualified_identifier_allocate;
     qi->qid.clone = qualified_identifier_clone;
-    qi->qid.step = qualified_identifier_step;
+
     qi->qid.set_base = qualified_identifier_set_base;
     qi->qid.base_identifier = qualified_identifier_base_identifier;
-    qi->qid.target = qualified_identifier_target;
+
+    qi->qid.target_invoke_verify = qualified_identifier_target_invoke_verify;
+    qi->qid.target_invoke_step = qualified_identifier_target_invoke_step;
+    qi->qid.target_invoke_reset = qualified_identifier_target_invoke_reset;
+    
+    qi->qid.target_value = qualified_identifier_target_value;
     qi->qid.target_name = qualified_identifier_target_name;
 
+    qi->qid.target_assignable_from = qualified_identifier_target_assignable_from;
+    
+    qi->qid.target_assign = qualified_identifier_target_assign;
+    qi->qid.target_not = qualified_identifier_target_not;
+    qi->qid.target_negate = qualified_identifier_target_negate;
+    qi->qid.target_xor = qualified_identifier_target_xor;
+    qi->qid.target_and = qualified_identifier_target_and;
+    qi->qid.target_or = qualified_identifier_target_or;
+    qi->qid.target_plus = qualified_identifier_target_plus;
+    qi->qid.target_minus = qualified_identifier_target_minus;
+    qi->qid.target_multiply = qualified_identifier_target_multiply;
+    qi->qid.target_divide = qualified_identifier_target_divide;
+    qi->qid.target_modulus = qualified_identifier_target_modulus;
+    qi->qid.target_to_power = qualified_identifier_target_to_power;
+
+    qi->qid.destroy = qualified_identifier_destroy;
+    
     return &(qi->qid);
 
 error_free_resources:

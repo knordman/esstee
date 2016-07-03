@@ -54,12 +54,12 @@ static int invoke_parameters_append(
 }
     
 static int invoke_parameters_verify(
-    struct invoke_parameters_iface_t *self,
+    const struct invoke_parameters_iface_t *self,
     const struct variable_iface_t *variables,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct invoke_parameters_t *params =
+    const struct invoke_parameters_t *params =
 	CONTAINER_OF(self, struct invoke_parameters_t, params);
     
     int verified = ESSTEE_OK;
@@ -135,6 +135,7 @@ static int invoke_parameters_verify(
 
 	issues->begin_group(issues);
 	int variable_assignable = found->assignable_from(found,
+							 NULL,
 							 assign_value,
 							 config,
 							 issues);
@@ -327,12 +328,12 @@ error_free_resources:
 }
     
 int invoke_parameters_assign_from(
-    struct invoke_parameters_iface_t *self,
+    const struct invoke_parameters_iface_t *self,
     struct variable_iface_t *variables,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct invoke_parameters_t *params =
+    const struct invoke_parameters_t *params =
 	CONTAINER_OF(self, struct invoke_parameters_t, params);
 
     struct variable_iface_t *found = NULL;
@@ -347,6 +348,7 @@ int invoke_parameters_assign_from(
 		itr->expression->return_value(itr->expression);
 	    
 	    int assign_result = found->assign(found,
+					      NULL,
 					      parameter_value,
 					      config,
 					      issues);

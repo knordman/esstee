@@ -35,7 +35,7 @@ struct invoke_parameters_iface_t {
 	struct issues_iface_t *issues);	
     
     int (*verify)(
-	struct invoke_parameters_iface_t *self,
+	const struct invoke_parameters_iface_t *self,
 	const struct variable_iface_t *variables,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
@@ -61,7 +61,7 @@ struct invoke_parameters_iface_t {
 	struct issues_iface_t *issues);
     
     int (*assign_from)(
-	struct invoke_parameters_iface_t *self,
+	const struct invoke_parameters_iface_t *self,
 	struct variable_iface_t *variables,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);

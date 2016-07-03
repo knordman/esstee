@@ -116,7 +116,7 @@ static int struct_value_display(
 	buffer += written_bytes;
 	buffer_size -= written_bytes;
 
-	struct value_iface_t *var_value = itr->value(itr);
+	const struct value_iface_t *var_value = itr->value(itr);
 	
 	written_bytes = var_value->display(var_value,
 					   buffer,
@@ -194,6 +194,7 @@ static int struct_value_assign(
 	}
 
 	int assign_result = found->assign(found,
+					  NULL,
 					  itr->element_default_value,
 					  config,
 					  issues);

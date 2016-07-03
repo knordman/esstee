@@ -33,6 +33,79 @@ struct invoke_statement_t {
     int invoke_state;
 };
 
+static int invoke_statement_verify(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct invoke_statement_t *is =
+	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+    
+    if(is->variable)
+    {
+	if(is->function)
+	{
+	    const char *message = issues->build_message(
+		issues,
+		"variable '%s' shadows function with same name",
+		is->variable->identifier);
+
+	    issues->new_issue_at(
+		issues,
+		message,
+		ESSTEE_GENERAL_WARNING_ISSUE,
+		1,
+		is->location);
+	}
+
+	issues->begin_group(issues);
+
+	int var_invoke = is->variable->invoke_verify(is->variable,
+						     NULL,
+						     is->parameters,
+						     config,
+						     issues);
+
+	if(var_invoke != ESSTEE_OK)
+	{
+	    issues->set_group_location(issues,
+				       1,
+				       is->location);
+	    issues->end_group(issues);
+	    
+	    return var_invoke;
+	}
+
+	issues->end_group(issues);
+    }
+    else if(is->function)
+    {
+	int verify_result = is->function->verify_invoke(
+	    is->function,
+	    is->parameters,
+	    config,
+	    issues);
+
+	if(verify_result != ESSTEE_OK)
+	{
+	    return verify_result;
+	}
+    }
+    else
+    {
+	issues->new_issue_at(
+	    issues,
+	    "no known variable or function referenced",
+	    ISSUE_ERROR_CLASS,
+	    1,
+	    is->location);
+
+	return ESSTEE_ERROR;
+    }
+    
+    return ESSTEE_OK;
+}
+
 static int invoke_statement_step(
     struct invoke_iface_t *self,
     struct cursor_iface_t *cursor,
@@ -67,11 +140,10 @@ static int invoke_statement_step(
     case 1:
 	if(is->variable)
 	{
-	    struct value_iface_t *var_value = is->variable->value(is->variable);
-	    
 	    is->invoke_state = 2;
-	    int step_result = var_value->invoke_step(
-		var_value,
+	    int step_result = is->variable->invoke_step(
+		is->variable,
+		NULL,
 		is->parameters,
 		cursor,
 		time,
@@ -109,86 +181,6 @@ static int invoke_statement_step(
     return INVOKE_RESULT_FINISHED;
 }
 
-static int invoke_statement_verify(
-    struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	CONTAINER_OF(self, struct invoke_statement_t, invoke);
-    
-    if(is->variable)
-    {
-	if(is->function)
-	{
-	    const char *message = issues->build_message(
-		issues,
-		"variable '%s' shadows function with same name",
-		is->variable->identifier);
-
-	    issues->new_issue_at(
-		issues,
-		message,
-		ESSTEE_GENERAL_WARNING_ISSUE,
-		1,
-		is->location);
-	}
-
-	struct value_iface_t *var_value = is->variable->value(is->variable);
-	
-	if(!var_value->invoke_step)
-	{
-	    const char *message = issues->build_message(issues,
-							"variable '%s' cannot be invoked",
-							is->variable->identifier);
-	    issues->new_issue_at(
-		issues,
-		message,
-		ESSTEE_CONTEXT_ERROR,
-		1,
-		is->location);
-
-	    return ESSTEE_ERROR;
-	}
-
-	int verify_result = var_value->invoke_verify(var_value,
-						     is->parameters,
-						     config,
-						     issues);
-
-	if(verify_result != ESSTEE_OK)
-	{
-	    return verify_result;
-	}	
-    }
-    else if(is->function)
-    {
-	int verify_result = is->function->verify_invoke(
-	    is->function,
-	    is->parameters,
-	    config,
-	    issues);
-
-	if(verify_result != ESSTEE_OK)
-	{
-	    return verify_result;
-	}
-    }
-    else
-    {
-	issues->new_issue_at(
-	    issues,
-	    "no known variable or function referenced",
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    is->location);
-
-	return ESSTEE_ERROR;
-    }
-    
-    return ESSTEE_OK;
-}
-
 static void invoke_statement_destroy(
     struct invoke_iface_t *self)
 {
@@ -217,17 +209,14 @@ static int invoke_statement_reset(
 
     if(is->variable)
     {
-	struct value_iface_t *var_value = is->variable->value(is->variable);
-	if(var_value->invoke_reset)
+	int reset_result = is->variable->invoke_reset(is->variable,
+						      NULL,
+						      config,
+						      issues);
+	if(reset_result != ESSTEE_OK)
 	{
-	    int reset_result = var_value->invoke_reset(var_value,
-						       config,
-						       issues);
-	    if(reset_result != ESSTEE_OK)
-	    {
-		return reset_result;
-	    }
-	}	
+	    return reset_result;
+	}
     }
     else if(is->function)
     {

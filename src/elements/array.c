@@ -367,7 +367,7 @@ static const struct type_iface_t * array_value_type_of(
 
 static struct value_iface_t * array_value_index(
     struct value_iface_t *self,
-    struct array_index_t *array_index,
+    const struct array_index_t *array_index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {

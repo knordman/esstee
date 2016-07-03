@@ -129,7 +129,7 @@ struct value_iface_t {
 
     struct value_iface_t * (*index)(
 	struct value_iface_t *self,
-	struct array_index_t *array_index,
+	const struct array_index_t *array_index,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
@@ -147,14 +147,14 @@ struct value_iface_t {
 	struct value_iface_t *self);
 
     int (*invoke_verify)(
-	struct value_iface_t *self,
-	struct invoke_parameters_iface_t *parameters,
+	const struct value_iface_t *self,
+	const struct invoke_parameters_iface_t *parameters,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
     int (*invoke_step)(
 	struct value_iface_t *self,
-	struct invoke_parameters_iface_t *parameters,
+	const struct invoke_parameters_iface_t *parameters,
 	struct cursor_iface_t *cursor,
 	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
@@ -164,16 +164,6 @@ struct value_iface_t {
 	struct value_iface_t *self,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);	
-
-    int (*not)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
-
-    int (*negate)(
-	const struct value_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
     
     /* Binary comparison operations */
     int (*greater)(
@@ -194,6 +184,16 @@ struct value_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    int (*not)(
+	struct value_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*negate)(
+	struct value_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     /**@addtogroup value_binary_operations Binary operatios
      *
      * @brief Binary operations perfomed with self as the left operand
@@ -210,7 +210,7 @@ struct value_iface_t {
      * If the value does not support one operation that function
      * pointer should be set to NULL.
      */
-
+    
     /**
      * Modifies self by xor:ing with the other_value.
      * @return ESSTEE_OK if operation succeeded

@@ -62,7 +62,8 @@ static int for_statement_step(
     const struct value_iface_t *from_value = fs->from->return_value(fs->from);
     const struct value_iface_t *to_value = fs->to->return_value(fs->to);
     int variable_assign_result = ESSTEE_ERROR;
-    struct value_iface_t *var_value = NULL;
+    int add_result = ESSTEE_ERROR;
+    const struct value_iface_t *var_value = NULL;
     
     switch(fs->invoke_state)
     {
@@ -81,6 +82,7 @@ static int for_statement_step(
 
     case 1:
 	variable_assign_result = fs->variable->assign(fs->variable,
+						      NULL,
 						      from_value,
 						      config,
 						      issues);
@@ -128,9 +130,13 @@ static int for_statement_step(
 	}
 	
     case 6:
-	var_value = fs->variable->value(fs->variable);
+	add_result = fs->variable->plus(fs->variable,
+					NULL,
+					increment_value,
+					config,
+					issues);
 	
-	if(var_value->plus(var_value, increment_value, config, issues) != ESSTEE_OK)
+	if(add_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
 	}
@@ -187,7 +193,7 @@ static int for_statement_verify(
 
     const struct value_iface_t *from_value = fs->from->return_value(fs->from);
     const struct value_iface_t *to_value = fs->to->return_value(fs->to);
-    struct value_iface_t *var_value = fs->variable->value(fs->variable);
+    const struct value_iface_t *var_value = fs->variable->value(fs->variable);
 
     st_integer_value_set(fs->implicit_increment, 1);
     const struct value_iface_t *increment_value = fs->implicit_increment;
@@ -198,6 +204,7 @@ static int for_statement_verify(
     
     issues->begin_group(issues);
     int var_from_assignable = fs->variable->assignable_from(fs->variable,
+							    NULL,
 							    from_value,
 							    config,
 							    issues);

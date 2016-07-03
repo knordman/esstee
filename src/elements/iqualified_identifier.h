@@ -28,7 +28,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct qualified_identifier_iface_t {
 
     int (*verify)(
-	struct qualified_identifier_iface_t *self,
+	const struct qualified_identifier_iface_t *self,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
@@ -52,6 +52,7 @@ struct qualified_identifier_iface_t {
 	struct qualified_identifier_iface_t *self,
 	struct issues_iface_t *issues);
 
+    /* Path base interaction */
     int (*set_base)(
     	struct qualified_identifier_iface_t *self,
 	struct variable_iface_t *base,
@@ -62,19 +63,113 @@ struct qualified_identifier_iface_t {
     	struct qualified_identifier_iface_t *self,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
+
+    /* Target invoke */
+    int (*target_invoke_verify)(
+    	const struct qualified_identifier_iface_t *self,
+	const struct invoke_parameters_iface_t *parameters,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
     
-    const struct value_iface_t * (*target)(
+    int (*target_invoke_step)(
+    	struct qualified_identifier_iface_t *self,
+	const struct invoke_parameters_iface_t *parameters,
+	struct cursor_iface_t *cursor,
+	const struct systime_iface_t *time,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_invoke_reset)(
+    	struct qualified_identifier_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);	
+    
+    /* Target access */
+    const struct value_iface_t * (*target_value)(
+	struct qualified_identifier_iface_t *self);    
+
+    const char * (*target_name)(
 	struct qualified_identifier_iface_t *self);
 
-    int (*assign_target)(
+    /* Target modificaton check */
+    int (*target_assignable_from)(
+    	const struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *new_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    /* Target modification */
+    int (*target_assign)(
     	struct qualified_identifier_iface_t *self,
 	const struct value_iface_t *new_value,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    const char * (*target_name)(
-	struct qualified_identifier_iface_t *self);
+    int (*target_not)(
+    	struct qualified_identifier_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
+    int (*target_negate)(
+    	struct qualified_identifier_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_xor)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_and)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*target_or)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*target_plus)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*target_minus)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_multiply)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_divide)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_modulus)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*target_to_power)(
+    	struct qualified_identifier_iface_t *self,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    /* Destructor */
     void (*destroy)(
     	struct qualified_identifier_iface_t *self);
     

@@ -1,3 +1,7 @@
+/**************************************************************************/
+/* DEPRECEATED, see todo-3.7.2016                                         */
+/**************************************************************************/
+
 qualified identifier
 remove dependency on program
 add post resolve function for resolving chain (simplifying term and assignment statement)

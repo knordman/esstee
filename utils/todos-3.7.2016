@@ -1,0 +1,149 @@
+Integration tests
+DONE literals
+DONE conditionals
+DONE expressions
+-- direct memory
+-- derived types
+-- loops
+-- functions
+-- function blocks
+
+Functionality
+built-in functions and function blocks
+-- *_TO_*, dint_to_bool
+-- TOF
+-- TON
+-- R_TRIG
+-- F_TRIG
+Python module for esstee
+
+Misc
+107 NULL, /* TODO: fix dependency on config */ ../src/expressions/binary_expressions.c
+112 /* TODO: implement set config */ ../src/api/esstee.c
+113 /* TODO: implement get config */ ../src/api/esstee.c
+114 /* TODO: implement loading of buffer */ ../src/api/esstee.c
+116 /* TODO: Functionality, resetting linking prior to link operation */ ../src/api/esstee.c
+119 /* TODO: clear named references in header */     ../src/parser/pheader.c
+124 /* TODO: parse buffer */ ../src/parser/parser.c
+126 /* TODO: clear references */ ../src/parser/pliterals.c
+121 /* TODO: commit of references */ ../src/parser/ppous.c
+122 /* TODO: check clearing of references */ ../src/parser/ppous.c
+100 NULL, /* TODO: fix dependency on config */ ../src/expressions/direct_address_term.c
+101 NULL, /* TODO: fix dependency on config */ ../src/expressions/direct_address_term.c
+30 if(!itr->identifier)	/* TODO: process parameters without identifier */ ../src/elements/invoke_parameters.c
+34 /* TODO: handle assignemnts without identifier */ ../src/elements/invoke_parameters.c
+
+Destructors
+1 /* TODO: destructor */ ../src/statements/empty.c
+2 /* TODO: destructor */ ../src/statements/empty.c
+3 /* TODO: pop callstack statement destroy */ ../src/statements/pop_call_stack.c
+4 /* TODO: for statement destructor */ ../src/statements/loops.c
+5 /* TODO: cloned for statement destructor */ ../src/statements/loops.c
+6 /* TODO: determine what to destroy */ ../src/statements/loops.c
+7 /* TODO: while statement destructor */ ../src/statements/loops.c
+8 /* TODO: while statement clone destructor */ ../src/statements/loops.c
+9 /* TODO: determine what to destroy */ ../src/statements/loops.c
+10 /* TODO: destructor */ ../src/statements/qualified_assignment.c
+11 /* TODO: destructor */ ../src/statements/qualified_assignment.c
+12 /* TODO: case statement destructor */ ../src/statements/case.c
+13 /* TODO: case statement clone destructor */ ../src/statements/case.c
+14 /* TODO: determine what to destroy */ ../src/statements/case.c
+15 /* TODO: case list destroy */ ../src/statements/case.c
+16 /* TODO: case destroy */ ../src/statements/case.c
+17 /* TODO: invoke destructor */ ../src/statements/invoke_statement.c
+18 /* TODO: clone destructor invoke statement */ ../src/statements/invoke_statement.c
+19 /* TODO: destructor */ ../src/statements/simple_assignment.c
+20 /* TODO: destructor */ ../src/statements/simple_assignment.c
+21 /* TODO: if statement destructor */ ../src/statements/conditionals.c
+22 /* TODO: if statement clone destructor */ ../src/statements/conditionals.c
+23 /* TODO: elsif clauses destroy */ ../src/statements/conditionals.c
+24 /* TODO: destroy statements */ ../src/statements/statements.c
+25 /* TODO: cursor destructor*/ ../src/rt/cursor.c
+26 /* TODO: integer value destroy */ ../src/elements/integers.c
+27 /* TODO: integer type destructor */ ../src/elements/integers.c
+28 /* TODO: qualified identifier destructor */ ../src/elements/qualified_identifier.c
+29 /* TODO: qualified path destroy */ ../src/elements/qualified_identifier.c
+31 /* TODO: invoke parameters destructor */ ../src/elements/invoke_parameters.c
+32 /* TODO: invoke parameters clone destructor */ ../src/elements/invoke_parameters.c
+33 /* TODO: determine what to destroy */ ../src/elements/invoke_parameters.c
+35 /* TODO: invoke parameter destroy */ ../src/elements/invoke_parameters.c
+36 /* TODO: duration value destructor */ ../src/elements/date_time.c
+37 /* TODO: date destructor */ ../src/elements/date_time.c
+38 /* TODO: tod value destructor */ ../src/elements/date_time.c
+39 /* TODO: date tod value destructor */ ../src/elements/date_time.c
+40 /* TODO: duration type destructor */ ../src/elements/date_time.c
+41 /* TODO: date type destructor */ ../src/elements/date_time.c
+42 /* TODO: tod type destructor */ ../src/elements/date_time.c
+43 /* TODO: date tod type destructor */ ../src/elements/date_time.c
+44 /* TODO: user function block destructor */ ../src/elements/user_function_blocks.c
+45 /* TODO: function block value destructor */ ../src/elements/user_function_blocks.c
+46 /* TODO: determine what to destroy */ ../src/elements/user_function_blocks.c
+47 /* TODO: subrange case value destroy */ ../src/elements/subrange_case.c
+48 /* TODO: direct memory destructor */ ../src/elements/directmemory.c
+49 /* TODO: derived type destructor */ ../src/elements/derived.c
+50 /* TODO: real value destroy */ ../src/elements/reals.c
+51 /* TODO: real type destructor */ ../src/elements/reals.c
+52 /* TODO: destroy block header */ ../src/elements/block_header.c
+53 /* TODO: variable destroy */ ../src/elements/variable.c
+54 /* TODO: external variable destroy (only local resources) */ ../src/elements/variable.c
+55 /* TODO: destroy variable stubs */ ../src/elements/variable.c
+56 /* TODO: determine what to destroy */ ../src/elements/variable.c
+57 /* TODO: enum value destructor */ ../src/elements/enums.c
+58 /* TODO: enum type destructor */ ../src/elements/enums.c
+59 /* TODO: enum destructor */ ../src/elements/enums.c
+60 /* TODO: subrange value destructor */ ../src/elements/subrange.c
+61 /* TODO: subrange type destructor */ ../src/elements/subrange.c
+62 /* TODO: destroy stuff */ ../src/elements/subrange.c
+63 /* TODO: array init value destructor */ ../src/elements/array.c
+64 /* TODO: array value destructor */ ../src/elements/array.c
+65 /* TODO: determine what to destroy */ ../src/elements/array.c
+66 /* TODO: array type destructor */ ../src/elements/array.c
+67 /* TODO: determine what to destroy */ ../src/elements/array.c
+68 /* TODO: listed values destroy */ ../src/elements/array.c
+69 /* TODO: array ranges destroy */ ../src/elements/array.c
+70 /* TODO: determine what to destroy */ ../src/elements/array.c
+71 /* TODO: determine what to destroy */ ../src/elements/array.c
+72 /* TODO: determine what to destroy */ ../src/elements/array.c
+73 /* TODO: query destroy */ ../src/elements/queries.c
+74 /* TODO: query destroy */ ../src/elements/queries.c
+75 /* TODO: determine what to destroy */ ../src/elements/user_functions.c
+76 /* TODO: literal string destroy */ ../src/elements/strings.c
+77 /* TODO: string value destroy */ ../src/elements/strings.c
+78 /* TODO: string type destructor */ ../src/elements/strings.c
+79 /* TODO: custom string type destructor */ ../src/elements/strings.c
+80 /* TODO: struct init value destructor */ ../src/elements/struct.c
+81 /* TODO: struct value destructor */ ../src/elements/struct.c
+82 /* TODO: determine what to destroy */ ../src/elements/struct.c
+83 /* TODO: struct type destructor */ ../src/elements/struct.c
+84 /* TODO: determine what to destroy */ ../src/elements/struct.c
+85 /* TODO: determine what to destroy */ ../src/elements/struct.c
+86 /* TODO: struct element group destroy */ ../src/elements/struct.c
+87 /* TODO: determine what to destroy */ ../src/elements/struct.c
+88 /* TODO: determine what to destroy */ ../src/elements/struct.c
+89 /* TODO: initializer element destroy */ ../src/elements/struct.c
+90 /* TODO: initializer group destroy */ ../src/elements/struct.c
+91 /* TODO: determine what to destroy */ ../src/elements/struct.c
+92 /* TODO: program destroy */ ../src/elements/user_programs.c
+93 /* TODO: destroy types in list */ ../src/elements/types.c
+94 /* TODO: destructor qualified identifier term */ ../src/expressions/qualified_identifier_term.c
+95 /* TODO: single identifier term destructor */ ../src/expressions/identifier.c
+96 /* TODO: destructor */ ../src/expressions/identifier.c
+97 /* TODO: inline enum value destructor */ ../src/expressions/identifier.c
+98 /* TODO: destructor */ ../src/expressions/negative_prefix.c
+99 /* TODO: destructor */ ../src/expressions/negative_prefix.c
+102 /* TODO: direct address term destructor */ ../src/expressions/direct_address_term.c
+103 /* TODO: value expression destructor */ ../src/expressions/inline_expression.c
+104 /* TODO: destructor */ ../src/expressions/function_invocation.c
+105 /* TODO: destructor */ ../src/expressions/function_invocation.c
+106 /* TODO: determine what to destroy */ ../src/expressions/function_invocation.c
+108 /* TODO: destructor */ ../src/expressions/binary_expressions.c
+109 /* TODO: destructor */ ../src/expressions/binary_expressions.c
+110 /* TODO: determine what to destroy */ ../src/expressions/binary_expressions.c
+111 /* TODO: determine what to destroy */ ../src/api/esstee.c
+115 /* TODO: Destructor for st instance */ ../src/api/esstee.c
+117 /* TODO: issues destructor */ ../src/util/issue_context.c
+118 /* TODO: destroy array index */ ../src/parser/pqualified_identifier.c
+120 // TODO: destroy vars block ../src/parser/pheader.c
+123 /* TODO: destructor for compilation unit */ ../src/parser/parser.c
+125 /* TODO: destroy array indices */ ../src/parser/parray.c
+

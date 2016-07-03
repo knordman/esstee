@@ -277,7 +277,7 @@ static int real_value_equals(
 }
 
 static int real_value_negate(
-    const struct value_iface_t *self,
+    struct value_iface_t *self,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {

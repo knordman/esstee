@@ -324,7 +324,7 @@ static struct variable_iface_t * user_fb_value_sub_variable(
 
 static int user_fb_value_invoke_step(
     struct value_iface_t *self,
-    struct invoke_parameters_iface_t *parameters,
+    const struct invoke_parameters_iface_t *parameters,
     struct cursor_iface_t *cursor,
     const struct systime_iface_t *time,
     const struct config_iface_t *config,
@@ -358,12 +358,12 @@ static int user_fb_value_invoke_step(
 }
 
 static int user_fb_value_invoke_verify(
-    struct value_iface_t *self,
-    struct invoke_parameters_iface_t *parameters,
+    const struct value_iface_t *self,
+    const struct invoke_parameters_iface_t *parameters,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct user_fb_instance_t *fv =
+    const struct user_fb_instance_t *fv =
 	CONTAINER_OF(self, struct user_fb_instance_t, value);
 
     return parameters->verify(parameters,

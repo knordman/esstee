@@ -22,6 +22,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/itype.h>
 #include <elements/ivalue.h>
 #include <util/iissues.h>
+#include <rt/isystime.h>
+#include <rt/icursor.h>
 
 #define INPUT_VAR_CLASS			(1 << 0)
 #define OUTPUT_VAR_CLASS		(1 << 1)
@@ -44,32 +46,143 @@ struct variable_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    /* Modification checks */
+    int (*assignable_from)(
+	const struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *new_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    /* Modification of variable value */    
     int (*assign)(
 	struct variable_iface_t *self,
-	struct array_index_t *index,
+	const struct array_index_t *index,
 	const struct value_iface_t *new_value,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    int (*has_index)(
+    int (*not)(
 	struct variable_iface_t *self,
-	struct array_index_t *array_index,
+	const struct array_index_t *index,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    int (*negate)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*xor)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*and)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*or)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*plus)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*minus)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*multiply)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*divide)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*modulus)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*to_power)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct value_iface_t *other_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    /* Invoke variable */
+    int (*invoke_verify)(
+	const struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct invoke_parameters_iface_t *parameters,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    int (*invoke_step)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct invoke_parameters_iface_t *parameters,
+	struct cursor_iface_t *cursor,
+	const struct systime_iface_t *time,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*invoke_reset)(
+	struct variable_iface_t *self,
+	const struct array_index_t *index,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);	
+
+    /* Sub-variable access */
     struct variable_iface_t * (*sub_variable)(
 	struct variable_iface_t *self,
-	struct array_index_t *index,
+	const struct array_index_t *index,
 	const char *identifier,
     	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    /* Variable value access */
+    const struct value_iface_t * (*index_value)(
+    	struct variable_iface_t *self,
+	struct array_index_t *index,
+	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
     
     const struct value_iface_t * (*value)(
     	struct variable_iface_t *self);
 
+    /* Variable type access */
     const struct type_iface_t * (*type)(
     	struct variable_iface_t *self);	
-    
+
+    /* Destructor */
     void (*destroy)(
 	struct variable_iface_t *self);
 

@@ -58,6 +58,7 @@ static int assignment_statement_simple_verify(
     
     issues->begin_group(issues);
     int assignable_result = sa->lhs->assignable_from(sa->lhs,
+						     NULL,
 						     rhs_value,
 						     config,
 						     issues);
@@ -111,6 +112,7 @@ static int assignment_statement_simple_step(
 	
 	issues->begin_group(issues);
 	int assign_result = sa->lhs->assign(sa->lhs,
+					    NULL,
 					    rhs_value,
 					    config,
 					    issues);

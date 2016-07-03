@@ -62,7 +62,7 @@ struct issues_iface_t {
 	struct issues_iface_t *self,
 	int location_count,
 	...);
-
+    
     void (*end_group)(
 	struct issues_iface_t *self);
 

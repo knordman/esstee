@@ -62,35 +62,17 @@ static int assignment_statement_qualified_verify(
     if(qis->lhs->constant_reference == ESSTEE_TRUE)
     {
 	const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
-	struct value_iface_t *lhs_target = qis->lhs->target(qis->lhs);
-	
-	if(!lhs_target->assignable_from)
-	{
-	    const char *message = issues->build_message(
-		issues,
-		"element '%s' cannot be assigned a new value",
-		qis->lhs->target_name(qis->lhs));
-
-	    issues->new_issue_at(
-		issues,
-		message,
-		ESSTEE_CONTEXT_ERROR,
-		1,
-		qis->lhs->location);
-
-	    return ESSTEE_ERROR;
-	}
 
 	issues->begin_group(issues);
 	
-	int assignable_result = lhs_target->assignable_from(lhs_target,
-							    rhs_value,
-							    config,
-							    issues);
+	int assignable_result = qis->lhs->target_assignable_from(qis->lhs,
+								 rhs_value,
+								 config,
+								 issues);
 	if(assignable_result != ESSTEE_TRUE)
 	{
 	    issues->new_issue(issues,
-			      "assignment of element '%s' was not successful",
+			      "assignment of element '%s' it not possible",
 			      ESSTEE_CONTEXT_ERROR,
 			      qis->lhs->target_name(qis->lhs));
 
@@ -121,7 +103,6 @@ static int assignment_statement_qualified_step(
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
     const struct value_iface_t *rhs_value = NULL;
-    struct value_iface_t *lhs_target = NULL;
     
     switch(qis->invoke_state)
     {
@@ -153,41 +134,17 @@ static int assignment_statement_qualified_step(
 	}
 
     case 2:
-	lhs_target = qis->lhs->target(qis->lhs);
-	
 	if(qis->lhs->constant_reference == ESSTEE_FALSE)
 	{   
-	    if(!lhs_target->assignable_from)
-	    {
-		const char *message = issues->build_message(
-		    issues,
-		    "element '%s' cannot be assigned a new value",
-		    qis->lhs->target_name(qis->lhs));
-
-		issues->new_issue_at(
-		    issues,
-		    message,
-		    ESSTEE_CONTEXT_ERROR,
-		    1,
-		    qis->lhs->location);
-
-		return INVOKE_RESULT_ERROR;
-	    }
-	}
-
-	rhs_value = qis->rhs->return_value(qis->rhs);
-
-	if(qis->lhs->constant_reference == ESSTEE_FALSE)
-	{
 	    issues->begin_group(issues);
-	    int assignable_result = lhs_target->assignable_from(lhs_target,
-								rhs_value,
-								config,
-								issues);
+	    int assignable_result = qis->lhs->target_assignable_from(qis->lhs,
+								     rhs_value,
+								     config,
+								     issues);
 	    if(assignable_result != ESSTEE_TRUE)
 	    {
 		issues->new_issue(issues,
-				  "assignment of element '%s' impossible",
+				  "assignment of element '%s' failed",
 				  ESSTEE_CONTEXT_ERROR,
 				  qis->lhs->target_name(qis->lhs));
 
@@ -204,11 +161,13 @@ static int assignment_statement_qualified_step(
 	    }
 	}
 
+	rhs_value = qis->rhs->return_value(qis->rhs);
+
 	issues->begin_group(issues);
-	int assign_result = lhs_target->assign(lhs_target,
-					       rhs_value,
-					       config,
-					       issues);
+	int assign_result = qis->lhs->target_assign(qis->lhs,
+						    rhs_value,
+						    config,
+						    issues);
 
 	if(assign_result != ESSTEE_OK)
 	{

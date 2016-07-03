@@ -43,6 +43,49 @@ struct variable_t {
     struct variable_iface_t *external_alias;
 };
 
+static struct value_iface_t * referred_value(
+    struct variable_t *var,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct value_iface_t *value = var->value;
+
+    if(index)
+    {
+	if(!var->value->index)
+	{
+	    issues->new_issue(issues,
+			      "variable '%s' is not indexable",
+			      ESSTEE_CONTEXT_ERROR,
+			      var->stub->identifier);
+
+	    return NULL;
+	}
+	
+	value = var->value->index(var->value,
+				  index,
+				  config,
+				  issues);
+    }
+
+    return value;
+}
+
+static const struct value_iface_t * const_referred_value(
+    const struct variable_t *var,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return (const struct value_iface_t *)
+	referred_value(
+	    (struct variable_t *)var,
+	    index,
+	    config,
+	    issues);
+}
+
 static int variable_create(
     struct variable_iface_t *self,
     const struct config_iface_t *config,
@@ -92,39 +135,45 @@ static int external_variable_reset(
 }
 
 static int variable_assignable_from(
-    struct variable_iface_t *self,
+    const struct variable_iface_t *self,
+    const struct array_index_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct variable_t *var =
+    const struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
     if(ST_FLAG_IS_SET(self->class, CONSTANT_VAR_CLASS))
     {
-	const char *message = issues->build_message(
+	issues->new_issue(
 	    issues,
-	    "variable is constant and cannot be assigned a new value",
-	    self->identifier);
-	
-	issues->new_issue_at(
-	    issues,
-	    message,
+	    "variable '%s' is constant and cannot be assigned a new value",
 	    ESSTEE_CONTEXT_ERROR,
 	    1,
-	    self->location);
+	    self->identifier);
 
 	return ESSTEE_FALSE;
     }
 
-    return var->value->assignable_from(var->value,
-				       new_value,
-				       config,
-				       issues);
+    const struct value_iface_t *const_value = const_referred_value(var,
+								   index,
+								   config,
+								   issues);
+    if(!const_value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return const_value->assignable_from(const_value,
+					new_value,
+					config,
+					issues);
 }
 
 static int external_variable_assignable_from(
-    struct variable_iface_t *self,
+    const struct variable_iface_t *self,
+    const struct array_index_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -133,6 +182,7 @@ static int external_variable_assignable_from(
 	CONTAINER_OF(self, struct variable_t, variable);
 
     return var->external_alias->assignable_from(var->external_alias,
+						index,
 						new_value,
 						config,
 						issues);
@@ -140,6 +190,7 @@ static int external_variable_assignable_from(
 
 static int variable_assign(
     struct variable_iface_t *self,
+    const struct array_index_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -147,10 +198,20 @@ static int variable_assign(
     struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
-    int assign_result = var->value->assign(var->value,
-					   new_value,
-					   config,
-					   issues);
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+    if(!value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    int assign_result = value->assign(value,
+				      new_value,
+				      config,
+				      issues);
+    
     if(assign_result == ESSTEE_OK)
     {
 	if(var->stub->address)
@@ -167,6 +228,7 @@ static int variable_assign(
 
 static int external_variable_assign(
     struct variable_iface_t *self,
+    const struct array_index_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -175,12 +237,758 @@ static int external_variable_assign(
 	CONTAINER_OF(self, struct variable_t, variable);
 
     return var->external_alias->assign(var->external_alias,
+				       index,
 				       new_value,
 				       config,
 				       issues);
 }
 
-static struct value_iface_t * variable_value(
+typedef int (*variable_modifier_t)(
+    struct value_iface_t *,
+    const struct config_iface_t *,
+    struct issues_iface_t *);
+
+static int variable_modifier(
+    struct variable_iface_t *self,
+    size_t operation_offset,
+    const char *not_supported_message,
+    const char *not_supported_index_message,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+    if(!value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    variable_modifier_t *operation
+	= (variable_modifier_t *)(((char *)value) + operation_offset);
+    
+    if(!operation)
+    {
+	const char *message = (index) ?
+	    not_supported_index_message :
+	    not_supported_message;
+
+	issues->new_issue(issues,
+			  message,
+			  ESSTEE_CONTEXT_ERROR,
+			  var->stub->identifier);
+
+	return ESSTEE_ERROR;
+    }
+
+    int operation_result = (*operation)(value,
+					config,
+					issues);
+
+    if(operation_result == ESSTEE_OK)
+    {
+	if(var->stub->address)
+	{
+	    var->stub->type->sync_direct_memory(var->stub->type,
+						var->value,
+						var->stub->address,
+						1);
+	}
+    }
+
+    return operation_result;
+}
+    
+static int variable_not(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier(self,
+			     offsetof(struct value_iface_t, not),
+			     "variable '%s' cannot be modified by not",
+			     "sub index of variable '%s' cannot be modified by not",
+			     index,
+			     config,
+			     issues);
+}
+
+static int external_variable_not(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_not(var->external_alias,
+			index,
+			config,
+			issues);
+}
+
+static int variable_negate(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier(self,
+			     offsetof(struct value_iface_t, negate),
+			     "variable '%s' cannot be modified by negation",
+			     "sub index of variable '%s' cannot be modified by negation",
+			     index,
+			     config,
+			     issues);
+}
+
+static int external_variable_negate(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_negate(var->external_alias,
+			index,
+			config,
+			issues);
+}
+
+typedef int (*variable_modifier_by_value_t)(
+    struct value_iface_t *,
+    const struct value_iface_t *,
+    const struct config_iface_t *,
+    struct issues_iface_t *);
+
+static int variable_modifier_by_value(
+    struct variable_iface_t *self,
+    size_t operation_offset,
+    const char *not_supported_message,
+    const char *not_supported_index_message,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+    if(!value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    variable_modifier_by_value_t *operation
+	= (variable_modifier_by_value_t *)(((char *)value) + operation_offset);
+    
+    if(!operation)
+    {
+	const char *message = (index) ?
+	    not_supported_index_message :
+	    not_supported_message;
+
+	issues->new_issue(issues,
+			  message,
+			  ESSTEE_CONTEXT_ERROR,
+			  var->stub->identifier);
+
+	return ESSTEE_ERROR;
+    }
+
+    int operation_result = (*operation)(value,
+					other_value,
+					config,
+					issues);
+
+    if(operation_result == ESSTEE_OK)
+    {
+	if(var->stub->address)
+	{
+	    var->stub->type->sync_direct_memory(var->stub->type,
+						var->value,
+						var->stub->address,
+						1);
+	}
+    }
+
+    return operation_result;
+}
+
+static int variable_xor(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, xor),
+	"variable '%s' cannot be modified by xor",
+	"sub index of variable '%s' cannot be modified by xor",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_xor(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_xor(var->external_alias,
+			index,
+			other_value,
+			config,
+			issues);
+}
+
+static int variable_and(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, and),
+	"variable '%s' cannot be modified by and",
+	"sub index of variable '%s' cannot be modified by and",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_and(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_and(var->external_alias,
+			index,
+			other_value,
+			config,
+			issues);
+}
+
+static int variable_or(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, or),
+	"variable '%s' cannot be modified by or",
+	"sub index of variable '%s' cannot be modified by or",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_or(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_or(var->external_alias,
+			index,
+			other_value,
+			config,
+			issues);
+}
+
+static int variable_plus(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, plus),
+	"variable '%s' cannot be modified by addition",
+	"sub index of variable '%s' cannot be modified by addition",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_plus(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_plus(var->external_alias,
+			index,
+			other_value,
+			config,
+			issues);
+}
+
+static int variable_minus(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, minus),
+	"variable '%s' cannot be modified by subtraction",
+	"sub index of variable '%s' cannot be modified by subtraction",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_minus(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_minus(var->external_alias,
+			  index,
+			  other_value,
+			  config,
+			  issues);
+}
+
+static int variable_multiply(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, multiply),
+	"variable '%s' cannot be modified by multiplication",
+	"sub index of variable '%s' cannot be modified by multiplication",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_multiply(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_multiply(var->external_alias,
+			     index,
+			     other_value,
+			     config,
+			     issues);
+}
+
+static int variable_divide(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, divide),
+	"variable '%s' cannot be modified by division",
+	"sub index of variable '%s' cannot be modified by division",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_divide(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_divide(var->external_alias,
+			   index,
+			   other_value,
+			   config,
+			   issues);
+}
+
+static int variable_modulus(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, modulus),
+	"variable '%s' cannot be modified by modulus",
+	"sub index of variable '%s' cannot be modified by modulus",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_modulus(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_modulus(var->external_alias,
+			   index,
+			   other_value,
+			   config,
+			   issues);
+}
+
+static int variable_to_power(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return variable_modifier_by_value(
+	self,
+	offsetof(struct value_iface_t, to_power),
+	"variable '%s' cannot be modified by exponentiation",
+	"sub index of variable '%s' cannot be modified by exponentiation",
+	index,
+	other_value,
+	config,
+	issues);
+}
+
+static int external_variable_to_power(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct value_iface_t *other_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return variable_to_power(var->external_alias,
+			     index,
+			     other_value,
+			     config,
+			     issues);
+}
+
+static int variable_invoke_verify(
+    const struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct invoke_parameters_iface_t *parameters,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    const struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    if(ST_FLAG_IS_SET(self->class, CONSTANT_VAR_CLASS))
+    {
+	issues->new_issue(issues,
+			  "variable '%s' is constant and cannot be invoked",
+			  ESSTEE_CONTEXT_ERROR,
+			  var->stub->identifier);
+
+	return ESSTEE_ERROR;
+    }
+    
+    const struct value_iface_t *const_value = const_referred_value(var,
+								   index,
+								   config,
+								   issues);
+    if(!const_value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    if(!const_value->invoke_verify)
+    {
+	issues->new_issue(issues,
+			  "variable '%s' cannot be invoked",
+			  ESSTEE_TYPE_ERROR,
+			  var->stub->identifier);
+
+	return ESSTEE_ERROR;
+    }
+
+    return const_value->invoke_verify(const_value,
+				      parameters,
+				      config,
+				      issues);
+}
+
+static int external_variable_invoke_verify(
+    const struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct invoke_parameters_iface_t *parameters,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+   const struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+   return var->external_alias->invoke_verify(var->external_alias,
+					     index,
+					     parameters,
+					     config,
+					     issues);
+}
+
+static int variable_invoke_step(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct invoke_parameters_iface_t *parameters,
+    struct cursor_iface_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+    if(!value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    return value->invoke_step(value,
+			      parameters,
+			      cursor,
+			      time,
+			      config,
+			      issues);
+}
+
+static int external_variable_invoke_step(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct invoke_parameters_iface_t *parameters,
+    struct cursor_iface_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->external_alias->invoke_step(var->external_alias,
+					    index,
+					    parameters,
+					    cursor,
+					    time,
+					    config,
+					    issues);
+}
+
+static int variable_invoke_reset(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+    if(!value)
+    {
+	return ESSTEE_ERROR;
+    }
+
+    
+    if(value->invoke_reset)
+    {
+	return value->invoke_reset(value,
+				   config,
+				   issues);
+    }
+
+    return ESSTEE_OK;
+}
+
+static int external_variable_invoke_reset(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->external_alias->invoke_reset(var->external_alias,
+					     index,
+					     config,
+					     issues);
+}
+
+static struct variable_iface_t * variable_sub_variable(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const char *identifier,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+    if(!value)
+    {
+	return NULL;
+    }    
+
+    return value->sub_variable(value,
+			       identifier,
+			       config,
+			       issues);
+}
+
+static struct variable_iface_t * external_variable_sub_variable(
+    struct variable_iface_t *self,
+    const struct array_index_t *index,
+    const char *identifier,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->external_alias->sub_variable(var->external_alias,
+					     index,
+					     identifier,
+					     config,
+					     issues);
+}
+
+static const struct value_iface_t * variable_index_value(
+    struct variable_iface_t *self,
+    struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    if(!var->value->index)
+    {
+	issues->new_issue(issues,
+			  "variable '%s' is not indexable",
+			  ESSTEE_CONTEXT_ERROR,
+			  var->stub->identifier);
+	return NULL;
+    }
+
+    if(var->stub->address)
+    {
+	var->stub->type->sync_direct_memory(var->stub->type,
+					    var->value,
+					    var->stub->address,
+					    0);
+    }
+    
+    return var->value->index(var->value,
+			     index,
+			     config,
+			     issues);
+}
+
+static const struct value_iface_t * external_variable_index_value(
+    struct variable_iface_t *self,
+    struct array_index_t *index,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->external_alias->index_value(var->external_alias,
+					    index,
+					    config,
+					    issues);
+}
+
+static const struct value_iface_t * variable_value(
     struct variable_iface_t *self)
 {
     struct variable_t *var =
@@ -193,8 +1001,17 @@ static struct value_iface_t * variable_value(
 					    var->stub->address,
 					    0);
     }
-    
+
     return var->value;
+}
+
+static const struct value_iface_t * external_variable_value(
+    struct variable_iface_t *self)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->external_alias->value(var->external_alias);
 }
 
 static const struct type_iface_t * variable_type(
@@ -206,19 +1023,25 @@ static const struct type_iface_t * variable_type(
     return var->stub->type;
 }
 
-static struct value_iface_t * external_variable_value(
+static const struct type_iface_t * external_variable_type(
     struct variable_iface_t *self)
 {
     struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
-    return var->external_alias->value(var->external_alias);
+    return var->external_alias->type(var->external_alias);
 }
 
 static void variable_destroy(
     struct variable_iface_t *self)
 {
     /* TODO: variable destroy */
+}
+
+static void external_variable_destroy(
+    struct variable_iface_t *self)
+{
+    /* TODO: external variable destroy (only local resources) */
 }
 
 /**************************************************************************/
@@ -297,14 +1120,23 @@ static int direct_variable_type_post_resolve(
     
     if(!var->stub->type->sync_direct_memory)
     {
-	const char *type_name = (var->stub->type->identifier) ? var->stub->type->identifier : "(no explicit name)";
+	const char *message = NULL;
+	if(var->stub->type->identifier)
+	{
+	    message = issues->build_message(
+		issues,
+		"variable '%s' cannot be stored to direct memory, its type '%s' does not support the operation",
+		var->variable.identifier,
+		var->stub->type->identifier);
+	}
+	else
+	{
+	    message = issues->build_message(
+		issues,
+		"variable '%s' cannot be stored to direct memory, its type does not support the operation",
+		var->variable.identifier);
+	}
 	
-	const char *message = issues->build_message(
-	    issues,
-	    "variable '%s' cannot be stored to direct memory, its type '%s' does not support the operation",
-	    var->variable.identifier,
-	    type_name);
-
 	issues->new_issue_at(issues,
 			     message,
 			     ESSTEE_TYPE_ERROR,
@@ -316,6 +1148,7 @@ static int direct_variable_type_post_resolve(
 
     if(!var->stub->type->validate_direct_address)
     {
+	/* Types that have a sync function must also have a validation */
 	issues->internal_error(issues,
 			       __FILE__,
 			       __FUNCTION__,
@@ -340,12 +1173,7 @@ static int direct_variable_type_post_resolve(
     }
     issues->end_group(issues);
 
-    if(valid_result != ESSTEE_OK)
-    {
-	return valid_result;
-    }
-    
-    return ESSTEE_OK;    
+    return (valid_result != ESSTEE_OK) ? valid_result : ESSTEE_OK;
 }
 
 
@@ -454,18 +1282,28 @@ struct variable_stub_t * st_create_direct_variable_stub(
     stub->identifier = identifier;
     stub->address = address;
     stub->location = stub_location;
-    stub->type = st_create_derived_type_by_name(NULL,
-						NULL,
-						type_name,
-						type_name_location,
-						default_value,
-						default_value_location,
-						type_refs,
-						config,
-						issues);
-    if(!stub->type)
+
+    if(default_value)
     {
-	goto error_free_resources;
+	stub->type_name = NULL;
+	stub->type = st_create_derived_type_by_name(NULL,
+						    NULL,
+						    type_name,
+						    type_name_location,
+						    default_value,
+						    default_value_location,
+						    type_refs,
+						    config,
+						    issues);
+
+	if(!stub->type)
+	{
+	    goto error_free_resources;
+	}
+    }
+    else
+    {
+	stub->type_name = type_name;
     }
 
     struct variable_stub_t *stub_list = NULL;
@@ -504,8 +1342,6 @@ struct variable_iface_t * st_create_variable_block(
 	var->variable.class = block_class|retain_flag|constant_flag;
 	var->variable.identifier = itr->identifier;
 	var->variable.location = itr->location;
-	var->variable.type = variable_type;
-	var->variable.destroy = variable_destroy;
 	var->stub = itr;
 	    
 	if(ST_FLAG_IS_SET(block_class, EXTERNAL_VAR_CLASS))
@@ -514,7 +1350,31 @@ struct variable_iface_t * st_create_variable_block(
 	    var->variable.reset = external_variable_reset;
 	    var->variable.assignable_from = external_variable_assignable_from;
 	    var->variable.assign = external_variable_assign;
+	    
+	    var->variable.not = external_variable_not;
+	    var->variable.negate = external_variable_negate;
+	    var->variable.xor = external_variable_xor;
+	    var->variable.and = external_variable_and;
+	    var->variable.or = external_variable_or;
+	    var->variable.plus = external_variable_plus;
+	    var->variable.minus = external_variable_minus;
+	    var->variable.multiply = external_variable_multiply;
+	    var->variable.divide = external_variable_divide;
+	    var->variable.modulus = external_variable_modulus;
+	    var->variable.to_power = external_variable_to_power;
+
+	    var->variable.invoke_verify = external_variable_invoke_verify;
+	    var->variable.invoke_step = external_variable_invoke_step;
+	    var->variable.invoke_reset = external_variable_invoke_reset;
+
+	    var->variable.sub_variable = external_variable_sub_variable;
+
+	    var->variable.index_value = external_variable_index_value;
 	    var->variable.value = external_variable_value;
+
+	    var->variable.type = external_variable_type;
+
+	    var->variable.destroy = external_variable_destroy;
 
 	    int ref_result = global_var_refs->add(
 		global_var_refs,
@@ -535,7 +1395,31 @@ struct variable_iface_t * st_create_variable_block(
 	    var->variable.reset = variable_reset;
 	    var->variable.assignable_from = variable_assignable_from;
 	    var->variable.assign = variable_assign;
+	    
+	    var->variable.not = variable_not;
+	    var->variable.negate = variable_negate;
+	    var->variable.xor = variable_xor;
+	    var->variable.and = variable_and;
+	    var->variable.or = variable_or;
+	    var->variable.plus = variable_plus;
+	    var->variable.minus = variable_minus;
+	    var->variable.multiply = variable_multiply;
+	    var->variable.divide = variable_divide;
+	    var->variable.modulus = variable_modulus;
+	    var->variable.to_power = variable_to_power;
+
+	    var->variable.invoke_verify = variable_invoke_verify;
+	    var->variable.invoke_step = variable_invoke_step;
+	    var->variable.invoke_reset = variable_invoke_reset;
+
+	    var->variable.sub_variable = variable_sub_variable;
+
+	    var->variable.index_value = variable_index_value;
 	    var->variable.value = variable_value;
+
+	    var->variable.type = variable_type;
+	    
+	    var->variable.destroy = variable_destroy;
 
 	    if(itr->type_name)
 	    {

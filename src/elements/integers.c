@@ -282,7 +282,7 @@ static int integer_value_equals(
 }
 
 static int integer_value_negate(
-    const struct value_iface_t *self,
+    struct value_iface_t *self,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -562,7 +562,7 @@ static int bool_value_bool(
 }
 
 static int bool_value_not(
-    const struct value_iface_t *self,
+    struct value_iface_t *self,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
