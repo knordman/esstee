@@ -10,14 +10,14 @@ VAR
 	b7 AT %MX0.6 : BOOL;
 	b8 AT %MX0.7 : BOOL;
 
-	b11 AT %MX7.0 : BOOL;
-	b12 AT %MX7.1 : BOOL;
-	b13 AT %MX7.2 : BOOL;
-	b14 AT %MX7.3 : BOOL;
-	b15 AT %MX7.4 : BOOL;
-	b16 AT %MX7.5 : BOOL;
-	b17 AT %MX7.6 : BOOL;
-	b18 AT %MX7.7 : BOOL;
+	b11 AT %MX1.0 : BOOL;
+	b12 AT %MX1.1 : BOOL;
+	b13 AT %MX1.2 : BOOL;
+	b14 AT %MX1.3 : BOOL;
+	b15 AT %MX1.4 : BOOL;
+	b16 AT %MX1.5 : BOOL;
+	b17 AT %MX1.6 : BOOL;
+	b18 AT %MX1.7 : BOOL;
 
 	s1 AT %MB0 : USINT;
 	s2 AT %MB1 : USINT;

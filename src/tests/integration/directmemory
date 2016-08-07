@@ -1,1 +1,5 @@
-directmemory.ST!t!0![t].b1:=true![t].s1!1
+directmemory.ST!t!0![t].b1:=true![t].s1;[t].i1;[t].d1;[t].l1!1;1;1;1
+directmemory.ST!t!0![t].b8:=true![t].s1;[t].i1;[t].d1;[t].l1!128;128;128;128
+directmemory.ST!t!0![t].s1:=255![t].b1;[t].b2;[t].b3;[t].b4;[t].b5;[t].b6;[t].b7;[t].b8!true;true;true;true;true;true;true;true
+directmemory.ST!t!0![t].b18:=true![t].s1;[t].s2!0;128
+directmemory.ST!t!0![t].s3:=255;[t].s4:=255![t].b1;[t].b2;[t].b11;[t].b12;[t].b8;[t].18!false;false;false;false;false;false;
