@@ -71,6 +71,7 @@ struct variable_iface_t * st_create_variable_block(
     struct variable_stub_t *stubs,
     struct named_ref_pool_iface_t *global_var_refs,
     struct named_ref_pool_iface_t *type_refs,
+    struct named_ref_pool_iface_t *global_type_refs,
     const struct config_iface_t *config,
     struct issues_iface_t *issue);
 

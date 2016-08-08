@@ -593,11 +593,14 @@ static int array_type_reset_value_of(
 
     if(at->default_value)
     {
-	int assign_result = array_type_assign_default_value(av->elements, at->default_value, config, issues);
+	int elements_assigned = array_type_assign_default_value(av->elements,
+								at->default_value,
+								config,
+								issues);
 
-	if(assign_result != ESSTEE_OK)
+	if(elements_assigned != at->total_elements)
 	{
-	    return assign_result;
+	    return ESSTEE_ERROR;
 	}
     }
     else

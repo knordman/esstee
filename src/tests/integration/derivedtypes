@@ -1,0 +1,4 @@
+derivedtypes/basic.ST!t!0!none!v1;v2;v3;v4!1;5;5;0
+derivedtypes/basic.ST!t!0!none!v1:=v3!5
+derivedtypes/basic.ST!t!0!none!v5!1
+derivedtypes/circularrefs.ST!t!1!none!none!

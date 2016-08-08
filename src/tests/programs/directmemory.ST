@@ -26,7 +26,7 @@ VAR
 	s5 AT %MB4 : USINT;
 	s6 AT %MB5 : USINT;
 	s7 AT %MB6 : USINT;
-	s8 AT %MB7 : USINT;	
+	s8 AT %MB7 : USINT;
 
 	i1 AT %MW0 : UINT;
 	i2 AT %MW1 : UINT;

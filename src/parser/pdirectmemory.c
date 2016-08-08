@@ -179,14 +179,17 @@ static int extract_offset(
     if(ST_FLAG_IS_SET(da->class, WORD_UNIT_ADDRESS))
     {
 	da->field_size_bits = 2*8;
+	index_value *= 2;
     }
     else if(ST_FLAG_IS_SET(da->class, DWORD_UNIT_ADDRESS))
     {
 	da->field_size_bits = 4*8;
+	index_value *= 4;
     }
     else if(ST_FLAG_IS_SET(da->class, LONG_UNIT_ADDRESS))
     {
 	da->field_size_bits = 8*8;
+	index_value *= 8;
     }
     else if(ST_FLAG_IS_SET(da->class, BYTE_UNIT_ADDRESS))
     {

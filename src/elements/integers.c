@@ -739,16 +739,20 @@ static void integer_type_sync_direct_memory(
 	{
 	case 8:
 	    memcpy(address->storage, &iv->num, 8);
+	    break;
 	case 4: {
 	    uint32_t data = (uint32_t)iv->num;
 	    memcpy(address->storage, &data, 4);
+	    break;
 	}
 	case 2: {
 	    uint16_t data = (uint16_t)iv->num;
 	    memcpy(address->storage, &data, 2);
+	    break;
 	}
 	case 1:
 	    *(address->storage) = (uint8_t)iv->num;
+	    break;
 	}
     }
     else
@@ -757,6 +761,7 @@ static void integer_type_sync_direct_memory(
 	{
 	case 8:
 	    iv->num = *((int64_t *)address->storage);
+	    break;
 	case 4:
 	    if(ST_FLAG_IS_SET(it->class, INTEGER_DINT_TYPE))
 	    {
@@ -766,6 +771,7 @@ static void integer_type_sync_direct_memory(
 	    {
 		iv->num = *((uint32_t *)address->storage);
 	    }
+	    break;
 	case 2:
 	    if(ST_FLAG_IS_SET(it->class, INTEGER_INT_TYPE))
 	    {
@@ -775,6 +781,7 @@ static void integer_type_sync_direct_memory(
 	    {
 		iv->num = *((uint16_t *)address->storage);
 	    }
+	    break;
 	case 1:
 	    if(ST_FLAG_IS_SET(it->class, INTEGER_SINT_TYPE))
 	    {
@@ -784,6 +791,7 @@ static void integer_type_sync_direct_memory(
 	    {
 		iv->num = *(address->storage);
 	    }
+	    break;
 	}
     }
 }

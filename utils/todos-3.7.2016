@@ -1,9 +1,13 @@
-Integration tests
+Integration tests (preliminary)
 DONE literals
 DONE conditionals
 DONE expressions
--- direct memory
--- derived types
+DONE direct memory
+DONE derived types
+-- arrays
+-- subrange
+-- enum
+-- expressions
 -- loops
 -- functions
 -- function blocks

@@ -35,6 +35,7 @@ struct variable_iface_t * st_new_var_declaration_block(
 	stubs,
 	parser->global_var_ref_pool,
 	parser->pou_type_ref_pool,
+	parser->global_type_ref_pool,
 	parser->config,
 	parser->errors);
 
@@ -195,7 +196,7 @@ struct variable_stub_t * st_new_direct_var(
 	name_location,
 	NULL,
 	NULL,
-	parser->pou_type_ref_pool,
+	parser->global_type_ref_pool,
 	parser->config,
 	parser->errors);
 

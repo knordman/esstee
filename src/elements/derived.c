@@ -81,10 +81,10 @@ static int derived_type_reset_value_of(
 	return ESSTEE_ERROR;
     }
     
-    int reset_result = dt->ancestor->reset_value_of(dt->ancestor,
-						    value_of,
-						    config,
-						    issues);
+    int reset_result = dt->parent->reset_value_of(dt->parent,
+						  value_of,
+						  config,
+						  issues);
     if(reset_result != ESSTEE_OK)
     {
 	return reset_result;
@@ -399,11 +399,18 @@ static int derived_type_resolve_ancestor(
 	}
 
 	issues->begin_group(issues);
-	int ancestor_can_hold_default_value =
-	    ancestor->can_hold(ancestor, dt->default_value, config, issues);
-	issues->set_group_location(issues,
-				   1,
-				   dt->default_value_location);
+	int ancestor_can_hold_default_value = ancestor->can_hold(ancestor,
+								 dt->default_value,
+								 config,
+								 issues);
+	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
+	{
+	    issues->set_group_location(issues,
+				       1,
+				       dt->default_value_location);
+	}
+
+	issues->end_group(issues);
 	
 	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
 	{

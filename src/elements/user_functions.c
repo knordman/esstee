@@ -200,8 +200,11 @@ static int user_function_verify_invoke(
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
 
+    struct variable_iface_t *vars
+	= (uf->header) ? uf->header->variables : NULL;
+    
     return parameters->verify(parameters,
-			      uf->header->variables,
+			      vars,
 			      config,
 			      issues);
 }

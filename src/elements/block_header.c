@@ -25,6 +25,11 @@ int st_create_header_tables(
     struct header_t *header,
     struct issues_iface_t *issues)
 {
+    if(!header)
+    {
+	return ESSTEE_OK;
+    }
+
     int result = ESSTEE_OK;
     
     /* Make hash table from type list */

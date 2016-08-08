@@ -168,6 +168,7 @@ int main(int argc, char * const argv[])
     const struct st_location_t *cursor = st_start(st, program);
     if(!cursor) {
 	fprintf(stderr, "could not start '%s'\n", program);
+	print_all_errors(st);
 	return EXIT_FAILURE;
     }
 

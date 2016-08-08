@@ -154,10 +154,10 @@ static int user_fb_finalize_header(
 		return create_result;
 	    }
 	}
-    }
 
-    /* Resolve variable references */
-    st_resolve_var_refs(ufb->var_refs, ufb->header->variables);
+	/* Resolve variable references */
+	st_resolve_var_refs(ufb->var_refs, ufb->header->variables);
+    }
 
     return ufb->var_refs->trigger_resolve_callbacks(ufb->var_refs,
 						    config,
@@ -192,14 +192,17 @@ int user_fb_depends_on(
     struct user_function_block_t *ufb =
         CONTAINER_OF(self, struct user_function_block_t, function_block);
 
-    struct variable_iface_t *itr = NULL;
-    DL_FOREACH(ufb->header->variables, itr)
+    if(ufb->header)
     {
-	const struct type_iface_t *var_type = itr->type(itr);
-	
-	if(var_type == type)
+	struct variable_iface_t *itr = NULL;
+	DL_FOREACH(ufb->header->variables, itr)
 	{
-	    return ESSTEE_TRUE;
+	    const struct type_iface_t *var_type = itr->type(itr);
+	
+	    if(var_type == type)
+	    {
+		return ESSTEE_TRUE;
+	    }
 	}
     }
 
@@ -406,21 +409,24 @@ static struct value_iface_t * user_fb_type_create_value_of(
     
     struct variable_iface_t *vitr = NULL;
     struct variable_iface_t *variable_copies = NULL;
-    for(vitr = fb->header->variables; vitr != NULL; vitr = vitr->hh.next)
+    if(fb->header)
     {
-	struct variable_iface_t *copy = NULL;
-	ALLOC_OR_ERROR_JUMP(
-	    copy,
-	    struct variable_iface_t,
-	    issues,
-	    error_free_resources);
+	for(vitr = fb->header->variables; vitr != NULL; vitr = vitr->hh.next)
+	{
+	    struct variable_iface_t *copy = NULL;
+	    ALLOC_OR_ERROR_JUMP(
+		copy,
+		struct variable_iface_t,
+		issues,
+		error_free_resources);
 
-	memcpy(copy, vitr, sizeof(struct variable_iface_t));
+	    memcpy(copy, vitr, sizeof(struct variable_iface_t));
 
-	copy->value = NULL;
-	copy->prev = NULL;
-	copy->next = NULL;
-	DL_APPEND(variable_copies, copy);
+	    copy->value = NULL;
+	    copy->prev = NULL;
+	    copy->next = NULL;
+	    DL_APPEND(variable_copies, copy);
+	}
     }
     
     struct variable_iface_t *variable_copies_table =

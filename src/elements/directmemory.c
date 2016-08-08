@@ -107,6 +107,7 @@ struct dmem_iface_t * st_new_direct_memory(
 
     dm->storage = storage;
     dm->size = direct_memory_bytes;
+    memset(dm->storage, 0, dm->size);
     
     dm->dmem.offset = direct_memory_offset;
     dm->dmem.reset = direct_memory_reset;

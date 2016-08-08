@@ -6,9 +6,14 @@ IFS="!"
 
 while read FILE PROGRAM EXIT_STATUS PRE_QUERIES POST_QUERIES EXPECTED
 do
+    if [[ "$FILE" =~ \# ]]
+    then
+	continue
+    fi
+    
     if [ -n "$1" ]
     then
-	DO_TEST=`echo EXIT_STATUS $PRE_QUERIES $POST_QUERIES | awk "/$1/"`
+	DO_TEST=`echo EXIT_STATUS $PRE_QUERIES $POST_QUERIES $EXPECTED | awk "/$1/"`
 
 	if [ -z "$DO_TEST" ]
 	then
@@ -27,12 +32,24 @@ do
 
 	PRE_ARGS="--quiet-pre-run --pre-run-queries=$PRE_DELIM$PRE_QUERIES$PRE_DELIM"
     fi
+
+    if [ ! "$POST_QUERIES" = "none" ]
+    then
+	if [[ $POST_QUERIES =~ \' ]]
+	then
+	    POST_DELIM='"'
+	else
+	    POST_DELIM="'"
+	fi
+
+	POST_ARGS="--post-run-queries=$POST_DELIM$POST_QUERIES$POST_DELIM"
+    fi
     
     if [ "$2" == "gdb" ]
     then
 	echo "Writing GDB debug commands..."
 	echo file $RUNNER > test.gdb.commands
-	echo set args --file="../programs/$FILE" --program="$PROGRAM" $PRE_ARGS --post-run-queries="$POST_QUERIES" >> test.gdb.commands
+	echo set args --file="../programs/$FILE" --program="$PROGRAM" $PRE_ARGS $POST_ARGS >> test.gdb.commands
 	break
     fi
 
@@ -41,14 +58,7 @@ do
      	BISON_CMD="--bison-debug"
     fi
 
-    if [[ $POST_QUERIES =~ \' ]]
-    then
-	POST_DELIM='"'
-    else
-	POST_DELIM="'"
-    fi
-
-    TEST_CMD="$RUNNER --file='"../programs/$FILE"' --program='"$PROGRAM"' "$PRE_ARGS" --post-run-queries="$POST_DELIM$POST_QUERIES$POST_DELIM" "$BISON_CMD" 2>error.output"
+    TEST_CMD="$RUNNER --file='"../programs/$FILE"' --program='"$PROGRAM"' "$PRE_ARGS" "$POST_ARGS" "$BISON_CMD" 2>error.output"
     
     if [ -n "$1" ]
     then

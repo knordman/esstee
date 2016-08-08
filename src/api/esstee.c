@@ -406,6 +406,26 @@ const struct st_location_t * st_start(
 	return NULL;
     }
 
+    /* Reset global variables */
+    struct variable_iface_t *itr = NULL;
+    DL_FOREACH(st->global_variables, itr)
+    {
+	int reset_result = itr->reset(itr,
+				      st->config,
+				      st->errors);
+	
+	if(reset_result != ESSTEE_OK)
+	{
+	    st->errors->internal_error(st->errors,
+				       __FILE__,
+				       __FUNCTION__,
+				       __LINE__);
+
+	    return NULL;
+	}
+    }
+
+    /* Start program */
     int start_result = found->start(found,
 				    st->cursor,
 				    st->config,

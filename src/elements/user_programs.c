@@ -90,10 +90,10 @@ static int user_program_finalize_header(
 		return create_result;
 	    }
 	}
-    }
 
-    /* Resolve variable references */
-    st_resolve_var_refs(p->var_refs, p->header->variables);
+	/* Resolve variable references */
+	st_resolve_var_refs(p->var_refs, p->header->variables);
+    }
 
     return p->var_refs->trigger_resolve_callbacks(p->var_refs,
 						   config,
@@ -130,16 +130,19 @@ static int user_program_start(
     struct user_program_t *p =
 	CONTAINER_OF(self, struct user_program_t, program);
 
-    struct variable_iface_t *itr = NULL;
-    DL_FOREACH(p->header->variables, itr)
+    if(p->header)
     {
-	int reset_result = itr->reset(itr,
-				      config,
-				      issues);
-	
-	if(reset_result != ESSTEE_OK)
+	struct variable_iface_t *itr = NULL;
+	DL_FOREACH(p->header->variables, itr)
 	{
-	    return reset_result;
+	    int reset_result = itr->reset(itr,
+					  config,
+					  issues);
+	
+	    if(reset_result != ESSTEE_OK)
+	    {
+		return reset_result;
+	    }
 	}
     }
 
