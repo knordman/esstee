@@ -97,7 +97,19 @@ static int queries_link(
     st_resolve_function_refs(query_list->function_refs, functions);
     st_resolve_program_refs(query_list->program_refs, programs);
 
-    int callback_result = query_list->var_refs->trigger_resolve_callbacks(
+    /* Resolve programs first, to make it possibly to override the base
+     * of qualified identifiers */
+    int callback_result = query_list->program_refs->trigger_resolve_callbacks(
+	query_list->program_refs,
+	config,
+	issues);
+
+    if(callback_result != ESSTEE_OK)
+    {
+	return callback_result;
+    }
+    
+    callback_result = query_list->var_refs->trigger_resolve_callbacks(
 	query_list->var_refs,
 	config,
 	issues);
@@ -109,18 +121,6 @@ static int queries_link(
     
     callback_result = query_list->function_refs->trigger_resolve_callbacks(
 	query_list->function_refs,
-	config,
-	issues);
-
-    if(callback_result != ESSTEE_OK)
-    {
-	return callback_result;
-    }
-
-    /* Resolve programs last, to make it possibly to override the base
-     * of qualified identifiers */
-    callback_result = query_list->program_refs->trigger_resolve_callbacks(
-	query_list->program_refs,
 	config,
 	issues);
 

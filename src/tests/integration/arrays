@@ -1,1 +1,6 @@
 arrays.ST!t!0!none!none!
+arrays.ST!t!1!none!arr1[1]!
+arrays.ST!t!1!none!arr1[7]!
+arrays.ST!t!0!none!arr4[1,1,1];arr4[2,1,1];arr4[1,4,3];arr4[2,4,3]!1;21;12;39
+arrays.ST!t!0!none!arr1![0,0,0,0,0]
+arrays.ST!t!0!none!arr1[5]:=999;arr1!999;[0,0,0,999,0]

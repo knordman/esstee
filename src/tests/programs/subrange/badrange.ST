@@ -1,0 +1,9 @@
+VAR_GLOBAL
+	sr : INT(2..-10);
+END_VAR
+
+PROGRAM t
+
+;
+
+END_PROGRAM

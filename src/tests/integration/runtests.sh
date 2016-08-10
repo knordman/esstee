@@ -13,7 +13,7 @@ do
     
     if [ -n "$1" ]
     then
-	DO_TEST=`echo EXIT_STATUS $PRE_QUERIES $POST_QUERIES $EXPECTED | awk "/$1/"`
+	DO_TEST=`echo $FILE $EXIT_STATUS $PRE_QUERIES $POST_QUERIES $EXPECTED | awk "/$1/"`
 
 	if [ -z "$DO_TEST" ]
 	then
@@ -21,6 +21,7 @@ do
 	fi
     fi
 
+    PRE_ARGS=""
     if [ ! "$PRE_QUERIES" = "none" ]
     then
 	if [[ $PRE_QUERIES =~ \' ]]
@@ -33,6 +34,7 @@ do
 	PRE_ARGS="--quiet-pre-run --pre-run-queries=$PRE_DELIM$PRE_QUERIES$PRE_DELIM"
     fi
 
+    POST_ARGS=""
     if [ ! "$POST_QUERIES" = "none" ]
     then
 	if [[ $POST_QUERIES =~ \' ]]
@@ -53,6 +55,7 @@ do
 	break
     fi
 
+    BISON_CMD=""
     if [ "$2" == "bison" ]
     then
      	BISON_CMD="--bison-debug"

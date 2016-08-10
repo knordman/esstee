@@ -1,0 +1,5 @@
+enum.ST!t!0!none!e;d!one;single
+enum.ST!t!0!none!e:=two;d:=single!two;single
+enum.ST!t!0!none!e:=three!three
+enum.ST!t!1!none!e:=error!
+enum.ST!t!1!none!d:=something!

@@ -134,6 +134,8 @@ static int assignment_statement_qualified_step(
 	}
 
     case 2:
+	rhs_value = qis->rhs->return_value(qis->rhs);
+	
 	if(qis->lhs->constant_reference == ESSTEE_FALSE)
 	{   
 	    issues->begin_group(issues);
@@ -160,8 +162,6 @@ static int assignment_statement_qualified_step(
 		return INVOKE_RESULT_ERROR;
 	    }
 	}
-
-	rhs_value = qis->rhs->return_value(qis->rhs);
 
 	issues->begin_group(issues);
 	int assign_result = qis->lhs->target_assign(qis->lhs,
@@ -200,6 +200,8 @@ static int assignment_statement_qualified_reset(
     struct qualified_assignment_statement_t *qis =
 	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
+    qis->invoke_state = 0;
+    
     int id_reset_result = qis->lhs->reset(qis->lhs,
 					  config,
 					  issues);

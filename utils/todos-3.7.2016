@@ -4,11 +4,10 @@ DONE conditionals
 DONE expressions
 DONE direct memory
 DONE derived types
--- arrays
--- subrange
--- enum
--- expressions
--- loops
+DONE arrays
+DONE subrange
+DONE enum
+DONE loops
 -- functions
 -- function blocks
 
@@ -19,7 +18,8 @@ built-in functions and function blocks
 -- TON
 -- R_TRIG
 -- F_TRIG
-Python module for esstee
+
+Python bindings for esstee
 
 Misc
 107 NULL, /* TODO: fix dependency on config */ ../src/expressions/binary_expressions.c

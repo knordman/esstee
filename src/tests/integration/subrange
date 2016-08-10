@@ -1,0 +1,10 @@
+subrange/basic.ST!t!0!none!sr;sr_default;sr_one!-10;2;1
+subrange/basic.ST!t!0!none!sr:=-10!-10
+subrange/basic.ST!t!0!none!sr:=2!2
+subrange/basic.ST!t!0!none!sr:=0!0
+subrange/basic.ST!t!1!none!sr:=-11!
+subrange/basic.ST!t!1!none!sr:=3!
+subrange/basic.ST!t!0!none!sr_default!2
+subrange/basic.ST!t!0!none!sr_one!1
+subrange/basic.ST!t!0!none!sr_one:=1!1
+subrange/badrange.ST!t!1!none!none

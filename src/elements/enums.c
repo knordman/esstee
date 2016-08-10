@@ -390,6 +390,8 @@ struct enum_group_item_t * st_extend_enum_group(
     ei->identifier = identifier;
     ei->location = ei_location;
     ei->group = (!group) ? ei : group;
+    ei->item.identifier = identifier;
+    ei->item.location = location;
 
     struct enum_group_item_t *found = NULL;
     HASH_FIND_STR(group, ei->identifier, found);
@@ -461,7 +463,7 @@ struct type_iface_t * st_create_enum_type(
 
 	    goto error_free_resources;
 	}
-    }
+    }     
 
     et->default_item = default_value;
     et->values = value_group;

@@ -348,7 +348,7 @@ static const char * qualified_identifier_base_identifier(
     struct qualified_identifier_t *qi =
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
 
-    return (qi->path->variable) ? qi->path->variable->identifier : NULL;
+    return qi->path->identifier;
 }
 
 /* Target invoke */

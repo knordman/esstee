@@ -1,0 +1,10 @@
+loops/for.ST!t!0!none![t].out![1,2,3,4,5]
+loops/for.ST!t!0!none![t].out2![2,4,6,8,10]
+loops/forrange.ST!t!0![t].from_value:=1;[t].to_value:=5![t].sum!15
+loops/forrange.ST!t!0![t].from_value:=5;[t].to_value:=1![t].sum!0
+loops/forrange.ST!t!0![t].from_value:=1+0;[t].to_value:=2*2+1![t].sum!15
+loops/forexit.ST!t!0!none![t].out![1,2,0,0,0]
+loops/while.ST!t!0!none![t].itr;[t].control;[t].control_two;[t].itr_two!6;5;0;4
+loops/whilenotbool.ST!t!1!none!none!
+loops/repeat.ST!t!0!none![t].itr;[t].control;[t].control_two;[t].itr_two!6;5;1;5
+loops/repeatnotbool.ST!t!1!none!none!
