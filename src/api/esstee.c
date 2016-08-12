@@ -333,6 +333,7 @@ int st_link(struct st_t *st)
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
 	cuitr->function_ref_pool->reset_resolved(cuitr->function_ref_pool);
+	st_resolve_function_refs(cuitr->function_ref_pool, st->functions);
 	cuitr->function_ref_pool->trigger_resolve_callbacks(cuitr->function_ref_pool,
 							    st->config,
 							    st->errors);

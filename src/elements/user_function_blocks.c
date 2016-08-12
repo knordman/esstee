@@ -369,10 +369,15 @@ static int user_fb_value_invoke_verify(
     const struct user_fb_instance_t *fv =
 	CONTAINER_OF(self, struct user_fb_instance_t, value);
 
-    return parameters->verify(parameters,
-			      fv->variables,
-			      config,
-			      issues);
+    if(parameters)
+    {
+	return parameters->verify(parameters,
+				  fv->variables,
+				  config,
+				  issues);
+    }
+
+    return ESSTEE_OK;
 }
 
 static int user_fb_value_invoke_reset(

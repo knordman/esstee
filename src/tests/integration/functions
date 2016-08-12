@@ -1,0 +1,7 @@
+function/min.ST!t!0![t].a:=1;[t].b:=-1![t].c;[t].d!-1;-1
+function/badinput.ST!t!1!none!none!
+function/badtoomany.ST!t!1!none!none!
+function/badnotin.ST!t!1!none!none!
+function/disjointin.ST!t!0![t].a:=10;[t].b:=4![t].c;[t].d!6;6
+function/reset.ST!t!0!none![t].c;[t].d!30;0
+function/funcparams.ST!t!0![t].a:=10![t].c;[t].d!47;110

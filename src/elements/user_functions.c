@@ -38,6 +38,7 @@ struct user_function_t {
     struct named_ref_pool_iface_t *var_refs;
     
     struct invoke_iface_t *statements;
+    int invoke_state;
 
     struct st_location_t *location;
     char *identifier;
@@ -58,7 +59,7 @@ static int user_function_finalize_header(
     {
 	return header_valid;
     }
-    
+
     uf->type_refs->reset_resolved(uf->type_refs);
     uf->var_refs->reset_resolved(uf->var_refs);
 
@@ -136,6 +137,13 @@ static int user_function_finalize_header(
 		found->location);
 	}
 
+	/* Add result variable to header, so that resolving may succeed */
+	HASH_ADD_KEYPTR(hh, 
+			uf->header->variables, 
+			uf->identifier, 
+			strlen(uf->identifier), 
+			uf->result);
+	
 	/* Check restrictions on result variable? */
 
 	/* Create values of header variables */
@@ -197,16 +205,21 @@ static int user_function_verify_invoke(
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct user_function_t *uf =
-	CONTAINER_OF(self, struct user_function_t, function);
+    if(parameters)
+    {
+	struct user_function_t *uf =
+	    CONTAINER_OF(self, struct user_function_t, function);
 
-    struct variable_iface_t *vars
-	= (uf->header) ? uf->header->variables : NULL;
+	struct variable_iface_t *vars
+	    = (uf->header) ? uf->header->variables : NULL;
     
-    return parameters->verify(parameters,
-			      vars,
-			      config,
-			      issues);
+	return parameters->verify(parameters,
+				  vars,
+				  config,
+				  issues);
+    }
+
+    return ESSTEE_OK;
 }
 
 static int user_function_step(
@@ -220,10 +233,34 @@ static int user_function_step(
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
 
+    if(uf->invoke_state > 0)
+    {
+    	uf->invoke_state = 0;	/* Otherwise nested calls are not possible */
+    	return INVOKE_RESULT_FINISHED;
+    }
+
+    if(parameters)
+    {
+	struct variable_iface_t *vars
+	    = (uf->header) ? uf->header->variables : NULL;
+    
+	int input_assign = parameters->assign_from(parameters,
+						   vars,
+						   config,
+						   issues);
+	if(input_assign != ESSTEE_OK)
+	{
+	    return INVOKE_RESULT_ERROR;
+	}
+    }
+
+    uf->invoke_state = 1;
+    
     cursor->switch_current(cursor,
 			   uf->statements,
 			   config,
 			   issues);
+    
     return INVOKE_RESULT_IN_PROGRESS;
 }
 
@@ -244,6 +281,8 @@ static int user_function_reset(
     struct user_function_t *uf =
 	CONTAINER_OF(self, struct user_function_t, function);
 
+    uf->invoke_state = 0;
+    
     if(uf->header && uf->header->variables)
     {
 	struct variable_iface_t *itr = NULL;
@@ -298,7 +337,10 @@ struct function_iface_t * st_new_user_function(
     uf->identifier = identifier;
     uf->location = uf_location;
     uf->header = header;
-
+    uf->type_refs = type_refs;
+    uf->var_refs = var_refs;
+    uf->statements = statements;
+    
     uf->result = st_create_variable_type_name(
 	uf->identifier,
 	uf->location,

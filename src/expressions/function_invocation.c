@@ -69,21 +69,21 @@ static int function_invocation_term_step(
 	
 	if(ft->parameters)
 	{
-	    ft->invoke_state = 1;
 	    int step_result = ft->parameters->step(ft->parameters,
 						   cursor,
 						   time,
 						   config,
 						   issues);
+	    
 	    if(step_result != INVOKE_RESULT_FINISHED)
 	    {
 		return step_result;
 	    }
+
+	    ft->invoke_state = 1;
 	}
 	
     case 1: {
-	ft->invoke_state = 2;
-	
 	int step_result = ft->function->step(
 	    ft->function,
 	    ft->parameters,
@@ -96,6 +96,8 @@ static int function_invocation_term_step(
 	{
 	    return step_result;
 	}
+
+	ft->invoke_state = 2;
     }
 	
     case 2:
@@ -126,13 +128,36 @@ static int function_invocation_term_reset(
     {
 	return reset_result;
     }
-    
-    reset_result = ft->parameters->reset(ft->parameters,
-					 config,
-					 issues);
-    if(reset_result != ESSTEE_OK)
+
+    if(ft->parameters)
     {
-	return reset_result;
+	reset_result = ft->parameters->reset(ft->parameters,
+					     config,
+					     issues);
+
+	if(reset_result != ESSTEE_OK)
+	{
+	    return reset_result;
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+static int function_invocation_term_allocate(
+    struct invoke_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct expression_iface_t *expr
+	= CONTAINER_OF(self, struct expression_iface_t, invoke);
+    
+    struct function_invocation_term_t *ft =
+	CONTAINER_OF(expr, struct function_invocation_term_t, expression);
+
+    if(ft->parameters)
+    {
+	return ft->parameters->allocate(ft->parameters,
+					issues);
     }
 
     return ESSTEE_OK;
@@ -278,7 +303,7 @@ struct expression_iface_t * st_create_function_invocation_term(
     ft->expression.invoke.step = function_invocation_term_step;
     ft->expression.invoke.verify = function_invocation_term_verify;
     ft->expression.invoke.reset = function_invocation_term_reset;
-
+    ft->expression.invoke.allocate = function_invocation_term_allocate;
     ft->expression.return_value = function_invocation_term_return_value;
     ft->expression.clone = function_invocation_term_clone;
     ft->expression.destroy = function_invocation_term_destroy;

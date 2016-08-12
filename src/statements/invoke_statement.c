@@ -123,8 +123,6 @@ static int invoke_statement_step(
 	
 	if(is->parameters)
 	{
-	    is->invoke_state = 1;
-	    	    
 	    int step_result = is->parameters->step(is->parameters,
 						   cursor,
 						   time,
@@ -135,12 +133,13 @@ static int invoke_statement_step(
 	    {
 		return step_result;
 	    }
+
+	    is->invoke_state = 1;
 	}
 
     case 1:
 	if(is->variable)
 	{
-	    is->invoke_state = 2;
 	    int step_result = is->variable->invoke_step(
 		is->variable,
 		NULL,
@@ -154,6 +153,8 @@ static int invoke_statement_step(
 	    {
 		return step_result;
 	    }
+
+	    is->invoke_state = 2;
 	}
 	else if(is->function)
 	{
@@ -169,6 +170,8 @@ static int invoke_statement_step(
 	    {
 		return step_result;
 	    }
+
+	    is->invoke_state = 2;
 	}
 	
     case 2:
@@ -252,7 +255,12 @@ static int invoke_statement_allocate(
     struct invoke_statement_t *is =
 	CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    return is->parameters->allocate(is->parameters, issues);
+    if(is->parameters)
+    {
+	return is->parameters->allocate(is->parameters, issues);
+    }
+
+    return ESSTEE_OK;
 }
 
 struct invoke_iface_t * invoke_statement_clone(

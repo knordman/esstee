@@ -120,6 +120,7 @@ static int assignment_statement_qualified_step(
 		return identifier_step_result;
 	    }
 	}
+	
 	qis->invoke_state = 1;
 
     case 1:

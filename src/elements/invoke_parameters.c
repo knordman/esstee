@@ -52,6 +52,30 @@ static int invoke_parameters_append(
 
     return ESSTEE_OK;
 }
+
+static const struct variable_iface_t * next_input_variable(
+    const struct variable_iface_t *variable_list,
+    int accept_start)
+{
+    const struct variable_iface_t *itr = NULL;
+    const struct variable_iface_t *next = NULL;
+    
+    DL_FOREACH(variable_list, itr)
+    {
+	if(ST_FLAG_IS_SET(itr->class, INPUT_VAR_CLASS))
+	{
+	    if(itr == variable_list && !accept_start)
+	    {
+		continue;
+	    }
+	    
+	    next = itr;
+	    break;
+	}
+    }
+    
+    return next;
+}
     
 static int invoke_parameters_verify(
     const struct invoke_parameters_iface_t *self,
@@ -63,56 +87,69 @@ static int invoke_parameters_verify(
 	CONTAINER_OF(self, struct invoke_parameters_t, params);
     
     int verified = ESSTEE_OK;
-    struct variable_iface_t *found = NULL;
     struct invoke_parameter_t *itr = NULL;
-
+    const struct variable_iface_t *check_var = NULL;
+    const struct variable_iface_t *last_var = NULL;
+    
     DL_FOREACH(params->list, itr)
     {
-	if(!itr->identifier)	/* TODO: process parameters without identifier */
+	if(itr->identifier)
 	{
-	    verified = ESSTEE_ERROR;
-	    issues->new_issue_at(
-		issues,
-		"input variables must be referred to by name",
-		ESSTEE_GENERAL_ERROR_ISSUE,
-		1,
-		itr->location);
+	    HASH_FIND_STR(variables, itr->identifier, check_var);
+	    
+	    if(!check_var)
+	    {
+		verified = ESSTEE_ERROR;
+		const char *message = issues->build_message(issues,
+							    "no parameter by name '%s' defined",
+							    itr->identifier);
+		issues->new_issue_at(
+		    issues,
+		    message,
+		    ESSTEE_CONTEXT_ERROR,
+		    1,
+		    itr->location);
 
-	    continue;
+		break;
+	    }
+
+	    if(!ST_FLAG_IS_SET(check_var->class, INPUT_VAR_CLASS))
+	    {
+		verified = ESSTEE_ERROR;
+		const char *message = issues->build_message(issues,
+							    "parameter '%s' is not an input variable",
+							    itr->identifier);
+
+		issues->new_issue_at(
+		    issues,
+		    message,
+		    ESSTEE_CONTEXT_ERROR,
+		    1,
+		    itr->location);
+
+		last_var = check_var;
+		continue;
+	    }
 	}
-	
-	HASH_FIND_STR(variables, itr->identifier, found);
-	if(!found)
+	else
+	{
+	    check_var = (last_var) ?
+		next_input_variable(last_var, 0) :
+		next_input_variable(variables, 1);
+	}
+
+	if(!check_var)
 	{
 	    verified = ESSTEE_ERROR;
-	    const char *message = issues->build_message(issues,
-							"no variable by name '%s' defined",
-							itr->identifier);
+
 	    issues->new_issue_at(
 		issues,
-		message,
+		"too many parameters given",
 		ESSTEE_CONTEXT_ERROR,
 		1,
 		itr->location);
 
-	    continue;
-	}
-
-	if(!ST_FLAG_IS_SET(found->class, INPUT_VAR_CLASS))
-	{
-	    verified = ESSTEE_ERROR;
-	    const char *message = issues->build_message(issues,
-							"variable '%s' is not an input variable",
-							itr->identifier);
-
-	    issues->new_issue_at(
-		issues,
-		message,
-		ESSTEE_CONTEXT_ERROR,
-		1,
-		itr->location);
-
-	    continue;
+	    break;
 	}
 
 	if(itr->expression->invoke.verify)
@@ -134,27 +171,40 @@ static int invoke_parameters_verify(
 	    itr->expression->return_value(itr->expression);
 
 	issues->begin_group(issues);
-	int variable_assignable = found->assignable_from(found,
-							 NULL,
-							 assign_value,
-							 config,
-							 issues);
+	int variable_assignable = check_var->assignable_from(check_var,
+							     NULL,
+							     assign_value,
+							     config,
+							     issues);
 	
 	if(variable_assignable != ESSTEE_TRUE)
 	{
 	    verified = ESSTEE_ERROR;
 
-	    issues->new_issue(
-		issues,
-		"variable '%s' cannot be assigned from given value",
-		ESSTEE_ARGUMENT_ERROR,
-		found->identifier);
-
+	    if(itr->identifier)
+	    {
+		issues->new_issue(
+		    issues,
+		    "parameter '%s' cannot be assigned from the given value",
+		    ESSTEE_ARGUMENT_ERROR,
+		    check_var->identifier);
+	    }
+	    else
+	    {
+		issues->new_issue(
+		    issues,
+		    "one unnamed parameter cannot be assigned from the given value",
+		    ESSTEE_ARGUMENT_ERROR,
+		    check_var->identifier);
+	    }
+	    
 	    issues->set_group_location(issues,
 				       1,
-				       itr->location);				       
+				       itr->location);
 	}
 	issues->end_group(issues);
+
+	last_var = check_var;
     }
 
     return verified;
@@ -173,7 +223,7 @@ static int invoke_parameters_step(
     struct invoke_parameter_t *itr = NULL;
     DL_FOREACH(params->list, itr)
     {
-	if(itr->invoke_state != 0)
+	if(itr->invoke_state == 0)
 	{
 	    break;
 	}
@@ -336,29 +386,41 @@ int invoke_parameters_assign_from(
     const struct invoke_parameters_t *params =
 	CONTAINER_OF(self, struct invoke_parameters_t, params);
 
-    struct variable_iface_t *found = NULL;
+    struct variable_iface_t *assign_var = NULL;
+    struct variable_iface_t *last_var = NULL;
     struct invoke_parameter_t *itr = NULL;
+    
     DL_FOREACH(params->list, itr)
     {
-	/* TODO: handle assignemnts without identifier */
-	HASH_FIND_STR(variables, itr->identifier, found);
-	if(found)
+	if(itr->identifier)
+	{
+	    HASH_FIND_STR(variables, itr->identifier, assign_var);
+	}
+	else
+	{
+	    assign_var = (last_var) ?
+		(struct variable_iface_t *)next_input_variable(last_var, 0) :
+		(struct variable_iface_t *)next_input_variable(variables, 1);
+	}
+
+	if(assign_var)
 	{
 	    const struct value_iface_t *parameter_value =
 		itr->expression->return_value(itr->expression);
 	    
-	    int assign_result = found->assign(found,
-					      NULL,
-					      parameter_value,
-					      config,
-					      issues);
+	    int assign_result = assign_var->assign(assign_var,
+						   NULL,
+						   parameter_value,
+						   config,
+						   issues);
 
 	    if(assign_result != ESSTEE_OK)
 	    {
 		return ESSTEE_ERROR;
 	    }
-
 	}
+
+	last_var = assign_var;
     }
 
     return ESSTEE_OK;   
