@@ -24,34 +24,562 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <utlist.h>
 #include <stdio.h>
 
-struct listed_value_t {
-    struct value_iface_t *value;
-    struct value_iface_t *multiplier;
-    struct st_location_t *location;
-    struct listed_value_t *prev;
-    struct listed_value_t *next;
+/**************************************************************************/
+/* Array index interface                                                  */
+/**************************************************************************/
+struct index_node_t {
+    struct array_index_element_iface_t index_element;
+    struct expression_iface_t *expression;
+    struct index_node_t *prev;
+    struct index_node_t *next;
 };
 
-struct array_init_value_t {
-    struct value_iface_t value;
-    size_t entries;
-    struct st_location_t *location;
-    struct listed_value_t *values;
+struct array_index_t {
+    struct array_index_iface_t array_index;
+    struct index_node_t *nodes;
+    struct index_node_t *invoke_state_node;
+    struct st_location_t location;
+};
+
+static int array_index_step(
+    struct array_index_iface_t *self,
+    struct cursor_iface_t *cursor,
+    const struct systime_iface_t *time,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *ai =
+	CONTAINER_OF(self, struct array_index_t, array_index);
+
+    for(;
+	ai->invoke_state_node != NULL;
+	ai->invoke_state_node = ai->invoke_state_node->next)
+    {
+	if(ai->invoke_state_node->expression->invoke.step)
+	{
+	    ai->invoke_state_node = ai->invoke_state_node->next;
+
+	    cursor->switch_current(
+		cursor,
+		&(ai->invoke_state_node->expression->invoke),
+		config,
+		issues);
+
+	    return INVOKE_RESULT_IN_PROGRESS;
+	}
+    }
+
+    return INVOKE_RESULT_FINISHED;
+}
+
+static int array_index_reset(
+    struct array_index_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *ai =
+	CONTAINER_OF(self, struct array_index_t, array_index);
+
+    struct index_node_t *itr = NULL;
+    DL_FOREACH(ai->nodes, itr)
+    {
+	if(itr->expression->invoke.reset)
+	{
+	    int reset_result = itr->expression->invoke.reset(
+		&(itr->expression->invoke),
+		config,
+		issues);
+
+	    if(reset_result != ESSTEE_OK)
+	    {
+		return reset_result;
+	    }	    
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+static int array_index_allocate(
+    struct array_index_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *ai =
+	CONTAINER_OF(self, struct array_index_t, array_index);
+
+    struct index_node_t *itr = NULL;
+    DL_FOREACH(ai->nodes, itr)
+    {
+	if(itr->expression->invoke.allocate)
+	{
+	    int allocate_result = itr->expression->invoke.allocate(
+		&(itr->expression->invoke),
+		issues);
+
+	    if(allocate_result != ESSTEE_OK)
+	    {
+		return allocate_result;
+	    }
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
+static void array_index_destroy(
+    struct array_index_iface_t *self)
+{
+    /* TODO: array index destructor */
+}
+
+static void array_index_destroy_clone(
+    struct array_index_iface_t *self)
+{
+    /* TODO: array index clone destructor */
+}
+
+static struct array_index_iface_t * array_index_clone(
+    struct array_index_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *ai =
+	CONTAINER_OF(self, struct array_index_t, array_index);
+
+    struct array_index_t *copy = NULL;
+    struct index_node_t *copy_node = NULL;
+    struct index_node_t *copy_nodes = NULL;
+    struct index_node_t *itr = NULL;
+    struct index_node_t *tmp = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	copy,
+	struct array_index_t,
+	issues,
+	error_free_resources);
+    memcpy(copy, ai, sizeof(struct array_index_t));
+
+    DL_FOREACH(ai->nodes, itr)
+    {
+	struct expression_iface_t *copy_expr =
+	    itr->expression->clone(itr->expression, issues);
+	if(!copy_expr)
+	{
+	    goto error_free_resources;
+	}
+
+	ALLOC_OR_ERROR_JUMP(
+	    copy_node,
+	    struct index_node_t,
+	    issues,
+	    error_free_resources);
+
+	copy_node->expression = copy_expr;
+
+	DL_APPEND(copy_nodes, copy_node);
+
+	copy_node->index_element.next = NULL;
+	if(copy_node->prev)
+	{
+	    copy_node->prev->index_element.next = &(copy_node->index_element);
+	}
+    }
+
+    copy->nodes = copy_nodes;
+    copy->array_index.destroy = array_index_destroy_clone;
+
+    return &(copy->array_index);
+error_free_resources:
+    DL_FOREACH_SAFE(copy_nodes, itr, tmp)
+    {
+	free(itr);
+    }
+    free(copy_node);
+    free(copy);
+    return NULL;
+}
+
+static int array_index_extend(
+    struct array_index_iface_t *self,
+    struct expression_iface_t *expression,
+    const struct st_location_t *expression_location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *ai =
+	CONTAINER_OF(self, struct array_index_t, array_index);
+
+    struct index_node_t *node = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	node,
+	struct index_node_t,
+	issues,
+	error_free_resources);
+
+    node->expression = expression;
+    node->index_element.expression = node->expression;
+    node->index_element.next = NULL;
+
+    DL_APPEND(ai->nodes, node);
+    if(node->prev)
+    {
+	node->prev->index_element.next = &(node->index_element);
+    }
+    else
+    {
+	ai->array_index.first_node = &(node->index_element);
+    }
+
+    if(!ai->location.source)
+    {
+	memcpy(&(ai->location), expression_location, sizeof(struct st_location_t));
+	ai->location.prev = NULL;
+	ai->location.next = NULL;
+    }
+    else
+    {
+	ai->location.last_line = expression_location->last_line;
+	ai->location.last_column = expression_location->last_column;
+    }
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    return ESSTEE_ERROR;
+}
+
+struct array_index_iface_t * st_create_array_index(
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_index_t *ai = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ai,
+	struct array_index_t,
+	issues,
+	error_free_resources);
+    memset(ai, 0, sizeof(struct array_index_t));
+
+    ai->array_index.step = array_index_step;
+    ai->array_index.reset = array_index_reset;
+    ai->array_index.allocate = array_index_allocate;
+    ai->array_index.clone = array_index_clone;
+    ai->array_index.extend = array_index_extend;
+    ai->array_index.destroy = array_index_destroy;
+    ai->array_index.first_node = NULL;
+
+    return &(ai->array_index);
+
+error_free_resources:
+    return NULL;
+}
+
+/**************************************************************************/
+/* Array range                                                            */
+/**************************************************************************/
+struct range_node_t {
+    struct subrange_iface_t *subrange;
+    struct range_node_t *prev;
+    struct range_node_t *next;
 };
 
 struct array_range_t {
-    struct subrange_t *subrange;
-    size_t entries;
-    struct array_range_t *prev;
-    struct array_range_t *next;
+    struct array_range_iface_t array_range;
+    struct range_node_t *nodes;
 };
 
+static int array_range_extend(
+    struct array_range_iface_t *self,
+    struct subrange_iface_t *subrange,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_range_t *ar =
+	CONTAINER_OF(self, struct array_range_t, array_range);
+
+    struct range_node_t *node = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	node,
+	struct range_node_t,
+	issues,
+	error_free_resources);
+
+    node->subrange = subrange;
+
+    if(!subrange->min->integer)
+    {
+	issues->new_issue_at(
+	    issues,
+	    "only integer array ranges are supported",
+	    ESSTEE_CONTEXT_ERROR,
+	    1,
+	    subrange->min_location);
+
+	goto error_free_resources;
+    }
+
+    if(!subrange->max->integer)
+    {
+	issues->new_issue_at(
+	    issues,
+	    "only integer array ranges are supported",
+	    ESSTEE_CONTEXT_ERROR,
+	    1,
+	    subrange->min_location);
+	
+	goto error_free_resources;
+    }
+
+    int64_t min_integer = subrange->min->integer(subrange->min,
+						 config,
+						 issues);
+    int64_t max_integer = subrange->max->integer(subrange->max,
+						 config,
+						 issues);
+    
+    node->range_element.entries = max_integer - min_integer;
+    node->range_element.subrange = node->subrange;
+    node->range_element.next = NULL;
+    DL_APPEND(ar->nodes, node);
+
+    if(node->prev)
+    {
+	node->prev->range_element.next = &(node->range_element);
+    }
+    else
+    {
+	ar->array_range.first_node = &(node->range_element);
+    }
+
+    return ESSTEE_OK;
+
+error_free_resources:
+    free(node);
+    return ESSTEE_ERROR;
+}
+
+static void array_range_destroy(
+    struct array_range_iface_t *self)
+{
+    /* TODO: array range destructor */
+}
+
+struct array_range_iface_t * st_create_array_range(
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_range_t *ar = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ar,
+	struct array_range_t,
+	issues,
+	error_free_resources);
+    memset(ar, 0, sizeof(struct array_range_t));
+
+    ar->array_range.extend = array_range_extend;
+    ar->array_range.destroy = array_range_destroy;
+    ar->array_range.first_node = NULL;
+
+    return &(ar->array_range);
+    
+error_free_resources:
+    return NULL;
+}
+
+/**************************************************************************/
+/* Array initializer                                                      */
+/**************************************************************************/
+struct init_node_t {
+    struct array_element_initializer_iface_t init_element;
+    struct value_iface_t *value;
+    struct value_iface_t *multiplier;
+    struct st_location_t *location;
+    struct init_node_t *prev;
+    struct init_node_t *next;
+};
+
+struct array_init_t {
+    struct array_initializer_iface_t array_init;
+    struct value_iface_t value;
+    struct init_node_t *iterator;
+    struct st_location_t location;
+    struct init_node_t *nodes;
+};
+
+static void update_initializer_location(
+    struct array_init_t *ai,
+    const struct st_location_t *node_location)
+{
+    if(!ai->location.source)
+    {
+	ai->location.source = node_location->source;
+	ai->location.first_line = node_location->first_line;
+	ai->location.first_column = node_location->first_column;
+	ai->location.last_line = node_location->last_line;
+	ai->location.last_column = node_location->last_column;
+    }
+    else
+    {
+	ai->location.last_line = node_location->last_line;
+	ai->location.last_column = node_location->last_column;
+    }
+}
+
+static int extend_array_init(
+    struct array_initializer_iface_t *self,
+    struct value_iface_t *multiplier,
+    struct value_iface_t *value,
+    const struct st_location_t *value_location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_init_t *ai =
+	CONTAINER_OF(self, struct array_init_t, array_init);
+
+    struct init_node_t *node = NULL;
+    struct st_location_t *node_location = NULL;
+    
+    ALLOC_OR_ERROR_JUMP(
+	node,
+	struct init_node_t,
+	issues,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	node_location,
+	value_location,
+	issues,
+	error_free_resources);
+
+    node->value = value;
+    node->location = node_location;
+    node->multiplier = multiplier;
+
+    node->init_element.value = node->value;
+    node->init_element.multiplier = node->multiplier;
+    node->init_element.location = node->location;
+    node->init_element.next = NULL;
+    
+    update_initializer_location(ai, node->location);
+    
+    DL_APPEND(ai->nodes, node);
+    if(node->prev)
+    {
+	node->prev->init_element.next = &(node->init_element);
+    }
+    else
+    {
+	ai->array_init.first_node = &(node->init_element);
+    }
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    free(node);
+    free(node_location);
+    return ESSTEE_ERROR;
+}
+    
+static int array_init_extend_by_value(
+    struct array_initializer_iface_t *self,
+    struct value_iface_t *value,
+    const struct st_location_t *value_location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return extend_array_init(self,
+			     NULL,
+			     value,
+			     value_location,
+			     config,
+			     issues);
+}
+
+static int array_init_extend_by_multiplied_value(
+    struct array_initializer_iface_t *self,
+    struct value_iface_t *multiplier,
+    struct value_iface_t *value,
+    const struct st_location_t *value_location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return extend_array_init(self,
+			     NULL,
+			     multiplier,
+			     value_location,
+			     config,
+			     issues);
+
+}
+
+static struct value_iface_t * array_init_value(
+    struct array_initializer_iface_t *self)
+{
+    struct array_init_t *ai =
+	CONTAINER_OF(self, struct array_init_t, array_init);
+
+    return &(ai->value);
+}
+
+static void array_init_destroy(
+    struct array_initializer_iface_t *self)
+{
+    /* TODO: array init destructor */
+}
+
+/* Value methods */
+static const struct array_initializer_iface_t * array_init_value_array_initializer(
+    const struct value_iface_t *self)
+{
+    struct array_init_t *ai =
+	CONTAINER_OF(self, struct array_init_t, value);
+
+    return &(ai->array_init);
+}
+
+static void array_init_value_destroy(
+    struct value_iface_t *self)
+{
+    /* TODO: array init value destructor */
+}
+
+struct array_initializer_iface_t * st_create_array_initializer(
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct array_init_t *ai = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	ai,
+	struct array_init_t,
+	issues,
+	error_free_resources);
+    memset(ai, 0, sizeof(struct array_init_t));
+    
+    ai->array_init.extend_by_value = array_init_extend_by_value;
+    ai->array_init.extend_by_multiplied_value = array_init_extend_by_multiplied_value;
+    ai->array_init.value = array_init_value;
+    ai->array_init.destroy = array_init_destroy;
+    ai->array_init.location = &(ai->location);
+    ai->array_init.first_node = NULL;
+
+    ai->value.array_initializer = array_init_value_array_initializer;
+    ai->value.destroy = array_init_value_destroy;
+    
+    return &(ai->array_init);
+
+error_free_resources:
+    return NULL;
+}
+
+/**************************************************************************/
+/* Array type                                                             */
+/**************************************************************************/
 struct array_type_t {
     struct type_iface_t type;
     struct type_iface_t *arrayed_type;
-    struct array_range_t *ranges;
-    size_t total_elements;
+    struct array_range_iface_t *ranges;
     struct value_iface_t *default_value;
+    const struct array_initializer_iface_t *initializer;
+    size_t total_elements;
 };
 
 struct array_value_t {
@@ -61,29 +589,25 @@ struct array_value_t {
     const struct type_iface_t *arrayed_type;
 };
 
-static int array_type_check_array_initializer(
-    struct array_range_t *ranges,
-    const struct value_iface_t *default_value,
+static int check_array_initializer(
+    const struct array_range_element_iface_t *range,
+    const struct array_initializer_iface_t *initializer,
     struct type_iface_t *arrayed_type,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    const struct array_init_value_t *initializer =
-	default_value->array_init_value(default_value);
-    
     size_t checked_entries = 0;
-    struct array_range_t *current_range = ranges;
-    struct listed_value_t *itr = NULL;
-	
-    for(itr = initializer->values; itr != NULL; itr = itr->next)
+    const struct array_element_initializer_iface_t *itr = NULL;
+
+    for(itr = initializer->first_node; itr != NULL; itr = itr->next)
     {
-	if(itr->value->array_init_value)
+	if(itr->value->array_initializer)
 	{
-	    if(!current_range->next)
+	    if(!range->next)
 	    {
 		issues->new_issue_at(
 		    issues,
-		    "value addresses a new array level, but that does not match the array specification.", 
+		    "the initializer addresses a new array level, but that does not match the array specification.", 
 		    ESSTEE_TYPE_ERROR,
 		    1,
 		    itr->location);
@@ -92,9 +616,12 @@ static int array_type_check_array_initializer(
 	    }
 	    else
 	    {
-		if(array_type_check_array_initializer(
-		       current_range->next,
-		       itr->value,
+		const struct array_initializer_iface_t *inner_initializer =
+		    itr->value->array_initializer(itr->value);
+		
+		if(check_array_initializer(
+		       range->next,
+		       inner_initializer,
 		       arrayed_type,
 		       config,
 		       issues) == ESSTEE_ERROR)
@@ -105,9 +632,12 @@ static int array_type_check_array_initializer(
 	}
 	else
 	{
-	    if(!current_range->next)
+	    if(!range->next)
 	    {
-		if(arrayed_type->can_hold(arrayed_type, itr->value, config, issues) != ESSTEE_OK)
+		if(arrayed_type->can_hold(arrayed_type,
+					  itr->value,
+					  config,
+					  issues) != ESSTEE_OK)
 		{
 		    return ESSTEE_ERROR;
 		}
@@ -116,7 +646,7 @@ static int array_type_check_array_initializer(
 	    {
 		issues->new_issue_at(
 		    issues,
-		    "according to the array specification the value should address a new level.", 
+		    "according to the array specification the initializer should address a new level.", 
 		    ESSTEE_TYPE_ERROR,
 		    1,
 		    itr->location);
@@ -131,7 +661,7 @@ static int array_type_check_array_initializer(
 	    {
 		issues->new_issue_at(
 		    issues,
-		    "bad multiplier in array initializer.",
+		    "only integer multipliers are supported",
 		    ESSTEE_TYPE_ERROR,
 		    1,
 		    itr->location);
@@ -148,7 +678,7 @@ static int array_type_check_array_initializer(
 	}
     }
 
-    if(checked_entries < current_range->entries)
+    if(checked_entries < range->entries)
     {
 	issues->new_issue_at(
 	    issues,
@@ -159,7 +689,7 @@ static int array_type_check_array_initializer(
 	
 	return ESSTEE_ERROR;
     }
-    else if(checked_entries > current_range->entries)
+    else if(checked_entries > range->entries)
     {
 	issues->new_issue_at(
 	    issues,
@@ -174,35 +704,35 @@ static int array_type_check_array_initializer(
     return ESSTEE_OK;
 }
 
-static int array_type_assign_default_value(
+static int assign_array_initializer(
     struct value_iface_t **elements,
-    const struct value_iface_t *default_value,
+    const struct array_initializer_iface_t *initializer,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    const struct array_init_value_t *iav =
-	default_value->array_init_value(default_value);
-
     int elements_assigned = 0;
+    const struct array_element_initializer_iface_t *itr = NULL;
     
-    struct listed_value_t *itr = NULL;
-    DL_FOREACH(iav->values, itr)
+    for(itr = initializer->first_node; itr != NULL; itr = itr->next)
     {
-	if(itr->value->array_init_value)
+	if(itr->value->array_initializer)
 	{
-	    int sub_array_elements_assigned
-		= array_type_assign_default_value(elements,
-						  itr->value,
-						  config,
-						  issues);
+	    const struct array_initializer_iface_t *inner_initializer =
+		itr->value->array_initializer(itr->value);
+	    
+	    int inner_array_elements_assigned = assign_array_initializer(
+		elements,
+		inner_initializer,
+		config,
+		issues);
 
-	    if(sub_array_elements_assigned <= 0)
+	    if(inner_array_elements_assigned <= 0)
 	    {
 		return ESSTEE_ERROR;
 	    }
 
-	    elements += sub_array_elements_assigned;
-	    elements_assigned += sub_array_elements_assigned;
+	    elements += inner_array_elements_assigned;
+	    elements_assigned += inner_array_elements_assigned;
 	}
 	else
 	{
@@ -228,32 +758,15 @@ static int array_type_assign_default_value(
 	    }
 
 	    elements_assigned += elements_to_assign;
-	}
+	}	
     }
-
+    
     return elements_assigned;
 }
 
 /**************************************************************************/
 /* Value interface                                                        */
 /**************************************************************************/
-/* Initializer value */
-static const struct array_init_value_t * array_init_value(
-    const struct value_iface_t *self)
-{
-    struct array_init_value_t *av =
-	CONTAINER_OF(self, struct array_init_value_t, value);
-
-    return av;
-}
-
-static void array_init_value_destroy(
-    struct value_iface_t *self)
-{
-    /* TODO: array init value destructor */
-}
-
-/* Array variable value */
 static int array_value_assignable_from(
     const struct value_iface_t *self,
     const struct value_iface_t *other_value,
@@ -262,6 +775,16 @@ static int array_value_assignable_from(
 {
     const struct array_value_t *av =
 	CONTAINER_OF(self, struct array_value_t, value);
+
+    if(!other_value->array_initializer)
+    {
+	issues->new_issue(
+	    issues,
+	    "the complete array can only be assigned an initializer in initialization",
+	    ESSTEE_CONTEXT_ERROR);
+
+	return ESSTEE_FALSE;
+    }
     
     int type_can_hold = av->type->can_hold(av->type,
 					   other_value,
@@ -285,10 +808,13 @@ static int array_value_assign(
     const struct array_value_t *av =
 	CONTAINER_OF(self, struct array_value_t, value);
 
-    int elements_assigned = array_type_assign_default_value(av->elements,
-							    new_value,
-							    config,
-							    issues);
+    const struct array_initializer_iface_t *initializer =
+	new_value->array_initializer(new_value);
+    
+    int elements_assigned = assign_array_initializer(av->elements,
+						     initializer,
+						     config,
+						     issues);
 
     if(elements_assigned <= 0)
     {
@@ -307,11 +833,11 @@ static int array_value_display(
     const struct array_value_t *av =
 	CONTAINER_OF(self, struct array_value_t, value);
 
-    const struct type_iface_t *avt =
+    const struct type_iface_t *vt =
 	TYPE_ANCESTOR(av->type);
 
     struct array_type_t *at =
-	CONTAINER_OF(avt, struct array_type_t, type);
+	CONTAINER_OF(vt, struct array_type_t, type);
     
     int written_bytes = snprintf(buffer,
 				 buffer_size,
@@ -367,33 +893,34 @@ static const struct type_iface_t * array_value_type_of(
 
 static struct value_iface_t * array_value_index(
     struct value_iface_t *self,
-    const struct array_index_t *array_index,
+    const struct array_index_iface_t *array_index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
     const struct array_value_t *av =
     	CONTAINER_OF(self, struct array_value_t, value);
 
-    const struct type_iface_t *avt =
+    const struct type_iface_t *vt =
 	TYPE_ANCESTOR(av->type);
+    
     struct array_type_t *at =
-	CONTAINER_OF(avt, struct array_type_t, type);
+	CONTAINER_OF(vt, struct array_type_t, type);
 
-    const struct array_range_t *range_itr = at->ranges;
-    const struct array_index_t *index_itr = NULL;
+    const struct array_range_element_iface_t *range_itr = at->ranges->first_node;
+    const struct array_index_element_iface_t *index_itr = NULL;
 
     size_t elements_offset = 0;
     
-    DL_FOREACH(array_index, index_itr)
+    DL_FOREACH(array_index->first_node, index_itr)
     {
 	const struct value_iface_t *index_value =
-	    index_itr->index_expression->return_value(index_itr->index_expression);
+	    index_itr->expression->return_value(index_itr->expression);
 
 	if(!range_itr)
 	{
 	    issues->new_issue_at(
 		issues,
-		"index out of range",
+		"index addresses a non existing range",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
 		array_index->location);
@@ -408,7 +935,7 @@ static struct value_iface_t * array_value_index(
 		"only integer indices are supported",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
-		array_index->location);
+		index_itr->expression->invoke.location);
 
 	    return NULL;
 	}
@@ -425,7 +952,7 @@ static struct value_iface_t * array_value_index(
 		"index out of range (smaller than minimum)",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
-		array_index->location);
+		index_itr->expression->invoke.location);
 
 	    return NULL;
 	}
@@ -442,7 +969,7 @@ static struct value_iface_t * array_value_index(
 		"index out of range (larger than maximum)",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
-		array_index->location);
+		index_itr->expression->invoke.location);
 
 	    return NULL;
 	}
@@ -453,13 +980,10 @@ static struct value_iface_t * array_value_index(
 								  issues);
 	
 	size_t multiplier = 1;
-	if(range_itr->next)
+	const struct array_range_element_iface_t *r_itr = NULL;
+	for(r_itr = range_itr->next; r_itr != NULL; r_itr = r_itr->next)
 	{
-	    const struct array_range_t *ritr = NULL;
-	    DL_FOREACH(range_itr->next, ritr)
-	    {
-		multiplier *= ritr->entries;
-	    }
+	    multiplier *= r_itr->entries;
 	}
 	
 	elements_offset += (index_num-min_index_num) * multiplier;
@@ -471,7 +995,7 @@ static struct value_iface_t * array_value_index(
     {
 	issues->new_issue_at(
 	    issues,
-	    "missing array indices",
+	    "index does not address all ranges",
 	    ESSTEE_ARGUMENT_ERROR,
 	    1,
 	    array_index->location);
@@ -480,7 +1004,7 @@ static struct value_iface_t * array_value_index(
     }
     
     return av->elements[elements_offset];
-}    
+}
 
 static int array_value_override_type(
     const struct value_iface_t *self,
@@ -495,7 +1019,6 @@ static int array_value_override_type(
 
     return ESSTEE_OK;
 }
-
 
 static void array_value_destroy(
     struct value_iface_t *self)
@@ -543,19 +1066,6 @@ static struct value_iface_t * array_type_create_value_of(
 	    goto error_free_resources;
 	}
     }
-
-    if(at->default_value)
-    {
-	int elements_assigned = array_type_assign_default_value(elements,
-								at->default_value,
-								config,
-								issues);
-
-	if(elements_assigned <= 0)
-	{
-	    goto error_free_resources;
-	}
-    }
 	
     av->type = self;
     av->arrayed_type = at->arrayed_type;
@@ -591,12 +1101,12 @@ static int array_type_reset_value_of(
     struct array_value_t *av =
 	CONTAINER_OF(value_of, struct array_value_t, value);
 
-    if(at->default_value)
+    if(at->initializer)
     {
-	int elements_assigned = array_type_assign_default_value(av->elements,
-								at->default_value,
-								config,
-								issues);
+	int elements_assigned = assign_array_initializer(av->elements,
+							 at->initializer,
+							 config,
+							 issues);
 
 	if(elements_assigned != at->total_elements)
 	{
@@ -632,11 +1142,24 @@ static int array_type_can_hold(
     const struct array_type_t *at =
 	CONTAINER_OF(self, struct array_type_t, type);
 
-    return array_type_check_array_initializer(at->ranges,
-					      value,
-					      at->arrayed_type,
-					      config,
-					      issues);
+    if(!value->array_initializer)
+    {
+	issues->new_issue(
+	    issues,
+	    "an array type can only be initialized when declared by an initializer",
+	    ESSTEE_CONTEXT_ERROR);
+
+	return ESSTEE_FALSE;
+    }
+    
+    const struct array_initializer_iface_t *initializer =
+	value->array_initializer(value);
+
+    return check_array_initializer(at->ranges->first_node,
+				   initializer,
+				   at->arrayed_type,
+				   config,
+				   issues);
 }
 
 static st_bitflag_t array_type_class(
@@ -700,13 +1223,13 @@ static int array_type_arrayed_type_check(
 	return ESSTEE_ERROR;
     }
     
-    if(at->default_value)
-    {
-	return array_type_check_array_initializer(at->ranges,
-						  at->default_value,
-						  at->arrayed_type,
-						  config,
-						  issues);
+    if(at->initializer)
+    {    
+	return check_array_initializer(at->ranges->first_node,
+				       at->initializer,
+				       at->arrayed_type,
+				       config,
+				       issues);
     }
     
     return ESSTEE_OK;
@@ -715,133 +1238,12 @@ static int array_type_arrayed_type_check(
 /**************************************************************************/
 /* Public interface                                                       */
 /**************************************************************************/
-struct array_range_t * st_extend_array_range(
-    struct array_range_t *array_ranges,
-    struct subrange_t *subrange,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct array_range_t *ar = NULL;
-
-    ALLOC_OR_ERROR_JUMP(
-	ar,
-	struct array_range_t,
-	issues,
-	error_free_resources);
-    
-    ar->subrange = subrange;
-
-    int64_t max_num = subrange->max->integer(subrange->max,
-					     config,
-					     issues);
-
-    int64_t min_num = subrange->min->integer(subrange->min,
-					     config,
-					     issues);
-    ar->entries = max_num - min_num + 1;
-
-    DL_APPEND(array_ranges, ar);
-
-    return array_ranges;
-
-error_free_resources:
-    /* TODO: determine what to destroy */
-    return NULL;
-}
-
-void st_destroy_listed_values(
-    struct listed_value_t *values)
-{
-    /* TODO: listed values destroy */
-}
-
-void st_destroy_array_ranges(
-    struct array_range_t *array_ranges)
-{
-    /* TODO: array ranges destroy */
-}
-
-struct listed_value_t * st_extend_array_initializer(
-    struct listed_value_t *values,
-    struct value_iface_t *multiplier,
-    struct value_iface_t *new_value,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct listed_value_t *listed_value = NULL;
-    struct st_location_t *value_location = NULL;
-
-    ALLOC_OR_ERROR_JUMP(
-	listed_value,
-	struct listed_value_t,
-	issues,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	value_location,
-	location,
-	issues,
-	error_free_resources);
-
-    listed_value->value = new_value;
-    listed_value->multiplier = multiplier;
-    listed_value->location = value_location;
-
-    DL_APPEND(values, listed_value);
-
-    return values;
-
-error_free_resources:
-    /* TODO: determine what to destroy */
-    return NULL;
-}
-
-struct value_iface_t * st_create_array_init_value(
-    struct listed_value_t *values,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct array_init_value_t *av = NULL;
-    struct st_location_t *loc = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	av,
-	struct array_init_value_t,
-	issues,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	loc,
-	location,
-	issues,
-	error_free_resources);
-
-    size_t entries = 0;
-    struct listed_value_t *itr = NULL;
-    DL_COUNT(values, itr, entries);
-
-    av->location = loc;
-    av->values = values;
-    av->entries = entries;
-
-    memset(&(av->value), 0, sizeof(struct value_iface_t));
-    av->value.array_init_value = array_init_value;
-    av->value.destroy = array_init_value_destroy;
-    
-    return &(av->value);
-    
-error_free_resources:
-    /* TODO: determine what to destroy */
-    return NULL;
-}
-
 struct type_iface_t * st_create_array_type(
-    struct array_range_t *array_ranges,
+    struct array_range_iface_t *array_range,
     char *arrayed_type_identifier,
     const struct st_location_t *arrayed_type_identifier_location,
     struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct named_ref_pool_iface_t *type_refs,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -854,9 +1256,28 @@ struct type_iface_t * st_create_array_type(
 	issues,
 	error_free_resources);
 
-    at->ranges = array_ranges;
-    at->default_value = default_value;
+    at->ranges = array_range;
+    at->initializer = NULL;
+    at->default_value = NULL;
 
+    if(default_value)
+    {
+	if(!default_value->array_initializer)
+	{
+	    issues->new_issue_at(
+		issues,
+		"an array can only be initialized from an array initializer",
+		ESSTEE_CONTEXT_ERROR,
+		1,
+		default_value_location);
+
+	    goto error_free_resources;
+	}
+	
+	at->initializer = default_value->array_initializer(default_value);
+	at->default_value = default_value;
+    }
+    
     int ref_add_result = type_refs->add_two_step(
 	type_refs,
 	arrayed_type_identifier,
@@ -873,8 +1294,8 @@ struct type_iface_t * st_create_array_type(
 
     /* Determine the array size */
     at->total_elements = 0;
-    struct array_range_t *itr = NULL;
-    DL_FOREACH(at->ranges, itr)
+    const struct array_range_element_iface_t *itr = NULL;
+    DL_FOREACH(at->ranges->first_node, itr)
     {
 	if(at->total_elements == 0)
 	{
@@ -896,6 +1317,6 @@ struct type_iface_t * st_create_array_type(
     return &(at->type);
     
 error_free_resources:
-    /* TODO: determine what to destroy */
+    free(at);
     return NULL;
 }
