@@ -27,7 +27,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <stddef.h>
 #include <stdint.h>
 
-struct array_index_t;
+struct array_index_iface_t;
 struct variable_iface_t;
 struct enum_item_t;
 struct cursor_iface_t;
@@ -35,8 +35,8 @@ struct invoke_parameters_iface_t;
 struct duration_t;
 struct date_t;
 struct tod_t;
-struct array_init_value_t;
-struct struct_init_value_t;
+struct array_initializer_iface_t;
+struct struct_initializer_iface_t;
 struct type_iface_t;
 
 #define TEMPORARY_VALUE (1 << 0)
@@ -129,7 +129,7 @@ struct value_iface_t {
 
     struct value_iface_t * (*index)(
 	struct value_iface_t *self,
-	const struct array_index_t *array_index,
+	const struct array_index_iface_t *index,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
@@ -315,9 +315,9 @@ struct value_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    const struct array_init_value_t * (*array_init_value)(
+    const struct array_initializer_iface_t * (*array_initializer)(
 	const struct value_iface_t *self);
 
-    const struct struct_init_value_t * (*struct_init_value)(
+    const struct struct_initializer_iface_t * (*struct_initializer)(
 	const struct value_iface_t *self);
 };

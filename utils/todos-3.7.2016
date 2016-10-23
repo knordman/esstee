@@ -21,6 +21,9 @@ built-in functions and function blocks
 
 Python bindings for esstee
 
+Wishlist
+-- assignment of an array to another array (ok when dimensions match and type)
+
 Misc
 107 NULL, /* TODO: fix dependency on config */ ../src/expressions/binary_expressions.c
 112 /* TODO: implement set config */ ../src/api/esstee.c

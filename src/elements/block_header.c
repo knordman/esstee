@@ -48,9 +48,8 @@ int st_create_header_tables(
 
     /* Make hash table from var list */
     int issues_at_var_start = issues->count(issues, ESSTEE_FILTER_ANY_ERROR);
-    struct variable_iface_t *variable_table = st_link_variables(header->variables,
-								NULL,
-								issues);
+    struct variable_iface_t *variable_table
+	= st_link_variables(header->variables, NULL, issues);
 
     if(issues->count(issues, ESSTEE_FILTER_ANY_ERROR) == issues_at_var_start)
     {

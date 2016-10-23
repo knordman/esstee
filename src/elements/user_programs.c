@@ -200,8 +200,9 @@ static struct variable_iface_t * user_program_variable(
     {
 	issues->new_issue(
 	    issues,
-	    "program has no variable named '%s'",
+	    "program '%s' has no variable named '%s'",
 	    ESSTEE_CONTEXT_ERROR,
+	    self->identifier,
 	    variable_identifier);
     }
 

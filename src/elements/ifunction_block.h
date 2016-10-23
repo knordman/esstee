@@ -34,7 +34,12 @@ struct function_block_iface_t {
 	struct type_iface_t *global_type_table,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
-    
+
+    int (*check_dependencies)(
+    	struct function_block_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+	
     int (*finalize_header)(
 	struct function_block_iface_t *self,
 	struct variable_iface_t *global_var_table,
@@ -45,10 +50,6 @@ struct function_block_iface_t {
 	struct function_block_iface_t *self,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
-
-    int (*depends_on)(
-    	const struct function_block_iface_t *self,
-	const struct type_iface_t *type);
 
     void (*destroy)(
     	struct function_block_iface_t *self);    

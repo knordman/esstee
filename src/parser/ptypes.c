@@ -106,7 +106,7 @@ struct type_iface_t * st_new_derived_type_by_name(
 struct type_iface_t * st_new_subrange_type(
     char *storage_type_identifier,
     const struct st_location_t *storage_type_identifier_location,
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     struct value_iface_t *default_value,
     const struct st_location_t *default_value_location,
     struct parser_t *parser)
@@ -124,8 +124,8 @@ struct type_iface_t * st_new_subrange_type(
 
     if(!st)
     {
+	subrange->destroy(subrange);
 	free(storage_type_identifier);
-	st_destroy_subrange(subrange);
 	if(default_value)
 	{
 	    default_value->destroy(default_value);
@@ -136,7 +136,7 @@ struct type_iface_t * st_new_subrange_type(
 }
 
 struct type_iface_t * st_new_enum_type(
-    struct enum_group_item_t *value_group, 
+    struct enum_group_iface_t *enum_group, 
     char *default_item, 
     const struct st_location_t *default_item_location,
     struct parser_t *parser)
@@ -150,7 +150,7 @@ struct type_iface_t * st_new_enum_type(
 
     if(!et)
     {
-	st_destroy_enum_group(value_group);
+	enum_group->destroy(enum_group);
     }
 
     free(default_item);
@@ -159,10 +159,11 @@ struct type_iface_t * st_new_enum_type(
 }
 
 struct type_iface_t * st_new_array_type(
-    struct array_range_t *array_ranges,
+    struct array_range_iface_t *array_ranges,
     char *arrayed_type_identifier,
     const struct st_location_t *arrayed_type_identifier_location,
     struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser)
 {
     struct type_iface_t *at = st_create_array_type(
@@ -176,26 +177,27 @@ struct type_iface_t * st_new_array_type(
 
     if(!at)
     {
-	st_destroy_array_ranges(array_ranges);
+	array_ranges->destroy(array_ranges);
 	if(default_value)
 	{
 	    default_value->destroy(default_value);
 	}
+	free(arrayed_type_identifier);
     }
 
     return at;
 }
 
 struct type_iface_t * st_new_struct_type(
-    struct struct_element_t *element_group,
+    struct struct_elements_iface_t *elements,
     struct parser_t *parser)
 {
-    struct type_iface_t *st = st_create_struct_type(element_group,
+    struct type_iface_t *st = st_create_struct_type(elements,
 						    parser->config,
 						    parser->errors);
     if(!st)
     {
-	st_destroy_struct_element_group(element_group);
+	elements->destroy(elements);
     }
 
     return st;

@@ -22,55 +22,58 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/itype.h>
 #include <util/inamed_ref_pool.h>
 
-struct struct_element_t;
-struct struct_element_init_t;
+struct struct_elements_iface_t {
 
-struct struct_element_t * st_extend_element_group(
-    struct struct_element_t *element_group,
-    char *element_identifier,
-    const struct st_location_t *identifier_location,
-    struct type_iface_t *element_type,
+    int (*extend_by_type)(
+	struct struct_elements_iface_t *self,
+	char *identifier,
+	const struct st_location_t *identifier_location,
+	struct type_iface_t *type,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*extend_by_type_name)(
+	struct struct_elements_iface_t *self,
+	char *identifier,
+	const struct st_location_t *identifier_location,
+	char *type_name,
+	const struct st_location_t *type_name_location,
+	struct named_ref_pool_iface_t *type_refs,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    void (*destroy)(
+     	struct struct_elements_iface_t *self);
+};
+
+struct struct_initializer_iface_t {
+
+    int (*extend)(
+	struct struct_initializer_iface_t *self,
+	char *identifier,
+	const struct st_location_t *identifier_location,
+	struct value_iface_t *value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+	
+    struct value_iface_t * (*value)(
+    	struct struct_initializer_iface_t *self);
+
+    void (*destroy)(
+     	struct struct_initializer_iface_t *self);
+   
+    const struct st_location_t *location;
+};
+
+struct struct_elements_iface_t * st_create_struct_elements(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
-struct struct_element_t * st_extend_element_group_type_name(
-    struct struct_element_t *element_group,
-    char *element_identifier,
-    const struct st_location_t *identifier_location,
-    char *element_type_name,
-    const struct st_location_t *element_type_name_location,
-    struct named_ref_pool_iface_t *type_refs,
+struct struct_initializer_iface_t * st_create_struct_initializer(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
-
-void st_destroy_struct_element_group(
-    struct struct_element_t *element_group);
 
 struct type_iface_t * st_create_struct_type(
-    struct struct_element_t *element_group,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-struct struct_element_init_t * st_create_element_initializer(
-    char *element_identifier,
-    const struct st_location_t *identifier_location,
-    struct value_iface_t *value,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-struct struct_element_init_t * st_extend_element_initializer_group(
-    struct struct_element_init_t *initializer_group,
-    struct struct_element_init_t *element_initializer,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-void st_destroy_element_initializer(
-    struct struct_element_init_t *initializer);
-
-void st_destroy_initializer_group(
-    struct struct_element_init_t *initializer_group);
-
-struct value_iface_t * st_create_struct_initializer_value(
-    struct struct_element_init_t *initializer_group,
+    struct struct_elements_iface_t *elements,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

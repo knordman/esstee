@@ -28,7 +28,7 @@ struct expression_iface_t {
     struct invoke_iface_t invoke;
     
     const struct value_iface_t * (*return_value)(
-	struct expression_iface_t *self);
+	const struct expression_iface_t *self);
 
     struct expression_iface_t * (*clone)(
 	struct expression_iface_t *self,

@@ -18,7 +18,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/qualified_identifier.h>
-#include <elements/array.h>
 #include <elements/ivariable.h>
 #include <util/macros.h>
 
@@ -27,7 +26,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 struct qualified_part_t {
     char *identifier;
     struct st_location_t *location;
-    struct array_index_t *index;
+    struct array_index_iface_t *index;
     struct variable_iface_t *variable;
     struct qualified_part_t *prev;
     struct qualified_part_t *next;
@@ -36,14 +35,58 @@ struct qualified_part_t {
 struct qualified_identifier_t {
     struct qualified_identifier_iface_t qid;
     struct variable_iface_t *target_variable;
-    struct array_index_t *target_index;
+    struct array_index_iface_t *target_index;
     const struct value_iface_t *target;
     const char *target_name;
     struct qualified_part_t *path;
-    int invoke_state;
-    struct qualified_part_t *next_step_part;
-    struct st_location_t *location;
+    struct named_ref_pool_iface_t *base_context;
+    int explicit_base;
+    struct qualified_part_t *invoke_state_part;
+    int constant_reference;
+    struct st_location_t location;
 };
+
+/**************************************************************************/
+/* Linker callbacks                                                       */
+/**************************************************************************/
+static int qualified_identifier_base_resolved(
+    void *referrer,
+    void *target,
+    st_bitflag_t remark,
+    const char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	(struct qualified_identifier_t *)referrer;
+    
+    if(qi->explicit_base == ESSTEE_TRUE)
+    {
+	/* If base has been set explicitly, don't use link result */
+	return ESSTEE_OK;
+    }
+    else if(!target)
+    {
+	const char *message = issues->build_message(
+	    issues,
+	    "reference to undefined variable '%s'",
+	    identifier);
+
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_LINK_ERROR,
+	    1,
+	    location);
+
+	return ESSTEE_ERROR;
+    }
+
+    qi->path->variable = (struct variable_iface_t *)target;
+
+    return ESSTEE_OK;
+}
 
 /**************************************************************************/
 /* Helper functions                                                       */
@@ -54,14 +97,16 @@ static int qualified_identifier_resolve_chain(
     struct issues_iface_t *issues)
 {
     struct qualified_part_t *itr = NULL;
+    struct issue_group_iface_t *ig = NULL;
+    
     DL_FOREACH(qi->path, itr)
     {
 	if(itr->index != NULL)
 	{
-	    issues->begin_group(issues);
-	    
 	    if(itr->next)
 	    {
+		ig = issues->open_group(issues);
+		
 		struct variable_iface_t *subvar = itr->variable->sub_variable(
 		    itr->variable,
 		    itr->index,
@@ -69,12 +114,16 @@ static int qualified_identifier_resolve_chain(
 		    config,
 		    issues);
 
+		ig->close(ig);
+
 		if(!subvar)
 		{
-		    issues->set_group_location(issues,
-					       1,
-					       itr->location);
-		    issues->end_group(issues);
+		    ig->main_issue(ig,
+				   "bad reference",
+				   ESSTEE_CONTEXT_ERROR,
+				   1,
+				   itr->location);
+		    
 		    return ESSTEE_ERROR;
 		}
 		
@@ -82,11 +131,15 @@ static int qualified_identifier_resolve_chain(
 	    }
 	    else
 	    {
+		ig = issues->open_group(issues);
+
 		const struct value_iface_t *index_value = itr->variable->index_value(
 		    itr->variable,
 		    itr->index,
 		    config,
 		    issues);
+
+		ig->close(ig);
 
 		if(!index_value)
 		{
@@ -143,16 +196,151 @@ static int qualified_identifier_resolve_chain(
 /**************************************************************************/
 /* Qualified identifier interface                                         */
 /**************************************************************************/
+static void qualified_identifier_destroy(
+    struct qualified_identifier_iface_t *self)
+{
+    /* TODO: qualified identifier destructor */
+}
+
+static void qualified_identifier_destroy_clone(
+    struct qualified_identifier_iface_t *self)
+{
+    /* TODO: qualified identifier destructor */
+}
+
+static int qualified_identifier_extend_by_index(
+    struct qualified_identifier_iface_t *self,
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    struct array_index_iface_t *index,
+    const struct st_location_t *qid_location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    struct qualified_part_t *part = NULL;
+    struct st_location_t *part_location = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	part,
+	struct qualified_part_t,
+	issues,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	part_location,
+	identifier_location,
+	issues,
+	error_free_resources);
+
+    memcpy(&(qi->location), qid_location, sizeof(struct st_location_t));
+    
+    part->identifier = identifier;
+    part->location = part_location;
+    part->index = index;
+    part->variable = NULL;
+
+    if(index->constant_reference(index) != ESSTEE_TRUE)
+    {
+	qi->constant_reference = ESSTEE_FALSE;
+    }
+
+    if(!qi->path)
+    {
+	qi->qid->location = part->location;
+	
+	int add_base_ref_result = qi->base_context->add(
+	    qi->base_context,
+	    part->identifier,
+	    qi,
+	    part->location,
+	    qualified_identifier_base_resolved,
+	    issues);
+
+	if(add_base_ref_result != ESSTEE_OK)
+	{
+	    goto error_free_resources;
+	}
+    }
+    
+    DL_APPEND(qi->path, part);
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    return ESSTEE_ERROR;
+}
+
+static int qualified_identifier_extend(
+    struct qualified_identifier_iface_t *self,
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    const struct st_location_t *qid_location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    struct qualified_part_t *part = NULL;
+    struct st_location_t *part_location = NULL;
+    ALLOC_OR_ERROR_JUMP(
+	part,
+	struct qualified_part_t,
+	issues,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	part_location,
+	identifier_location,
+	issues,
+	error_free_resources);
+
+    memcpy(&(qi->location), qid_location, sizeof(struct st_location_t));
+    
+    part->identifier = identifier;
+    part->location = part_location;
+    part->index = NULL;
+    part->variable = NULL;
+
+    if(!qi->path)
+    {
+	qi->qid->location = part->location;
+	
+	int add_base_ref_result = qi->base_context->add(
+	    qi->base_context,
+	    part->identifier,
+	    qi,
+	    part->location,
+	    qualified_identifier_base_resolved,
+	    issues);
+
+	if(add_base_ref_result != ESSTEE_OK)
+	{
+	    goto error_free_resources;
+	}
+    }
+
+    DL_APPEND(qi->path, part);
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    free(part);
+    return ESSTEE_ERROR;
+}
+
 static int qualified_identifier_verify(
     const struct qualified_identifier_iface_t *self,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    if(self->constant_reference == ESSTEE_TRUE)
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+		     
+    if(qi->constant_reference == ESSTEE_TRUE)
     {
-	struct qualified_identifier_t *qi =
-	    CONTAINER_OF(self, struct qualified_identifier_t, qid);
-
 	int resolve_result = qualified_identifier_resolve_chain(qi,
 								config,
 								issues);
@@ -169,48 +357,29 @@ static int qualified_identifier_step(
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    if(self->constant_reference == ESSTEE_FALSE)
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+    
+    if(qi->constant_reference == ESSTEE_FALSE)
     {
-	struct qualified_identifier_t *qi =
-	    CONTAINER_OF(self, struct qualified_identifier_t, qid);
-
-        struct qualified_part_t *itr = qi->next_step_part;
-	struct array_index_t *index_itr = NULL;
-
-	for(; itr != NULL; itr = itr->next)
+	while(qi->invoke_state_part)
 	{
-	    int skipped = 0;
-	    DL_FOREACH(itr->index, index_itr)
-	    {
-		if(skipped >= qi->invoke_state)
-		{
-		    break;
-		}
+	    struct qualified_part_t *current_part = qi->invoke_state_part;
+	    qi->invoke_state_part = qi->invoke_state_part->next;	    
 
-		skipped++;
-	    }
-
-	    for(; index_itr != NULL; index_itr = index_itr->next)
+	    if(current_part->index)
 	    {
-		if(index_itr->index_expression->invoke.step)
+		int index_step_result = current_part->index->step(current_part->index,
+								  cursor,
+								  time,
+								  config,
+								  issues);
+		
+		if(index_step_result != INVOKE_RESULT_FINISHED)
 		{
-		    /* Push to call stack (to be stepped), when stepping is
-		     * complete, index has been evaluated (=increase state) */
-		    qi->invoke_state++;
-		    cursor->switch_current(cursor,
-					   &(index_itr->index_expression->invoke),
-					   config,
-					   issues);
-		    return INVOKE_RESULT_IN_PROGRESS;
-		}
-		else
-		{
-		    qi->invoke_state++;
+		    return index_step_result;
 		}
 	    }
-
-	    qi->next_step_part = itr->next;
-	    qi->invoke_state = 0;
 	}
 
 	int resolve_result = qualified_identifier_resolve_chain(qi,
@@ -219,9 +388,9 @@ static int qualified_identifier_step(
 	if(resolve_result != ESSTEE_OK)
 	{
 	    return INVOKE_RESULT_ERROR;
-	}
+        }
     }
-
+    
     return INVOKE_RESULT_FINISHED;
 }
 
@@ -234,14 +403,13 @@ static int qualified_identifier_reset(
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
 
     struct qualified_part_t *itr = NULL;
-    for(itr = qi->path; itr != NULL; itr = itr->next)
+    DL_FOREACH(qi->path, itr)
     {
-	if(itr->index && itr->index->index_expression->invoke.reset)
+	if(itr->index)
 	{
-	    int reset_result = itr->index->index_expression->invoke.reset(
-		&(itr->index->index_expression->invoke),
-		config,
-		issues);
+	    int reset_result = itr->index->reset(itr->index,
+						 config,
+						 issues);
 
 	    if(reset_result != ESSTEE_OK)
 	    {
@@ -250,9 +418,8 @@ static int qualified_identifier_reset(
 	}
     }
 
-    qi->invoke_state = 0;
-    qi->next_step_part = NULL;
-
+    qi->invoke_state_part = qi->path;
+	
     return ESSTEE_OK;
 }
 
@@ -264,14 +431,12 @@ static int qualified_identifier_allocate(
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
 
     struct qualified_part_t *itr = NULL;
-    for(itr = qi->path; itr != NULL; itr = itr->next)
+    DL_FOREACH(qi->path, itr)
     {
-	if(itr->index && itr->index->index_expression->invoke.allocate)
+	if(itr->index)
 	{
-	    int allocate_result = itr->index->index_expression->invoke.allocate(
-		&(itr->index->index_expression->invoke),
-		issues);
-
+	    int allocate_result = itr->index->allocate(itr->index,
+						       issues);
 	    if(allocate_result != ESSTEE_OK)
 	    {
 		return allocate_result;
@@ -289,40 +454,76 @@ static struct qualified_identifier_iface_t * qualified_identifier_clone(
     struct qualified_identifier_t *qi =
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
 
-    struct qualified_identifier_t *copy = NULL;
+    struct qualified_identifier_t *clone = NULL;
+    struct qualified_part_t *path_clone = NULL;
+    struct qualified_part_t *part_clone = NULL;
+    struct array_index_iface_t *index_clone = NULL;
 
-    ALLOC_OR_ERROR_JUMP(
-	copy,
-	struct qualified_identifier_t,
-	issues,
-	error_free_resources);
-
-    struct qualified_part_t *path_copy = NULL;
-    struct qualified_part_t *part_copy = NULL;
-    struct qualified_part_t *part_itr = NULL;
-
-    DL_FOREACH(qi->path, part_itr)
+    struct qualified_part_t *itr = NULL;
+    DL_FOREACH(qi->path, itr)
     {
 	ALLOC_OR_ERROR_JUMP(
-	    part_copy,
+	    part_clone,
 	    struct qualified_part_t,
 	    issues,
 	    error_free_resources);
 
-	memcpy(part_copy, part_itr, sizeof(struct qualified_part_t));
+	memcpy(part_clone, itr, sizeof(struct qualified_part_t));
+	part_clone->index = NULL;
+	part_clone->variable = NULL;
 
-	DL_APPEND(path_copy, part_copy);
+	if(itr->index)
+	{
+	    index_clone = itr->index->clone(itr->index, issues);
+
+	    if(!index_clone)
+	    {
+		goto error_free_resources;
+	    }
+
+	    part_clone->index = index_clone;
+	}
+
+	DL_APPEND(path_clone, part_clone);
     }
 
-    copy->path = part_copy;
+    /* Allocate space for the copy */
+    ALLOC_OR_ERROR_JUMP(
+	clone,
+	struct qualified_identifier_t,
+	issues,
+	error_free_resources);
+
+    memcpy(clone, qi, sizeof(struct qualified_identifier_t));    
+    clone->target_variable = NULL;
+    clone->target_index = NULL;
+    clone->target = NULL;
+    clone->target_name = NULL;
+    clone->path = path_clone;
+    clone->qid.destroy = qualified_identifier_destroy_clone;
+
+    return &(clone->qid);
     
 error_free_resources:
-    DL_FOREACH_SAFE(path_copy, part_itr, part_copy)
+    DL_FOREACH_SAFE(path_clone, itr, part_clone)
     {
-	free(part_itr);
+	if(itr->index)
+	{
+	    itr->index->destroy(itr->index);
+	}
+	free(itr);
     }
-    free(copy);
+    free(clone);
     return NULL;
+}
+
+static int qualified_identifier_constant_reference(
+    struct qualified_identifier_iface_t *self)
+{
+    struct qualified_identifier_t *qi =
+	CONTAINER_OF(self, struct qualified_identifier_t, qid);
+
+    return qi->constant_reference;
 }
 
 /* Path base interaction */
@@ -336,6 +537,7 @@ static int qualified_identifier_set_base(
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
 
     qi->path->variable = base;
+    qi->explicit_base = ESSTEE_TRUE;
 
     return ESSTEE_OK;
 }
@@ -627,198 +829,43 @@ static int qualified_identifier_target_to_power(
 					 issues);
 }
 
-/* Destructor */
-static void qualified_identifier_destroy(
-    struct qualified_identifier_iface_t *self)
-{
-    /* TODO: qualified identifier destructor */
-}
-
-/**************************************************************************/
-/* Linker callbacks                                                       */
-/**************************************************************************/
-static int qualified_identifier_base_resolved(
-    void *referrer,
-    void *target,
-    st_bitflag_t remark,
-    const char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_identifier_t *qi =
-	(struct qualified_identifier_t *)referrer;
-    
-    if(qi->path->variable)
-    {
-	/* If base has been set explicitly, don't use link result */
-	return ESSTEE_OK;
-    }
-    else if(!target)
-    {
-	const char *message = issues->build_message(
-	    issues,
-	    "reference to undefined variable '%s'",
-	    identifier);
-
-	issues->new_issue_at(
-	    issues,
-	    message,
-	    ESSTEE_LINK_ERROR,
-	    1,
-	    location);
-
-	return ESSTEE_ERROR;
-    }
-
-    qi->path->variable = (struct variable_iface_t *)target;
-
-    return ESSTEE_OK;
-}
-
 /**************************************************************************/
 /* Public interface                                                       */
 /**************************************************************************/
-struct qualified_part_t * st_extend_qualified_path(
-    struct qualified_part_t *path,
-    char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_part_t *part = NULL;
-    struct st_location_t *part_location = NULL;
-
-    ALLOC_OR_ERROR_JUMP(
-	part,
-	struct qualified_part_t,
-	issues,
-	error_free_resources);
-       
-    LOCDUP_OR_ERROR_JUMP(
-	part_location,
-	location,
-	issues,
-	error_free_resources);
-
-    part->identifier = identifier;
-    part->location = part_location;
-    part->index = NULL;
-
-    DL_APPEND(path, part);
-    
-    return path;
-    
-error_free_resources:
-    free(part);
-    free(part_location);
-    return NULL;
-}
-
-struct qualified_part_t * st_extend_qualified_path_by_index(
-    struct qualified_part_t *path,
-    struct array_index_t *array_index,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_part_t *last_part = NULL;
-    for(last_part = path; last_part->next != NULL; last_part = last_part->next);
-
-    last_part->index = array_index;
-
-    return path;
-}
-
-void st_destroy_qualified_path(
-    struct qualified_part_t *path)
-{
-    /* TODO: qualified path destroy */
-}
-
 struct qualified_identifier_iface_t * st_create_qualified_identifier(
-    char *base,
-    const struct st_location_t *base_location,
-    struct qualified_part_t *inner_path,
-    struct named_ref_pool_iface_t *var_refs,
+    struct named_ref_pool_iface_t *variable_context,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
-    struct qualified_part_t *part = NULL;
-    struct st_location_t *part_location = NULL;
     struct qualified_identifier_t *qi;
 
-    /* Set up the base part of the path */
-    ALLOC_OR_ERROR_JUMP(
-	part,
-	struct qualified_part_t,
-	issues,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	part_location,
-	base_location,
-	issues,
-	error_free_resources);
-
-    part->identifier = base;
-    part->location = part_location;
-
-    DL_PREPEND(inner_path, part);
-
-    /* Set up the qualified identifier */
     ALLOC_OR_ERROR_JUMP(
 	qi,
 	struct qualified_identifier_t,
 	issues,
 	error_free_resources);
 
-    int ref_result = var_refs->add(
-	var_refs,
-	base,
-	qi,
-	base_location,
-	qualified_identifier_base_resolved,
-	issues);
-
-    if(ref_result != ESSTEE_OK)
-    {
-	goto error_free_resources;
-    }
-
-    /* Check whether the reference is run-time constant */
-    int constant_ref = ESSTEE_TRUE;
-    struct qualified_part_t *itr = NULL;
-    for(itr = inner_path; itr != NULL; itr = itr->next)
-    {
-	struct array_index_t *index_itr;
-	for(index_itr = itr->index; index_itr != NULL; index_itr = index_itr->next)
-	{
-	    if(index_itr->index_expression->invoke.step || index_itr->index_expression->clone)
-	    {
-		constant_ref = ESSTEE_FALSE;
-		break;
-	    }
-	}
-
-	if(constant_ref != ESSTEE_TRUE)
-	{
-	    break;
-	}
-    }
-
-    qi->path = inner_path;
+    qi->path = NULL;
     qi->target_name = NULL;
+    qi->explicit_base = ESSTEE_FALSE;
+    qi->constant_reference = ESSTEE_TRUE;
+    qi->base_context = variable_context;
+
+    memset(&(qi->location), 0, sizeof(struct st_location_t));
     
     /* Set up interface functions */
     memset(&(qi->qid), 0, sizeof(struct qualified_identifier_iface_t));
-    qi->qid.constant_reference = constant_ref;
-    qi->qid.location = qi->path->location;
+    qi->qid.extend_by_index = qualified_identifier_extend_by_index;
+    qi->qid.extend = qualified_identifier_extend;
+    
+    qi->qid.constant_reference = qualified_identifier_constant_reference;
     
     qi->qid.verify = qualified_identifier_verify;
     qi->qid.step = qualified_identifier_step;
     qi->qid.reset = qualified_identifier_reset;
     qi->qid.allocate = qualified_identifier_allocate;
     qi->qid.clone = qualified_identifier_clone;
+    qi->qid.constant_reference = qualified_identifier_constant_reference;
 
     qi->qid.set_base = qualified_identifier_set_base;
     qi->qid.base_identifier = qualified_identifier_base_identifier;
@@ -829,7 +876,6 @@ struct qualified_identifier_iface_t * st_create_qualified_identifier(
     
     qi->qid.target_value = qualified_identifier_target_value;
     qi->qid.target_name = qualified_identifier_target_name;
-
     qi->qid.target_assignable_from = qualified_identifier_target_assignable_from;
     
     qi->qid.target_assign = qualified_identifier_target_assign;
@@ -846,45 +892,12 @@ struct qualified_identifier_iface_t * st_create_qualified_identifier(
     qi->qid.target_to_power = qualified_identifier_target_to_power;
 
     qi->qid.destroy = qualified_identifier_destroy;
+
+    qi->qid.location = &(qi->location);
     
     return &(qi->qid);
 
 error_free_resources:
-    free(part);
-    free(part_location);
     free(qi);
     return NULL;
-}
-
-struct qualified_identifier_iface_t * st_create_qualified_identifier_by_index(
-    char *base,
-    const struct st_location_t *base_location,
-    struct array_index_t *array_index,
-    struct named_ref_pool_iface_t *var_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_identifier_iface_t *qid =
-	st_create_qualified_identifier(base,
-				       base_location,
-				       NULL,
-				       var_refs,
-				       config,
-				       issues);
-
-    if(!qid)
-    {
-	return NULL;
-    }
-
-    struct qualified_identifier_t *qi =
-	CONTAINER_OF(qid, struct qualified_identifier_t, qid);
-
-    qi->path->index = array_index;
-    if(array_index->index_expression->invoke.step || array_index->index_expression->clone)
-    {
-	qi->qid.constant_reference = ESSTEE_FALSE;
-    }
-
-    return &(qi->qid);
 }

@@ -22,14 +22,19 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/itype.h>
 #include <util/inamed_ref_pool.h>
 
-struct subrange_t {
-    struct value_iface_t *min;
-    struct st_location_t *min_location;
-    struct value_iface_t *max;
-    struct st_location_t *max_location;
+struct subrange_iface_t {
+    
+    void (*destroy)(
+	struct subrange_iface_t *self);
+
+    const struct value_iface_t *min;
+    const struct st_location_t *min_location;
+    const struct value_iface_t *max;
+    const struct st_location_t *max_location;
+    const struct st_location_t *location;
 };
 
-struct subrange_t * st_create_subrange(
+struct subrange_iface_t * st_create_subrange(
     struct value_iface_t *min,
     const struct st_location_t *min_location,
     struct value_iface_t *max,
@@ -38,20 +43,12 @@ struct subrange_t * st_create_subrange(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
-void st_destroy_subrange(
-    struct subrange_t *subrange);
-
 struct type_iface_t * st_create_subrange_type(
     char *storage_type_identifier,
     const struct st_location_t *storage_type_identifier_location,
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     struct value_iface_t *default_value,
     const struct st_location_t *default_value_location,
     struct named_ref_pool_iface_t *type_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-struct value_iface_t * st_create_subrange_value(
-    struct subrange_t *subrange,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

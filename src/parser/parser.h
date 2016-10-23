@@ -21,6 +21,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/itype.h>
 #include <elements/variable.h>
+#include <elements/subrange.h>
+#include <elements/struct.h>
+#include <elements/array.h>
+#include <elements/enums.h>
 #include <elements/ifunction.h>
 #include <elements/ifunction_block.h>
 #include <elements/iprogram.h>
@@ -278,7 +282,7 @@ struct type_iface_t * st_new_derived_type_by_name(
     struct parser_t *parser);
 
 struct type_iface_t * st_new_enum_type(
-    struct enum_group_item_t *value_group, 
+    struct enum_group_iface_t *value_group, 
     char *default_item, 
     const struct st_location_t *default_item_location,
     struct parser_t *parser);
@@ -286,20 +290,21 @@ struct type_iface_t * st_new_enum_type(
 struct type_iface_t * st_new_subrange_type(
     char *storage_type_identifier,
     const struct st_location_t *storage_type_identifier_location,
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     struct value_iface_t *default_value,
     const struct st_location_t *default_value_location,
     struct parser_t *parser);
 
 struct type_iface_t * st_new_array_type(
-    struct array_range_t *array_ranges,
+    struct array_range_iface_t *array_ranges,
     char *arrayed_type_identifier,
     const struct st_location_t *arrayed_type_identifier_location,
-    struct value_iface_t *initial_value,
+    struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct parser_t *parser);
 
 struct type_iface_t * st_new_struct_type(
-    struct struct_element_t *elements,
+    struct struct_elements_iface_t *elements,
     struct parser_t *parser);
 
 struct type_iface_t * st_new_string_type(
@@ -317,8 +322,8 @@ struct value_iface_t * st_new_enum_value(
     const struct st_location_t *location,
     struct parser_t *parser);
 
-struct enum_group_item_t * st_append_new_enum_item(
-    struct enum_group_item_t *group,
+struct enum_group_iface_t * st_append_new_enum_item(
+    struct enum_group_iface_t *enum_group,
     char *identifier,
     const struct st_location_t *location,
     struct parser_t *parser);
@@ -326,7 +331,7 @@ struct enum_group_item_t * st_append_new_enum_item(
 /**************************************************************************/
 /* Subrange                                                               */
 /**************************************************************************/
-struct subrange_t * st_new_subrange(
+struct subrange_iface_t * st_new_subrange(
     struct value_iface_t *min,
     const struct st_location_t *min_location,
     struct value_iface_t *max,
@@ -337,66 +342,62 @@ struct subrange_t * st_new_subrange(
 /**************************************************************************/
 /* Array                                                                  */
 /**************************************************************************/
-struct array_range_t * st_add_sub_to_new_array_range(
-    struct array_range_t *array_ranges,
-    struct subrange_t *subrange,
+struct array_range_iface_t * st_add_sub_to_new_array_range(
+    struct array_range_iface_t *array_ranges,
+    struct subrange_iface_t *subrange,
     struct parser_t *parser);
 
-struct listed_value_t * st_append_initial_element(
-    struct listed_value_t *values,
+struct array_initializer_iface_t * st_append_initial_element(
+    struct array_initializer_iface_t *initializer,
     struct value_iface_t *new_value,
     const struct st_location_t *location,
     struct parser_t *parser);
 
-struct listed_value_t * st_append_initial_elements(
-    struct listed_value_t *values,
+struct array_initializer_iface_t * st_append_initial_elements(
+    struct array_initializer_iface_t *initializer,
     struct value_iface_t *multiplier,
     struct value_iface_t *new_value,
     const struct st_location_t *location,
     struct parser_t *parser);
 
 struct value_iface_t * st_new_array_init_value(
-    struct listed_value_t *values,
+    struct array_initializer_iface_t *initializer,
     const struct st_location_t *location,
     struct parser_t *parser);
 
-struct array_index_t * st_append_new_array_index(
-    struct array_index_t *index_list,
-    struct expression_iface_t *index_expression,
+struct array_index_iface_t * st_append_new_array_index(
+    struct array_index_iface_t *index,
+    struct expression_iface_t *expression,
     const struct st_location_t *location,
     struct parser_t *parser);
 
 /**************************************************************************/
 /* Struct                                                                 */
 /**************************************************************************/
-struct struct_element_t * st_add_new_struct_element(
-    struct struct_element_t *element_group,
+struct struct_elements_iface_t * st_add_new_struct_element(
+    struct struct_elements_iface_t *elements,
     char *element_identifier,
     const struct st_location_t *identifier_location,
     struct type_iface_t *element_type,
     struct parser_t *parser);
 
-struct struct_element_t * st_add_new_struct_element_by_name(
-    struct struct_element_t *element_group,
+struct struct_elements_iface_t * st_add_new_struct_element_by_name(
+    struct struct_elements_iface_t *elements,
     char *element_identifier,
     const struct st_location_t *identifier_location,
     char *element_type_name,
     const struct st_location_t *element_type_name_location,
     struct parser_t *parser);
 
-struct struct_element_init_t * st_add_initial_struct_element(
-    struct struct_element_init_t *element_group,
-    struct struct_element_init_t *new_element,
+struct value_iface_t * st_struct_initializer_value(
+    struct struct_initializer_iface_t *initializer,
     struct parser_t *parser);
 
-struct struct_element_init_t * st_new_struct_element_initializer(
-    char *element_identifier,
+struct struct_initializer_iface_t * st_add_new_struct_element_initializer(
+    struct struct_initializer_iface_t *initializer,
+    char *identifier,
     const struct st_location_t *identifier_location,
     struct value_iface_t *value,
-    struct parser_t *parser);
-
-struct value_iface_t * st_new_struct_init_value(
-    struct struct_element_init_t *element_group,
     struct parser_t *parser);
 
 /**************************************************************************/
@@ -498,27 +499,34 @@ struct invoke_parameters_iface_t * st_append_invoke_parameter(
 /**************************************************************************/
 /* Qualified identifier                                                   */
 /**************************************************************************/
-struct qualified_part_t * st_new_inner_reference(
+struct qualified_identifier_iface_t * st_new_qualified_identifier_by_index(
     char *identifier,
-    struct qualified_part_t *outer,
-    const struct st_location_t *location,
+    const struct st_location_t *identifier_location,
+    struct array_index_iface_t *index,
+    const struct st_location_t *qid_location,
     struct parser_t *parser);
 
-struct qualified_part_t * st_attach_array_index_to_inner_ref(
-    struct qualified_part_t *inner_ref,
-    struct array_index_t *array_index,
+struct qualified_identifier_iface_t * st_new_qualified_identifier_by_sub_ref(
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    char *sub_identifier,
+    const struct st_location_t *sub_identifier_location,
+    const struct st_location_t *qid_location,
     struct parser_t *parser);
 
-struct qualified_identifier_iface_t * st_new_qualified_identifier_inner_ref(
-    char *base,
-    const struct st_location_t *base_location,
-    struct qualified_part_t *path,
+struct qualified_identifier_iface_t * st_extend_qualified_identifier_by_index(
+    struct qualified_identifier_iface_t *qualified_identifier,
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    struct array_index_iface_t *index,
+    const struct st_location_t *qid_location,
     struct parser_t *parser);
 
-struct qualified_identifier_iface_t * st_new_qualified_identifier_array_index(
-    char *base,
-    const struct st_location_t *base_location,    
-    struct array_index_t *array_index,
+struct qualified_identifier_iface_t * st_extend_qualified_identifier_by_sub_ref(
+    struct qualified_identifier_iface_t *qualified_identifier,
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    const struct st_location_t *qid_location,
     struct parser_t *parser);
 
 /**************************************************************************/
@@ -733,7 +741,7 @@ struct invoke_iface_t * st_new_return_statement(
 /* Case                                                                   */
 /**************************************************************************/
 struct value_iface_t * st_new_subrange_case_value(
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     struct parser_t *parser);
 
 struct case_list_element_t * st_append_case_value(

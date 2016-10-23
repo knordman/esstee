@@ -72,6 +72,115 @@ static int user_fb_resolve_header_type_references(
 						     issues);
 }
 
+static int depends_on(
+    const struct function_block_iface_t *self,
+    const struct type_iface_t *type)
+{
+    const struct user_function_block_t *ufb =
+        CONTAINER_OF(self, struct user_function_block_t, function_block);
+
+    if(type == &(ufb->type))
+    {
+	/* A function block depends on itself. */
+	return ESSTEE_TRUE;
+    }
+    
+    if(ufb->header && ufb->header->variables)
+    {
+	/* There is a dependency on a type if any of the variables in
+	 * a function block lead to that type. */
+	const struct variable_iface_t *itr = NULL;
+	DL_FOREACH(ufb->header->variables, itr)
+	{
+	    const struct type_iface_t *var_type = itr->type(itr);
+
+	    /* If we are dealing with a derived type, the checks
+	     * should be made on its ancestor */
+	    var_type = TYPE_ANCESTOR(var_type);
+
+	    if(var_type == type)
+	    {
+		/* Clear case of dependency. */
+		return ESSTEE_TRUE;
+	    }
+	    else if(var_type == &(ufb->type))
+	    {
+		/* No dependency, but a circular reference while
+		 * checking for dependency. */
+		return ESSTEE_FALSE;
+	    }	
+	    else if(var_type->const_function_block_handle)
+	    {
+		/* If the variable type is a function block, and not
+		 * the same function block we are investigating, we
+		 * should go a head and check whether any of the
+		 * variables in this function block depends on the
+		 * type. */
+		const struct function_block_iface_t *fb =
+		    var_type->const_function_block_handle(var_type);
+
+		return depends_on(fb, type);
+	    }
+	}
+    }
+
+    return ESSTEE_FALSE;
+}
+
+
+static int user_fb_check_dependencies(
+    	struct function_block_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues)
+{
+    struct user_function_block_t *ufb =
+        CONTAINER_OF(self, struct user_function_block_t, function_block);
+
+    /* At this point, all types for variables have been resolved. The
+     * next step is to check for any circular references in the types
+     * the variables are of. Check that the function block does not
+     * depend on itself.*/
+    if(ufb->header && ufb->header->variables)
+    {
+        struct variable_iface_t *itr = NULL;
+        DL_FOREACH(ufb->header->variables, itr)
+        {
+	    const struct type_iface_t *var_type = itr->type(itr);
+
+	    /* In case the variable has the type of a derived type, do
+	     * all checks on the ancestor */
+	    var_type = TYPE_ANCESTOR(var_type);
+
+	    /* If the type is a function block, check for circular
+	     * references */
+	    if(var_type->const_function_block_handle)
+	    {
+		const struct function_block_iface_t *fb
+		    = var_type->const_function_block_handle(var_type);
+
+		if(depends_on(fb, &(ufb->type)) == ESSTEE_TRUE)
+		{
+		    const char *message = issues->build_message(
+			issues,
+			"circular reference, type of variable '%s' depends on its container",
+			itr->identifier);
+
+		    issues->new_issue_at(
+			issues,
+			message,
+			ESSTEE_TYPE_ERROR,
+			1,
+			itr->location);
+
+		    return ESSTEE_ERROR;
+		}
+	    }
+	}
+    }
+
+    return ESSTEE_OK;
+}
+
 static int user_fb_finalize_header(
     struct function_block_iface_t *self,
     struct variable_iface_t *global_var_table,
@@ -80,84 +189,27 @@ static int user_fb_finalize_header(
 {
     struct user_function_block_t *ufb =
         CONTAINER_OF(self, struct user_function_block_t, function_block);
-    
-    /* At this point, all types for variables have been resolved. The
-     * next step is to create the values of the variables. */
-    if(ufb->header && ufb->header->variables)
+
+    int header_valid = st_create_header_tables(ufb->header, issues);
+    if(header_valid != ESSTEE_OK)
     {
-        struct variable_iface_t *itr = NULL;
-        DL_FOREACH(ufb->header->variables, itr)
-        {
-	    const struct type_iface_t *var_type = itr->type(itr);
-            st_bitflag_t type_class = var_type->class(var_type);
-
-	    /* If a variable has a function block as a type, some
-	     * extra checks are needed to avoid circular
-	     * references. */
-            if(ST_FLAG_IS_SET(type_class, FB_TYPE))
-            {
-		if(var_type->ancestor)
-		{
-		    var_type = var_type->ancestor(var_type);
-		}
-
-		/* Check that a variable in the function block does
-		 * not have its own container function block as a
-		 * type. */
-		if(var_type == &(ufb->type))
-		{
-		    const char *message = issues->build_message(
-			issues,
-			"variable '%s' cannot have its container type as type",
-			itr->identifier);
-
-		    issues->new_issue_at(
-			issues,
-			message,
-			ESSTEE_TYPE_ERROR,
-			1,
-			itr->location);
-
-		    return ESSTEE_ERROR;
-                }
-
-		/* Check that no variables of the referred function
-		 * block has this function block as type. */
-		const struct function_block_iface_t *fb = var_type->const_function_block_handle(var_type);
-		if(fb->depends_on(fb, &(ufb->type)))
-		{
-		    const char *message = issues->build_message(
-			issues,
-			"circular reference, type of variable '%s' depends on the container of variable '%s'",
-			itr->identifier,
-			itr->identifier);
-
-		    issues->new_issue_at(
-			issues,
-			message,
-			ESSTEE_TYPE_ERROR,
-			1,
-			itr->location);
-
-		    return ESSTEE_ERROR;
-		}
-	    }
-	}
-
-	/* Then, create values of header variables */
-	DL_FOREACH(ufb->header->variables, itr)
-	{
-	    int create_result = itr->create(itr, config, issues);
-
-	    if(create_result != ESSTEE_OK)
-	    {
-		return create_result;
-	    }
-	}
-
-	/* Resolve variable references */
-	st_resolve_var_refs(ufb->var_refs, ufb->header->variables);
+	return header_valid;
     }
+    
+    /* Create values of header variables */
+    struct variable_iface_t *itr = NULL;
+    DL_FOREACH(ufb->header->variables, itr)
+    {
+	int create_result = itr->create(itr, config, issues);
+
+	if(create_result != ESSTEE_OK)
+	{
+	    return create_result;
+	}
+    }
+
+    /* Resolve variable references */
+    st_resolve_var_refs(ufb->var_refs, ufb->header->variables);
 
     return ufb->var_refs->trigger_resolve_callbacks(ufb->var_refs,
 						    config,
@@ -183,30 +235,6 @@ static int user_fb_finalize_statements(
     return st_verify_statements(ufb->statements,
 				config,
 				issues);
-}
-
-int user_fb_depends_on(
-    const struct function_block_iface_t *self,
-    const struct type_iface_t *type)
-{
-    struct user_function_block_t *ufb =
-        CONTAINER_OF(self, struct user_function_block_t, function_block);
-
-    if(ufb->header)
-    {
-	struct variable_iface_t *itr = NULL;
-	DL_FOREACH(ufb->header->variables, itr)
-	{
-	    const struct type_iface_t *var_type = itr->type(itr);
-	
-	    if(var_type == type)
-	    {
-		return ESSTEE_TRUE;
-	    }
-	}
-    }
-
-    return ESSTEE_FALSE;
 }
 
 static void user_fb_destroy(
@@ -340,14 +368,17 @@ static int user_fb_value_invoke_step(
     {
 	return INVOKE_RESULT_FINISHED;
     }
-    
-    int input_assign = parameters->assign_from(parameters,
-					       fv->variables,
-					       config,
-					       issues);
-    if(input_assign != ESSTEE_OK)
+
+    if(parameters)
     {
-	return INVOKE_RESULT_ERROR;
+	int input_assign = parameters->assign_from(parameters,
+						   fv->variables,
+						   config,
+						   issues);
+	if(input_assign != ESSTEE_OK)
+	{
+	    return INVOKE_RESULT_ERROR;
+	}
     }
 
     fv->invoke_state = 1;
@@ -404,81 +435,84 @@ static struct value_iface_t * user_fb_type_create_value_of(
     struct user_function_block_t *fb =
 	CONTAINER_OF(self, struct user_function_block_t, type);
 
-    struct user_fb_instance_t *fv = NULL;
+    /* Memory handles that need destroying in case of an error */
+    struct user_fb_instance_t *fv = NULL;    
+    struct variable_iface_t *variable_clones = NULL;
+    struct invoke_iface_t *statement_clones = NULL;
     
+    /* Allocate the space for an fb instance */
     ALLOC_OR_ERROR_JUMP(
 	fv,
 	struct user_fb_instance_t,
 	issues,
 	error_free_resources);
-    
-    struct variable_iface_t *vitr = NULL;
-    struct variable_iface_t *variable_copies = NULL;
+
+    /* Create clones of the variables for the fb instance */
     if(fb->header)
     {
-	for(vitr = fb->header->variables; vitr != NULL; vitr = vitr->hh.next)
+	struct variable_iface_t *v_itr = NULL;
+	for(v_itr = fb->header->variables; v_itr != NULL; v_itr = v_itr->hh.next)
 	{
-	    struct variable_iface_t *copy = NULL;
-	    ALLOC_OR_ERROR_JUMP(
-		copy,
-		struct variable_iface_t,
-		issues,
-		error_free_resources);
+	    struct variable_iface_t *clone = v_itr->clone(v_itr, issues);
 
-	    memcpy(copy, vitr, sizeof(struct variable_iface_t));
-
-	    copy->value = NULL;
-	    copy->prev = NULL;
-	    copy->next = NULL;
-	    DL_APPEND(variable_copies, copy);
+	    if(!clone)
+	    {
+		goto error_free_resources;
+	    }
+	
+	    DL_APPEND(variable_clones, clone);
 	}
     }
-    
-    struct variable_iface_t *variable_copies_table =
-	st_link_variables(variable_copies, NULL, issues);
 
+    /* Make a variable table out of the cloned variables */
+    struct variable_iface_t *variable_table_clone =
+	st_link_variables(variable_clones, NULL, issues);
+
+    /* (Re)link the variable references in the fb type to the newly
+     * cloned variables. No need to check the result of the resolve
+     * callbacks, since any possible error is found while verifying
+     * the fb type */
     fb->var_refs->reset_resolved(fb->var_refs);
-    st_resolve_var_refs(fb->var_refs, variable_copies_table);
+    st_resolve_var_refs(fb->var_refs, variable_table_clone);
+    fb->var_refs->trigger_resolve_callbacks(fb->var_refs, config, issues);
 
-    fb->var_refs->trigger_resolve_callbacks(fb->var_refs,
-					    config,
-					    issues);
-
-    struct variable_iface_t *vc_itr = NULL;
-    DL_FOREACH(variable_copies_table, vc_itr)
+    /* Create the values of the cloned variables */
+    struct variable_iface_t *v_itr = NULL;
+    DL_FOREACH(variable_clones, v_itr)
     {
-	int create_result = vc_itr->create(vc_itr, config, issues);
+	int create_result = v_itr->create(v_itr, config, issues);
 	
 	if(create_result != ESSTEE_OK)
 	{
 	    goto error_free_resources;
 	}
     }
-    
-    struct invoke_iface_t *statement_copies = NULL;
-    struct invoke_iface_t *sitr = NULL;
-    DL_FOREACH(fb->statements, sitr)
-    {
-	struct invoke_iface_t *copy = sitr->clone(sitr, issues);
 
-	if(!copy)
+    /* Create clones of the statements in the fb type */
+    struct invoke_iface_t *s_itr = NULL;
+    DL_FOREACH(fb->statements, s_itr)
+    {
+	struct invoke_iface_t *clone = s_itr->clone(s_itr, issues);
+
+	if(!clone)
 	{
 	    goto error_free_resources;
 	}
 	
-	DL_APPEND(statement_copies, copy);
+	DL_APPEND(statement_clones, clone);
     }
 
-    if(st_allocate_statements(statement_copies, issues) != ESSTEE_OK)
+    /* Allocate working memory for the cloned statements */
+    if(st_allocate_statements(statement_clones, issues) != ESSTEE_OK)
     {
 	goto error_free_resources;
     }
-    
-    fv->variables = variable_copies_table;
-    fv->statements = statement_copies;
+
+    /* Set up fb instance members */
+    fv->variables = variable_table_clone;
+    fv->statements = statement_clones;
 
     memset(&(fv->value), 0, sizeof(struct value_iface_t));
-
     fv->value.display = user_fb_value_display;
     fv->value.type_of = user_fb_value_type_of;
     fv->value.destroy = user_fb_value_destroy;
@@ -490,7 +524,9 @@ static struct value_iface_t * user_fb_type_create_value_of(
     return &(fv->value);
     
 error_free_resources:
-    /* TODO: determine what to destroy */
+    /* free(fv); */
+    /* struct variable_iface_t *variable_clones = NULL; */
+    /* struct invoke_iface_t *statement_clones = NULL; */
     return NULL;
 }
 
@@ -609,9 +645,9 @@ struct type_iface_t * st_new_user_function_block(
     ufb->identifier = ufb->identifier;
     ufb->location = ufb->location;
     ufb->function_block.resolve_header_type_references = user_fb_resolve_header_type_references;
+    ufb->function_block.check_dependencies = user_fb_check_dependencies;
     ufb->function_block.finalize_header = user_fb_finalize_header;
     ufb->function_block.finalize_statements = user_fb_finalize_statements;
-    ufb->function_block.depends_on = user_fb_depends_on;
     ufb->function_block.destroy = user_fb_destroy;
     
     return &(ufb->type);

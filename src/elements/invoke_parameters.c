@@ -181,7 +181,7 @@ static int invoke_parameters_verify(
 	{
 	    verified = ESSTEE_ERROR;
 
-	    if(itr->identifier)
+	    if(check_var->identifier)
 	    {
 		issues->new_issue(
 		    issues,
@@ -194,8 +194,7 @@ static int invoke_parameters_verify(
 		issues->new_issue(
 		    issues,
 		    "one unnamed parameter cannot be assigned from the given value",
-		    ESSTEE_ARGUMENT_ERROR,
-		    check_var->identifier);
+		    ESSTEE_ARGUMENT_ERROR);
 	    }
 	    
 	    issues->set_group_location(issues,
@@ -407,12 +406,38 @@ int invoke_parameters_assign_from(
 	{
 	    const struct value_iface_t *parameter_value =
 		itr->expression->return_value(itr->expression);
-	    
+
+	    issues->begin_group(issues);
 	    int assign_result = assign_var->assign(assign_var,
 						   NULL,
 						   parameter_value,
 						   config,
 						   issues);
+
+	    if(assign_result != ESSTEE_OK)
+	    {
+		if(assign_var->identifier)
+		{
+		    issues->new_issue(
+			issues,
+			"assignment of parameter '%s' failed",
+			ESSTEE_ARGUMENT_ERROR,
+			assign_var->identifier);
+		}
+		else
+		{
+		    issues->new_issue(
+			issues,
+			"one unnamed parameter cannot be assigned from the given value",
+			ESSTEE_ARGUMENT_ERROR);
+		}
+		
+		issues->set_group_location(issues,
+					   1,
+					   itr->location);
+	    }
+
+	    issues->end_group(issues);
 
 	    if(assign_result != ESSTEE_OK)
 	    {

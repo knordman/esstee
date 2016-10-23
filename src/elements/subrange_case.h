@@ -25,6 +25,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iissues.h>
 
 struct value_iface_t * st_create_subrange_case_selector(
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

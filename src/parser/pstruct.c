@@ -21,116 +21,138 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/struct.h>
 
 
-struct struct_element_t * st_add_new_struct_element(
-    struct struct_element_t *element_group,
-    char *element_identifier,
+struct struct_elements_iface_t * st_add_new_struct_element(
+    struct struct_elements_iface_t *elements,
+    char *identifier,
     const struct st_location_t *identifier_location,
-    struct type_iface_t *element_type,
+    struct type_iface_t *type,
     struct parser_t *parser)
 {
-    struct struct_element_t *se = st_extend_element_group(
-	element_group,
-	element_identifier,
-	identifier_location,
-	element_type,
-	parser->config,
-	parser->errors);
-
-    if(!se)
+    if(!elements)
     {
-	st_destroy_struct_element_group(element_group);
-	free(element_identifier);
-	element_type->destroy(element_type);
+	elements = st_create_struct_elements(parser->config,
+					     parser->errors);
+
+	if(!elements)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return se;
+    int extend_result = elements->extend_by_type(elements,
+						 identifier,
+						 identifier_location,
+						 type,
+						 parser->config,
+						 parser->errors);
+
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    return elements;
+
+error_free_resources:
+    if(elements)
+    {
+	elements->destroy(elements);
+    }
+    type->destroy(type);
+    free(identifier);
+    return NULL;
 }
 
-struct struct_element_t * st_add_new_struct_element_by_name(
-    struct struct_element_t *element_group,
-    char *element_identifier,
+struct struct_elements_iface_t * st_add_new_struct_element_by_name(
+    struct struct_elements_iface_t *elements,
+    char *identifier,
     const struct st_location_t *identifier_location,
-    char *element_type_name,
-    const struct st_location_t *element_type_name_location,
+    char *type_name,
+    const struct st_location_t *type_name_location,
     struct parser_t *parser)
 {
-    struct struct_element_t *se = st_extend_element_group_type_name(
-	element_group,
-	element_identifier,
-	identifier_location,
-	element_type_name,
-	element_type_name_location,
-	parser->pou_type_ref_pool,
-	parser->config,
-	parser->errors);
-
-    if(!se)
+    if(!elements)
     {
-	st_destroy_struct_element_group(element_group);
-	free(element_identifier);
-	free(element_type_name);
+	elements = st_create_struct_elements(parser->config,
+					     parser->errors);
+
+	if(!elements)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return se;
+    int extend_result = elements->extend_by_type_name(elements,
+						      identifier,
+						      identifier_location,
+						      type_name,
+						      type_name_location,
+						      parser->pou_type_ref_pool,
+						      parser->config,
+						      parser->errors);
+
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    return elements;
+
+error_free_resources:
+    if(elements)
+    {
+	elements->destroy(elements);
+    }
+    free(type_name);
+    free(identifier);
+    return NULL;
 }
 
-struct struct_element_init_t * st_new_struct_element_initializer(
-    char *element_identifier,
+struct value_iface_t * st_struct_initializer_value(
+    struct struct_initializer_iface_t *initializer,
+    struct parser_t *parser)
+{
+    return initializer->value(initializer);
+}
+
+struct struct_initializer_iface_t * st_add_new_struct_element_initializer(
+    struct struct_initializer_iface_t *initializer,
+    char *identifier,
     const struct st_location_t *identifier_location,
     struct value_iface_t *value,
     struct parser_t *parser)
 {
-    struct struct_element_init_t *ei =
-	st_create_element_initializer(
-	    element_identifier,
-	    identifier_location,
-	    value,
-	    parser->config,
-	    parser->errors);
-
-    if(!ei)
+    if(!initializer)
     {
-	free(element_identifier);
-	value->destroy(value);
+	initializer = st_create_struct_initializer(parser->config,
+						   parser->errors);
+
+	if(!initializer)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return ei;
-}
+    int extend_result = initializer->extend(initializer,
+					    identifier,
+					    identifier_location,
+					    value,
+					    parser->config,
+					    parser->errors);
 
-struct struct_element_init_t * st_add_initial_struct_element(
-    struct struct_element_init_t *initializer_group,
-    struct struct_element_init_t *initializer,
-    struct parser_t *parser)
-{
-    struct struct_element_init_t *sei = 
-	st_extend_element_initializer_group(
-	    initializer_group,
-	    initializer,
-	    parser->config,
-	    parser->errors);
-
-    if(!sei)
+    if(extend_result != ESSTEE_OK)
     {
-	st_destroy_initializer_group(initializer_group);
-	st_destroy_element_initializer(initializer);
+	goto error_free_resources;
     }
 
-    return sei;
-}
+    return initializer;
 
-struct value_iface_t * st_new_struct_init_value(
-    struct struct_element_init_t *initializer_group,
-    struct parser_t *parser)
-{
-    struct value_iface_t *iv = st_create_struct_initializer_value(
-	initializer_group,
-	parser->config,
-	parser->errors);
-
-    if(!iv)
+error_free_resources:
+    if(initializer)
     {
-	st_destroy_initializer_group(initializer_group);
+	initializer->destroy(initializer);
     }
-
-    return iv;
+    value->destroy(value);
+    free(identifier);
+    return NULL;
 }

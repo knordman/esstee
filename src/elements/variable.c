@@ -45,7 +45,7 @@ struct variable_t {
 
 static struct value_iface_t * referred_value(
     struct variable_t *var,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -74,7 +74,7 @@ static struct value_iface_t * referred_value(
 
 static const struct value_iface_t * const_referred_value(
     const struct variable_t *var,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -136,7 +136,7 @@ static int external_variable_reset(
 
 static int variable_assignable_from(
     const struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -173,7 +173,7 @@ static int variable_assignable_from(
 
 static int external_variable_assignable_from(
     const struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -190,7 +190,7 @@ static int external_variable_assignable_from(
 
 static int variable_assign(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -228,7 +228,7 @@ static int variable_assign(
 
 static int external_variable_assign(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *new_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -253,7 +253,7 @@ static int variable_modifier(
     size_t operation_offset,
     const char *not_supported_message,
     const char *not_supported_index_message,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -306,7 +306,7 @@ static int variable_modifier(
     
 static int variable_not(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -321,7 +321,7 @@ static int variable_not(
 
 static int external_variable_not(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -336,7 +336,7 @@ static int external_variable_not(
 
 static int variable_negate(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -351,7 +351,7 @@ static int variable_negate(
 
 static int external_variable_negate(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -375,7 +375,7 @@ static int variable_modifier_by_value(
     size_t operation_offset,
     const char *not_supported_message,
     const char *not_supported_index_message,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -430,7 +430,7 @@ static int variable_modifier_by_value(
 
 static int variable_xor(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -448,7 +448,7 @@ static int variable_xor(
 
 static int external_variable_xor(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -465,7 +465,7 @@ static int external_variable_xor(
 
 static int variable_and(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -483,7 +483,7 @@ static int variable_and(
 
 static int external_variable_and(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -500,7 +500,7 @@ static int external_variable_and(
 
 static int variable_or(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -518,7 +518,7 @@ static int variable_or(
 
 static int external_variable_or(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -535,7 +535,7 @@ static int external_variable_or(
 
 static int variable_plus(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -553,7 +553,7 @@ static int variable_plus(
 
 static int external_variable_plus(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -570,7 +570,7 @@ static int external_variable_plus(
 
 static int variable_minus(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -588,7 +588,7 @@ static int variable_minus(
 
 static int external_variable_minus(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -605,7 +605,7 @@ static int external_variable_minus(
 
 static int variable_multiply(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -623,7 +623,7 @@ static int variable_multiply(
 
 static int external_variable_multiply(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -640,7 +640,7 @@ static int external_variable_multiply(
 
 static int variable_divide(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -658,7 +658,7 @@ static int variable_divide(
 
 static int external_variable_divide(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -675,7 +675,7 @@ static int external_variable_divide(
 
 static int variable_modulus(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -693,7 +693,7 @@ static int variable_modulus(
 
 static int external_variable_modulus(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -710,7 +710,7 @@ static int external_variable_modulus(
 
 static int variable_to_power(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -728,7 +728,7 @@ static int variable_to_power(
 
 static int external_variable_to_power(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct value_iface_t *other_value,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -745,7 +745,7 @@ static int external_variable_to_power(
 
 static int variable_invoke_verify(
     const struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct invoke_parameters_iface_t *parameters,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -790,7 +790,7 @@ static int variable_invoke_verify(
 
 static int external_variable_invoke_verify(
     const struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct invoke_parameters_iface_t *parameters,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -807,7 +807,7 @@ static int external_variable_invoke_verify(
 
 static int variable_invoke_step(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct invoke_parameters_iface_t *parameters,
     struct cursor_iface_t *cursor,
     const struct systime_iface_t *time,
@@ -836,7 +836,7 @@ static int variable_invoke_step(
 
 static int external_variable_invoke_step(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct invoke_parameters_iface_t *parameters,
     struct cursor_iface_t *cursor,
     const struct systime_iface_t *time,
@@ -857,7 +857,7 @@ static int external_variable_invoke_step(
 
 static int variable_invoke_reset(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -886,7 +886,7 @@ static int variable_invoke_reset(
 
 static int external_variable_invoke_reset(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -899,9 +899,81 @@ static int external_variable_invoke_reset(
 					     issues);
 }
 
+static void variable_clone_destroy(
+    struct variable_iface_t *self)
+{
+    /* TODO: variable destroy */
+}
+
+static void external_variable_clone_destroy(
+    struct variable_iface_t *self)
+{
+    /* TODO: variable destroy */
+}
+
+static struct variable_iface_t * variable_clone(
+    struct variable_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    /* Locally allocated memory, needs destruction in case of error */
+    struct variable_t *clone = NULL;
+
+    /* Allocate clone holder */
+    ALLOC_OR_ERROR_JUMP(
+	clone,
+	struct variable_t,
+	issues,
+	error_free_resources);
+
+    /* Clone the variable data and adjust for the parts that a clone
+     * does not share with its ancestor */
+    memcpy(clone, var, sizeof(struct variable_t));
+    clone->variable.destroy = variable_clone_destroy;
+    clone->value = NULL;
+
+    return &(clone->variable);
+
+error_free_resources:
+    free(clone);
+    return NULL;
+}
+
+static struct variable_iface_t * external_variable_clone(
+    struct variable_iface_t *self,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    /* Locally allocated memory, needs destruction in case of error */
+    struct variable_t *clone = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	clone,
+	struct variable_t,
+	issues,
+	error_free_resources);
+
+    /* An external clone does not need to cloned, due to the contents,
+     * but only to change the destructor (to a dummy doing nothing)
+     * avoiding destruction in each clone and the ancestor */
+    memcpy(clone, var, sizeof(struct variable_t));
+    clone->variable.destroy = external_variable_clone_destroy;
+
+    return &(clone->variable);
+
+error_free_resources:
+    free(clone);
+    return NULL;
+    
+}
+
 static struct variable_iface_t * variable_sub_variable(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const char *identifier,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -916,7 +988,33 @@ static struct variable_iface_t * variable_sub_variable(
     if(!value)
     {
 	return NULL;
-    }    
+    }
+
+    if(!value->sub_variable)
+    {
+	const char *message = NULL;
+	
+	if(index)
+	{
+	    message = issues->build_message(
+		issues,
+		"element of variable '%s' has no sub variables",
+		var->stub->identifier);
+	}
+	else
+	{
+	    message = issues->build_message(
+		issues,
+		"variable '%s' has no sub variables",
+		var->stub->identifier);
+	}
+
+	issues->new_issue(issues,
+			  message,
+			  ESSTEE_CONTEXT_ERROR);
+
+	return NULL;
+    }
 
     return value->sub_variable(value,
 			       identifier,
@@ -926,7 +1024,7 @@ static struct variable_iface_t * variable_sub_variable(
 
 static struct variable_iface_t * external_variable_sub_variable(
     struct variable_iface_t *self,
-    const struct array_index_t *index,
+    const struct array_index_iface_t *index,
     const char *identifier,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
@@ -943,7 +1041,7 @@ static struct variable_iface_t * external_variable_sub_variable(
 
 static const struct value_iface_t * variable_index_value(
     struct variable_iface_t *self,
-    struct array_index_t *index,
+    struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -975,7 +1073,7 @@ static const struct value_iface_t * variable_index_value(
 
 static const struct value_iface_t * external_variable_index_value(
     struct variable_iface_t *self,
-    struct array_index_t *index,
+    struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -1015,18 +1113,18 @@ static const struct value_iface_t * external_variable_value(
 }
 
 static const struct type_iface_t * variable_type(
-    struct variable_iface_t *self)
+    const struct variable_iface_t *self)
 {
-    struct variable_t *var =
+    const struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
     return var->stub->type;
 }
 
 static const struct type_iface_t * external_variable_type(
-    struct variable_iface_t *self)
+    const struct variable_iface_t *self)
 {
-    struct variable_t *var =
+    const struct variable_t *var =
 	CONTAINER_OF(self, struct variable_t, variable);
 
     return var->external_alias->type(var->external_alias);
@@ -1349,6 +1447,7 @@ struct variable_iface_t * st_create_variable_block(
 	{
 	    var->variable.create = external_variable_create;
 	    var->variable.reset = external_variable_reset;
+	    var->variable.clone = external_variable_clone;
 	    var->variable.assignable_from = external_variable_assignable_from;
 	    var->variable.assign = external_variable_assign;
 	    
@@ -1394,6 +1493,7 @@ struct variable_iface_t * st_create_variable_block(
 	{
 	    var->variable.create = variable_create;
 	    var->variable.reset = variable_reset;
+	    var->variable.clone = variable_clone;
 	    var->variable.assignable_from = variable_assignable_from;
 	    var->variable.assign = variable_assign;
 	    
@@ -1431,7 +1531,7 @@ struct variable_iface_t * st_create_variable_block(
 		    correct_type_pool = global_type_refs;
 		}
 		
-		int ref_result = type_refs->add(
+		int ref_result = correct_type_pool->add(
 		    correct_type_pool,
 		    itr->type_name,
 		    var,
@@ -1481,6 +1581,7 @@ struct variable_iface_t * st_create_variable_type_name(
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
+    /* TODO: creating external variables passing that class?? */
     struct variable_stub_t *stub = NULL;
     struct variable_t *var = NULL;
     struct st_location_t *var_location = NULL;
@@ -1521,6 +1622,7 @@ struct variable_iface_t * st_create_variable_type_name(
     
     var->variable.create = variable_create;
     var->variable.reset = variable_reset;
+    var->variable.clone = variable_clone;
     var->variable.assignable_from = variable_assignable_from;
     var->variable.assign = variable_assign;
     var->variable.value = variable_value;

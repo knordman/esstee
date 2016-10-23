@@ -110,20 +110,17 @@ void yyerror(
     struct header_t *header;
 
     struct value_iface_t *value;
-    struct listed_value_t *listed_value;
-    struct enum_group_item_t *enum_item;
-    struct array_init_value_t *array_init_value;
-    struct struct_init_value_t *struct_init_value;
-
-    struct subrange_t *subrange;
-    struct array_range_t *array_range;
-    struct struct_element_init_t *struct_element_init;
-    struct struct_element_t *struct_element;
+    struct enum_group_iface_t *enum_group;
+    struct array_initializer_iface_t *array_initializer;
+    struct struct_initializer_iface_t *struct_initializer;
+    struct struct_elements_iface_t *struct_elements;
+    struct subrange_iface_t *subrange;
+    struct array_range_iface_t *array_range;
     
     struct direct_address_t *direct_address;
-    struct array_index_t *array_index;
+    struct array_index_iface_t *array_index;
+
     struct qualified_identifier_iface_t *qualified_identifier;
-    struct qualified_part_t *qualified_part;
     
     struct expression_iface_t *expression;
     struct invoke_iface_t *invoke;
@@ -257,17 +254,20 @@ void yyerror(
 %type	<subrange>	subrange
 %type	<value>		subrange_point
 %type	<type>		enum_type
-%type	<enum_item>	enum_items
+%type	<enum_group>	enum_items
 %type	<type>		array_type
 %type	<array_range>	array_range
+
 %type	<value>		array_initialization
-%type	<listed_value>	array_initial_elements
+%type	<array_initializer> array_initializer
 %type	<value>		array_initial_element
-%type	<type>		structure_type
-%type	<struct_element> structure_elements 
-%type	<value>		structure_initialization
-%type	<struct_element_init> structure_element_initializations
-%type	<struct_element_init> structure_element_initialization
+
+%type	<value>		struct_initialization
+%type	<struct_initializer> struct_initializer
+
+%type	<type>		struct_type
+%type	<struct_elements> struct_elements
+			
 %type	<value>		string_defined_length
 %type	<type>		string_defined_length_type
 %type	<variable>	var_declaration_block
@@ -280,7 +280,7 @@ void yyerror(
 %type	<direct_address> direct_address
 %type	<array_index>	array_index
 %type	<expression>	expression
-%type	<qualified_part> inner_reference
+/* %type	<qualified_part> inner_reference */
 %type	<qualified_identifier> qualified_identifier
 %type	<expression>	term
 %type	<invoke_parameters> invoke_parameters
@@ -608,7 +608,7 @@ subrange_type
 
 derive_type :
 basic_type
-| structure_type
+| struct_type
 ;
 
 variable_type :
@@ -618,7 +618,7 @@ basic_type
     if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, &@3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
-| simple_type_name ASSIGN structure_initialization
+| simple_type_name ASSIGN struct_initialization
 {
     if(($$ = st_new_derived_type_by_name(NULL, $1, &@1, &@$, $3, &@3, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
@@ -686,12 +686,12 @@ IDENTIFIER
 array_type :
 ARRAY '[' array_range ']' OF simple_type_name
 {
-    if(($$ = st_new_array_type($3, $6, &@6, NULL, parser)) == NULL)
+    if(($$ = st_new_array_type($3, $6, &@6, NULL, NULL, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | ARRAY '[' array_range ']' OF simple_type_name ASSIGN array_initialization
 {
-    if(($$ = st_new_array_type($3, $6, &@6, $8, parser)) == NULL)
+    if(($$ = st_new_array_type($3, $6, &@6, $8, &@8, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -710,14 +710,14 @@ subrange
 ;
 
 array_initialization :
-'[' array_initial_elements ']'
+'[' array_initializer ']'
 {
-    if(($$ = st_new_array_init_value($2, &@2, parser)) == NULL)
+    if(($$ = st_new_array_init_value($2, &@$, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
 
-array_initial_elements :
+array_initializer :
 array_initial_element
 {
     if(($$ = st_append_initial_element(NULL, $1, &@1, parser)) == NULL)
@@ -728,12 +728,12 @@ array_initial_element
     if(($$ = st_append_initial_elements(NULL, $1, $3, &@3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
-| array_initial_elements ',' array_initial_element
+| array_initializer ',' array_initial_element
 {
     if(($$ = st_append_initial_element($1, $3, &@3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
-| array_initial_elements ',' literal_implicit_type '(' array_initial_element ')'
+| array_initializer ',' literal_implicit_type '(' array_initial_element ')'
 {
     if(($$ = st_append_initial_elements($1, $3, $5, &@5, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
@@ -750,21 +750,21 @@ literal_implicit_type_possible_sign_prefix
 | array_initialization
 ;
 
-structure_type :
-STRUCT structure_elements END_STRUCT
+struct_type :
+STRUCT struct_elements END_STRUCT
 {
     if(($$ = st_new_struct_type($2, parser)) == NULL)
-	DO_ERROR_STRATEGY(parser);	
+	DO_ERROR_STRATEGY(parser);
 }
 ;
 
-structure_elements :
+struct_elements :
 IDENTIFIER ':' variable_type ';'
 {
     if(($$ = st_add_new_struct_element(NULL, $1, &@1, $3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
-| structure_elements IDENTIFIER ':' variable_type ';'
+| struct_elements IDENTIFIER ':' variable_type ';'
 {
     if(($$ = st_add_new_struct_element($1, $2, &@2, $4, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
@@ -774,48 +774,50 @@ IDENTIFIER ':' variable_type ';'
     if(($$ = st_add_new_struct_element_by_name(NULL, $1, &@1, $3, &@3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
-| structure_elements IDENTIFIER ':' simple_type_name ';'
+| struct_elements IDENTIFIER ':' simple_type_name ';'
 {
     if(($$ = st_add_new_struct_element_by_name($1, $2, &@2, $4, &@4, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);											
 }
 ;
 
-structure_initialization :
-'(' structure_element_initializations ')'
+struct_initialization :
+'(' struct_initializer ')'
 {
-    if(($$ = st_new_struct_init_value($2, parser)) == NULL)
+    if(($$ = st_struct_initializer_value($2, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
 
-structure_element_initializations :
-structure_element_initialization
-{
-    if(($$ = st_add_initial_struct_element(NULL, $1, parser)) == NULL)
-	DO_ERROR_STRATEGY(parser);																						
-}
-| structure_element_initializations ',' structure_element_initialization
-{
-    if(($$ = st_add_initial_struct_element($1, $3, parser)) == NULL)
-	DO_ERROR_STRATEGY(parser);
-}
-;
-
-structure_element_initialization :
+struct_initializer:
 IDENTIFIER ASSIGN simple_type_initial_value
 {
-    if(($$ = st_new_struct_element_initializer($1, &@1, $3, parser)) == NULL)
+    if(($$ = st_add_new_struct_element_initializer(NULL, $1, &@1, $3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | IDENTIFIER ASSIGN array_initialization
 {
-    if(($$ = st_new_struct_element_initializer($1, &@1, $3, parser)) == NULL)
-	DO_ERROR_STRATEGY(parser);											
+    if(($$ = st_add_new_struct_element_initializer(NULL, $1, &@1, $3, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);
 }
-| IDENTIFIER ASSIGN structure_initialization
+| IDENTIFIER ASSIGN struct_initialization
 {
-    if(($$ = st_new_struct_element_initializer($1, &@1, $3, parser)) == NULL)
+    if(($$ = st_add_new_struct_element_initializer(NULL, $1, &@1, $3, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);
+}
+| struct_initializer ',' IDENTIFIER ASSIGN simple_type_initial_value
+{
+    if(($$ = st_add_new_struct_element_initializer($1, $3, &@3, $5, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);
+}
+| struct_initializer ',' IDENTIFIER ASSIGN array_initialization
+{
+    if(($$ = st_add_new_struct_element_initializer($1, $3, &@3, $5, parser)) == NULL)
+	DO_ERROR_STRATEGY(parser);
+}		
+| struct_initializer ',' IDENTIFIER ASSIGN struct_initialization
+{
+    if(($$ = st_add_new_struct_element_initializer($1, $3, &@3, $5, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -1092,33 +1094,25 @@ expression XOR expression	/*bool + bool*/
 | term
 ;
 
-inner_reference :
-IDENTIFIER
-{
-    if(($$ = st_new_inner_reference($1, NULL, &@1, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
-| inner_reference '.' IDENTIFIER
-{
-    if(($$ = st_new_inner_reference($3, $1, &@3, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
-| inner_reference '[' array_index ']'
-{
-    if(($$ = st_attach_array_index_to_inner_ref($1, $3, parser)) == NULL)
-    	DO_ERROR_STRATEGY(parser);
-}
-;
-
 qualified_identifier :
 IDENTIFIER '[' array_index ']'
 {
-    if(($$ = st_new_qualified_identifier_array_index($1, &@1, $3, parser)) == NULL)
+    if(($$ = st_new_qualified_identifier_by_index($1, &@1, $3, &@$, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
-| IDENTIFIER '.' inner_reference
+| IDENTIFIER '.' IDENTIFIER
 {
-    if(($$ = st_new_qualified_identifier_inner_ref($1, &@1, $3, parser)) == NULL)
+    if(($$ = st_new_qualified_identifier_by_sub_ref($1, &@1, $3, &@3, &@$, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| qualified_identifier '.' IDENTIFIER '[' array_index ']'
+{
+    if(($$ = st_extend_qualified_identifier_by_index($1, $3, &@3, $5, &@$, parser)) == NULL)
+    	DO_ERROR_STRATEGY(parser);
+}
+| qualified_identifier '.' IDENTIFIER
+{
+    if(($$ = st_extend_qualified_identifier_by_sub_ref($1, $3, &@3, &@$, &@$, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;

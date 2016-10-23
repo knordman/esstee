@@ -23,13 +23,113 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 
+/**************************************************************************/
+/* Enum group interface                                                   */
+/**************************************************************************/
 struct enum_group_item_t {
     char *identifier;
     struct st_location_t *location;
-    struct enum_group_item_t *group;
     struct enum_item_t item;
     UT_hash_handle hh;
 };
+
+struct enum_group_t {
+    struct enum_group_iface_t group;
+    struct enum_group_item_t *items;
+};
+
+static int enum_group_extend(
+    struct enum_group_iface_t *self,
+    char *identifier,
+    const struct st_location_t *location,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct enum_group_t *eg =
+	CONTAINER_OF(self, struct enum_group_t, group);
+    
+    struct enum_group_item_t *ei = NULL;
+    struct st_location_t *ei_location = NULL;
+
+    struct enum_group_item_t *found = NULL;
+    HASH_FIND_STR(eg->items, identifier, found);
+    if(found)
+    {
+	const char *message = issues->build_message(
+	    issues,
+	    "multiple definition of enumerated value '%s'",
+	    identifier);
+	
+	issues->new_issue_at(
+	    issues,
+	    message,
+	    ESSTEE_CONTEXT_ERROR,
+	    2,
+	    location,
+	    found->location);
+	
+	goto error_free_resources;
+    }
+
+    ALLOC_OR_ERROR_JUMP(
+	ei,
+	struct enum_group_item_t,
+	issues,
+	error_free_resources);
+
+    LOCDUP_OR_ERROR_JUMP(
+	ei_location,
+	location,
+	issues,
+	error_free_resources);
+
+    ei->identifier = identifier;
+    ei->location = ei_location;
+    ei->item.identifier = identifier;
+    ei->item.location = location;
+    
+    HASH_ADD_KEYPTR(hh, 
+		    eg->items, 
+		    ei->identifier, 
+		    strlen(ei->identifier), 
+		    ei);
+
+    return ESSTEE_OK;
+    
+error_free_resources:
+    free(ei);
+    free(ei_location);
+    return ESSTEE_ERROR;
+}
+
+static void enum_group_destroy(
+    struct enum_group_iface_t *self)
+{
+    /* TODO: enum group destroy */
+}
+
+struct enum_group_iface_t * st_create_enum_group(
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct enum_group_t *eg = NULL;
+
+    ALLOC_OR_ERROR_JUMP(
+	eg,
+	struct enum_group_t,
+	issues,
+	error_free_resources);
+
+    memset(&(eg->group), 0, sizeof(struct enum_group_iface_t));
+    eg->group.extend = enum_group_extend;
+    eg->group.destroy = enum_group_destroy;
+
+    return &(eg->group);
+
+error_free_resources:
+    return NULL;
+}
+
 
 /**************************************************************************/
 /* Value interface                                                        */
@@ -190,7 +290,7 @@ static int enum_value_override_type(
 /**************************************************************************/
 struct enum_type_t {
     struct type_iface_t type;
-    struct enum_group_item_t *values;
+    struct enum_group_t *values;
     const struct enum_group_item_t *default_item;
 };
 
@@ -279,8 +379,8 @@ static int enum_type_compatible(
     struct enum_type_t *oet =
 	CONTAINER_OF(otype, struct enum_type_t, type);
     
-    struct enum_group_item_t *o_itr = oet->values;
-    struct enum_group_item_t *e_itr = et->values;
+    struct enum_group_item_t *o_itr = oet->values->items;
+    struct enum_group_item_t *e_itr = et->values->items;
     for(; o_itr != NULL; o_itr = o_itr->hh.next, e_itr = e_itr->hh.next)
     {
 	if(strcmp(o_itr->identifier, e_itr->identifier) != 0)
@@ -325,7 +425,7 @@ static int enum_type_can_hold(
 	value->enumeration(value, config, issues);
     
     struct enum_group_item_t *found = NULL;
-    HASH_FIND_STR(et->values, vei->identifier, found);
+    HASH_FIND_STR(et->values->items, vei->identifier, found);
     if(!found)
     {
 	issues->new_issue(
@@ -365,76 +465,8 @@ static void enum_type_destroy(
 /**************************************************************************/
 /* Public functions                                                       */
 /**************************************************************************/
-struct enum_group_item_t * st_extend_enum_group(
-    struct enum_group_item_t *group,
-    char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct enum_group_item_t *ei = NULL;
-    struct st_location_t *ei_location = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	ei,
-	struct enum_group_item_t,
-	issues,
-	error_free_resources);
-
-    LOCDUP_OR_ERROR_JUMP(
-	ei_location,
-	location,
-	issues,
-	error_free_resources);
-
-    ei->identifier = identifier;
-    ei->location = ei_location;
-    ei->group = (!group) ? ei : group;
-    ei->item.identifier = identifier;
-    ei->item.location = location;
-
-    struct enum_group_item_t *found = NULL;
-    HASH_FIND_STR(group, ei->identifier, found);
-    if(found)
-    {
-	const char *message = issues->build_message(
-	    issues,
-	    "multiple definition of enumerated value '%s'",
-	    ei->identifier);
-	
-	issues->new_issue_at(
-	    issues,
-	    message,
-	    ESSTEE_CONTEXT_ERROR,
-	    2,
-	    ei->location,
-	    found->location);
-	
-	goto error_free_resources;
-    }
-    
-    HASH_ADD_KEYPTR(hh, 
-		    group, 
-		    ei->identifier, 
-		    strlen(ei->identifier), 
-		    ei);
-
-    return group;
-    
-error_free_resources:
-    free(ei);
-    free(ei_location);
-    return NULL;
-}
-
-void st_destroy_enum_group(
-    struct enum_group_item_t *group)
-{
-    /* TODO: enum destructor */
-}
-
 struct type_iface_t * st_create_enum_type(
-    struct enum_group_item_t *value_group, 
+    struct enum_group_iface_t *value_group, 
     const char *default_item,
     const struct st_location_t *default_item_location,
     const struct config_iface_t *config,
@@ -448,10 +480,13 @@ struct type_iface_t * st_create_enum_type(
 	issues,
 	error_free_resources);
 
-    struct enum_group_item_t *default_value = value_group;
+    struct enum_group_t *eg =
+	CONTAINER_OF(value_group, struct enum_group_t, group);
+    
+    struct enum_group_item_t *default_value = eg->items;
     if(default_item != NULL)
     {
-	HASH_FIND_STR(value_group, default_item, default_value);
+	HASH_FIND_STR(eg->items, default_item, default_value);
 	if(default_value == NULL)
 	{
 	    issues->new_issue_at(
@@ -466,7 +501,7 @@ struct type_iface_t * st_create_enum_type(
     }     
 
     et->default_item = default_value;
-    et->values = value_group;
+    et->values = eg;
 
     et->type.identifier = NULL;
     et->type.location = NULL;

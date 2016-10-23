@@ -42,23 +42,40 @@ error_free_resources:
     return NULL;
 }
 
-struct enum_group_item_t * st_append_new_enum_item(
-    struct enum_group_item_t *enum_value_group,
+struct enum_group_iface_t * st_append_new_enum_item(
+    struct enum_group_iface_t *enum_group,
     char *identifier,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    struct enum_group_item_t *new_group =
-	st_extend_enum_group(enum_value_group,
-			     identifier,
-			     location,
-			     parser->config,
-			     parser->errors);
-    if(!new_group)
+    if(!enum_group)
     {
-	st_destroy_enum_group(enum_value_group);
-	free(identifier);
+	enum_group = st_create_enum_group(parser->config,
+					  parser->errors);
+
+	if(!enum_group)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return new_group;
+    int extend_result = enum_group->extend(enum_group,
+					   identifier,
+					   location,
+					   parser->config,
+					   parser->errors);
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    return enum_group;
+
+error_free_resources:
+    if(enum_group)
+    {
+	enum_group->destroy(enum_group);
+    }
+    free(identifier);
+    return NULL;
 }

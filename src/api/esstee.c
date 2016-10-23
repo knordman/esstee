@@ -282,7 +282,24 @@ int st_link(struct st_t *st)
     {
 	return ESSTEE_ERROR;
     }
-    
+
+    /* Check dependencies in function blocks */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
+        struct function_block_iface_t *fbitr = NULL;
+        DL_FOREACH(cuitr->function_blocks, fbitr)
+        {
+            fbitr->check_dependencies(fbitr,
+				      st->config,
+				      st->errors);
+        }
+    }
+
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
+
     /* Finalize function block headers */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
@@ -290,9 +307,9 @@ int st_link(struct st_t *st)
         DL_FOREACH(cuitr->function_blocks, fbitr)
         {
             fbitr->finalize_header(fbitr,
-                      st->global_variables,
-                      st->config,
-                      st->errors);
+				   st->global_variables,
+				   st->config,
+				   st->errors);
         }
     }
 

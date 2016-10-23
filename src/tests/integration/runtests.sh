@@ -13,7 +13,7 @@ do
     
     if [ -n "$1" ]
     then
-	DO_TEST=`echo $FILE $EXIT_STATUS $PRE_QUERIES $POST_QUERIES $EXPECTED | awk "/$1/"`
+	DO_TEST=`echo $FILE $PROGRAM $EXIT_STATUS $PRE_QUERIES $POST_QUERIES $EXPECTED | awk "/$1/"`
 
 	if [ -z "$DO_TEST" ]
 	then

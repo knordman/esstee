@@ -28,7 +28,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* Array index interface                                                  */
 /**************************************************************************/
 struct index_node_t {
-    struct array_index_element_iface_t index_element;
+    struct array_index_element_t index_element;
     struct expression_iface_t *expression;
     struct index_node_t *prev;
     struct index_node_t *next;
@@ -38,6 +38,7 @@ struct array_index_t {
     struct array_index_iface_t array_index;
     struct index_node_t *nodes;
     struct index_node_t *invoke_state_node;
+    int constant_reference;
     struct st_location_t location;
 };
 
@@ -241,10 +242,24 @@ static int array_index_extend(
 	ai->location.last_column = expression_location->last_column;
     }
 
+    if(node->expression->invoke.step || node->expression->clone)
+    {
+	ai->constant_reference = ESSTEE_FALSE;
+    }
+
     return ESSTEE_OK;
     
 error_free_resources:
     return ESSTEE_ERROR;
+}
+
+int array_index_constant_reference(
+    struct array_index_iface_t *self)
+{
+    struct array_index_t *ai =
+	CONTAINER_OF(self, struct array_index_t, array_index);
+
+    return ai->constant_reference;
 }
 
 struct array_index_iface_t * st_create_array_index(
@@ -259,11 +274,14 @@ struct array_index_iface_t * st_create_array_index(
 	error_free_resources);
     memset(ai, 0, sizeof(struct array_index_t));
 
+    ai->constant_reference = ESSTEE_TRUE;
+    
     ai->array_index.step = array_index_step;
     ai->array_index.reset = array_index_reset;
     ai->array_index.allocate = array_index_allocate;
     ai->array_index.clone = array_index_clone;
     ai->array_index.extend = array_index_extend;
+    ai->array_index.constant_reference = array_index_constant_reference;
     ai->array_index.destroy = array_index_destroy;
     ai->array_index.first_node = NULL;
 
@@ -278,6 +296,7 @@ error_free_resources:
 /**************************************************************************/
 struct range_node_t {
     struct subrange_iface_t *subrange;
+    int64_t entries;
     struct range_node_t *prev;
     struct range_node_t *next;
 };
@@ -336,19 +355,8 @@ static int array_range_extend(
 						 config,
 						 issues);
     
-    node->range_element.entries = max_integer - min_integer;
-    node->range_element.subrange = node->subrange;
-    node->range_element.next = NULL;
+    node->entries = max_integer - min_integer;
     DL_APPEND(ar->nodes, node);
-
-    if(node->prev)
-    {
-	node->prev->range_element.next = &(node->range_element);
-    }
-    else
-    {
-	ar->array_range.first_node = &(node->range_element);
-    }
 
     return ESSTEE_OK;
 
@@ -377,7 +385,6 @@ struct array_range_iface_t * st_create_array_range(
 
     ar->array_range.extend = array_range_extend;
     ar->array_range.destroy = array_range_destroy;
-    ar->array_range.first_node = NULL;
 
     return &(ar->array_range);
     
@@ -389,7 +396,6 @@ error_free_resources:
 /* Array initializer                                                      */
 /**************************************************************************/
 struct init_node_t {
-    struct array_element_initializer_iface_t init_element;
     struct value_iface_t *value;
     struct value_iface_t *multiplier;
     struct st_location_t *location;
@@ -400,29 +406,8 @@ struct init_node_t {
 struct array_init_t {
     struct array_initializer_iface_t array_init;
     struct value_iface_t value;
-    struct init_node_t *iterator;
-    struct st_location_t location;
     struct init_node_t *nodes;
 };
-
-static void update_initializer_location(
-    struct array_init_t *ai,
-    const struct st_location_t *node_location)
-{
-    if(!ai->location.source)
-    {
-	ai->location.source = node_location->source;
-	ai->location.first_line = node_location->first_line;
-	ai->location.first_column = node_location->first_column;
-	ai->location.last_line = node_location->last_line;
-	ai->location.last_column = node_location->last_column;
-    }
-    else
-    {
-	ai->location.last_line = node_location->last_line;
-	ai->location.last_column = node_location->last_column;
-    }
-}
 
 static int extend_array_init(
     struct array_initializer_iface_t *self,
@@ -453,23 +438,7 @@ static int extend_array_init(
     node->value = value;
     node->location = node_location;
     node->multiplier = multiplier;
-
-    node->init_element.value = node->value;
-    node->init_element.multiplier = node->multiplier;
-    node->init_element.location = node->location;
-    node->init_element.next = NULL;
-    
-    update_initializer_location(ai, node->location);
-    
     DL_APPEND(ai->nodes, node);
-    if(node->prev)
-    {
-	node->prev->init_element.next = &(node->init_element);
-    }
-    else
-    {
-	ai->array_init.first_node = &(node->init_element);
-    }
 
     return ESSTEE_OK;
     
@@ -558,8 +527,6 @@ struct array_initializer_iface_t * st_create_array_initializer(
     ai->array_init.extend_by_multiplied_value = array_init_extend_by_multiplied_value;
     ai->array_init.value = array_init_value;
     ai->array_init.destroy = array_init_destroy;
-    ai->array_init.location = &(ai->location);
-    ai->array_init.first_node = NULL;
 
     ai->value.array_initializer = array_init_value_array_initializer;
     ai->value.destroy = array_init_value_destroy;
@@ -576,9 +543,8 @@ error_free_resources:
 struct array_type_t {
     struct type_iface_t type;
     struct type_iface_t *arrayed_type;
-    struct array_range_iface_t *ranges;
-    struct value_iface_t *default_value;
-    const struct array_initializer_iface_t *initializer;
+    struct array_range_t *ranges;
+    struct array_init_t *initializer;
     size_t total_elements;
 };
 
@@ -590,16 +556,17 @@ struct array_value_t {
 };
 
 static int check_array_initializer(
-    const struct array_range_element_iface_t *range,
-    const struct array_initializer_iface_t *initializer,
+    const struct range_node_t *range,
+    const struct array_init_t *initializer,
     struct type_iface_t *arrayed_type,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
     size_t checked_entries = 0;
-    const struct array_element_initializer_iface_t *itr = NULL;
 
-    for(itr = initializer->first_node; itr != NULL; itr = itr->next)
+    const struct init_node_t *itr = NULL;
+
+    DL_FOREACH(initializer->nodes, itr)
     {
 	if(itr->value->array_initializer)
 	{
@@ -618,10 +585,13 @@ static int check_array_initializer(
 	    {
 		const struct array_initializer_iface_t *inner_initializer =
 		    itr->value->array_initializer(itr->value);
+
+		const struct array_init_t *inner =
+		    CONTAINER_OF(inner_initializer, struct array_init_t, array_init);
 		
 		if(check_array_initializer(
 		       range->next,
-		       inner_initializer,
+		       inner,
 		       arrayed_type,
 		       config,
 		       issues) == ESSTEE_ERROR)
@@ -685,7 +655,7 @@ static int check_array_initializer(
 	    "too few values in array initializer.",
 	    ESSTEE_TYPE_ERROR,
 	    1,
-	    initializer->location);
+	    initializer->nodes->location);
 	
 	return ESSTEE_ERROR;
     }
@@ -696,7 +666,7 @@ static int check_array_initializer(
 	    "too many values in array initializer.", 
 	    ESSTEE_TYPE_ERROR,
 	    1,
-	    initializer->location);
+	    initializer->nodes->location);
 
 	return ESSTEE_ERROR;
     }
@@ -706,23 +676,26 @@ static int check_array_initializer(
 
 static int assign_array_initializer(
     struct value_iface_t **elements,
-    const struct array_initializer_iface_t *initializer,
+    const struct array_init_t *initializer,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
     int elements_assigned = 0;
-    const struct array_element_initializer_iface_t *itr = NULL;
-    
-    for(itr = initializer->first_node; itr != NULL; itr = itr->next)
+
+    const struct init_node_t *itr = NULL;
+    DL_FOREACH(initializer->nodes, itr)
     {
 	if(itr->value->array_initializer)
 	{
 	    const struct array_initializer_iface_t *inner_initializer =
 		itr->value->array_initializer(itr->value);
+
+	    const struct array_init_t *inner =
+		CONTAINER_OF(inner_initializer, struct array_init_t, array_init);
 	    
 	    int inner_array_elements_assigned = assign_array_initializer(
 		elements,
-		inner_initializer,
+		inner,
 		config,
 		issues);
 
@@ -810,9 +783,12 @@ static int array_value_assign(
 
     const struct array_initializer_iface_t *initializer =
 	new_value->array_initializer(new_value);
+
+    const struct array_init_t *ai =
+	CONTAINER_OF(initializer, struct array_init_t, array_init);
     
     int elements_assigned = assign_array_initializer(av->elements,
-						     initializer,
+						     ai,
 						     config,
 						     issues);
 
@@ -906,8 +882,8 @@ static struct value_iface_t * array_value_index(
     struct array_type_t *at =
 	CONTAINER_OF(vt, struct array_type_t, type);
 
-    const struct array_range_element_iface_t *range_itr = at->ranges->first_node;
-    const struct array_index_element_iface_t *index_itr = NULL;
+    const struct range_node_t *range_itr = at->ranges->nodes;
+    const struct array_index_element_t *index_itr = NULL;
 
     size_t elements_offset = 0;
     
@@ -980,7 +956,7 @@ static struct value_iface_t * array_value_index(
 								  issues);
 	
 	size_t multiplier = 1;
-	const struct array_range_element_iface_t *r_itr = NULL;
+	const struct range_node_t *r_itr = NULL;
 	for(r_itr = range_itr->next; r_itr != NULL; r_itr = r_itr->next)
 	{
 	    multiplier *= r_itr->entries;
@@ -1146,7 +1122,7 @@ static int array_type_can_hold(
     {
 	issues->new_issue(
 	    issues,
-	    "an array type can only be initialized when declared by an initializer",
+	    "an array type variable can only be initialized when declared by an initializer",
 	    ESSTEE_CONTEXT_ERROR);
 
 	return ESSTEE_FALSE;
@@ -1155,8 +1131,11 @@ static int array_type_can_hold(
     const struct array_initializer_iface_t *initializer =
 	value->array_initializer(value);
 
-    return check_array_initializer(at->ranges->first_node,
-				   initializer,
+    const struct array_init_t *ai = 
+	CONTAINER_OF(initializer, struct array_init_t, array_init);
+    
+    return check_array_initializer(at->ranges->nodes,
+				   ai,
 				   at->arrayed_type,
 				   config,
 				   issues);
@@ -1225,7 +1204,7 @@ static int array_type_arrayed_type_check(
     
     if(at->initializer)
     {    
-	return check_array_initializer(at->ranges->first_node,
+	return check_array_initializer(at->ranges->nodes,
 				       at->initializer,
 				       at->arrayed_type,
 				       config,
@@ -1256,9 +1235,11 @@ struct type_iface_t * st_create_array_type(
 	issues,
 	error_free_resources);
 
-    at->ranges = array_range;
+    struct array_range_t *ranges =
+	CONTAINER_OF(array_range, struct array_range_t, array_range);
+    
+    at->ranges = ranges;
     at->initializer = NULL;
-    at->default_value = NULL;
 
     if(default_value)
     {
@@ -1273,9 +1254,17 @@ struct type_iface_t * st_create_array_type(
 
 	    goto error_free_resources;
 	}
+
+	const struct array_initializer_iface_t *initializer =
+	    default_value->array_initializer(default_value);
+
+	/* The only one creating array_initializer_iface instances is
+	 * the array code, so it is safe to assume that it is actually
+	 * an array_initializer_t type. */
+	struct array_init_t *ai =
+	    CONTAINER_OF(initializer, struct array_init_t, array_init);
 	
-	at->initializer = default_value->array_initializer(default_value);
-	at->default_value = default_value;
+	at->initializer = ai;
     }
     
     int ref_add_result = type_refs->add_two_step(
@@ -1294,8 +1283,8 @@ struct type_iface_t * st_create_array_type(
 
     /* Determine the array size */
     at->total_elements = 0;
-    const struct array_range_element_iface_t *itr = NULL;
-    DL_FOREACH(at->ranges->first_node, itr)
+    const struct range_node_t *itr = NULL;
+    DL_FOREACH(at->ranges->nodes, itr)
     {
 	if(at->total_elements == 0)
 	{

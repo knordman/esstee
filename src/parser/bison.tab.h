@@ -157,18 +157,16 @@ union YYSTYPE
     struct header_t *header;
 
     struct value_iface_t *value;
-    struct listed_value_t *listed_value;
-    struct enum_group_item_t *enum_item;
-    struct array_init_value_t *array_init_value;
-    struct struct_init_value_t *struct_init_value;
-
-    struct subrange_t *subrange;
-    struct array_range_t *array_range;
-    struct struct_element_init_t *struct_element_init;
-    struct struct_element_t *struct_element;
+    struct enum_group_iface_t *enum_group;
+    struct array_initializer_iface_t *array_initializer;
+    struct struct_initializer_iface_t *struct_initializer;
+    struct struct_elements_iface_t *struct_elements;
+    struct subrange_iface_t *subrange;
+    struct array_range_iface_t *array_range;
     
     struct direct_address_t *direct_address;
-    struct array_index_t *array_index;
+    struct array_index_iface_t *array_index;
+
     struct qualified_identifier_iface_t *qualified_identifier;
     struct qualified_part_t *qualified_part;
     
@@ -186,7 +184,7 @@ union YYSTYPE
     st_bitflag_t bitflag;
     int64_t integer;
 
-#line 190 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 188 "src/parser/bison.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

@@ -24,123 +24,157 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <utlist.h>
 
 
-struct array_range_t * st_add_sub_to_new_array_range(
-    struct array_range_t *array_ranges,
-    struct subrange_t *subrange,
+struct array_range_iface_t * st_add_sub_to_new_array_range(
+    struct array_range_iface_t *array_ranges,
+    struct subrange_iface_t *subrange,
     struct parser_t *parser)
 {
-    struct array_range_t *ar =
-        st_extend_array_range(
-	    array_ranges,
-	    subrange,
-	    parser->config,
-	    parser->errors);
-
-    if(!ar)
+    if(!array_ranges)
     {
-	st_destroy_array_ranges(array_ranges);
-	st_destroy_subrange(subrange);
+	array_ranges = st_create_array_range(parser->config,
+					     parser->errors);
+
+	if(!array_ranges)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return ar;
+    int extend_result = array_ranges->extend(array_ranges,
+					     subrange,
+					     parser->config,
+					     parser->errors);
+
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+	
+    return array_ranges;
+
+error_free_resources:
+    subrange->destroy(subrange);
+    array_ranges->destroy(array_ranges);
+    return NULL;
 }
 
-struct listed_value_t * st_append_initial_element(
-    struct listed_value_t *values,
+struct array_initializer_iface_t * st_append_initial_element(
+    struct array_initializer_iface_t *initializer,
     struct value_iface_t *new_value,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    struct listed_value_t *lv =
-	st_extend_array_initializer(values,
-				    NULL,
-				    new_value,
-				    location,
-				    parser->config,
-				    parser->errors);
-    if(!lv)
+    if(!initializer)
     {
-	st_destroy_listed_values(values);
-	new_value->destroy(new_value);
+	initializer = st_create_array_initializer(parser->config,
+						  parser->errors);
+	if(!initializer)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return lv;
+    int extend_result = initializer->extend_by_value(initializer,
+						     new_value,
+						     location,
+						     parser->config,
+						     parser->errors);
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
+    return initializer;
+
+error_free_resources:
+    initializer->destroy(initializer);
+    new_value->destroy(new_value);
+    return NULL;
 }
 
-struct listed_value_t * st_append_initial_elements(
-    struct listed_value_t *values,
+struct array_initializer_iface_t * st_append_initial_elements(
+    struct array_initializer_iface_t *initializer,
     struct value_iface_t *multiplier,
     struct value_iface_t *new_value,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    struct listed_value_t *lv =
-	st_extend_array_initializer(values,
-				    multiplier,
-				    new_value,
-				    location,
-				    parser->config,
-				    parser->errors);
-    if(!lv)
+    if(!initializer)
     {
-	st_destroy_listed_values(values);
-	multiplier->destroy(multiplier);
-	new_value->destroy(new_value);
+	initializer = st_create_array_initializer(parser->config,
+						  parser->errors);
+	if(!initializer)
+	{
+	    goto error_free_resources;
+	}
     }
 
-    return lv;
+    int extend_result = initializer->extend_by_multiplied_value(initializer,
+								multiplier,
+								new_value,
+								location,
+								parser->config,
+								parser->errors);
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
+    return initializer;
+
+error_free_resources:
+    if(initializer)
+    {
+	initializer->destroy(initializer);
+    }
+    multiplier->destroy(multiplier);
+    new_value->destroy(new_value);
+    return NULL;
 }
 
 struct value_iface_t * st_new_array_init_value(
-    struct listed_value_t *values,
+    struct array_initializer_iface_t *initializer,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    struct value_iface_t *ai =
-	st_create_array_init_value(
-	    values,
-	    location,
-	    parser->config,
-	    parser->errors);
-
-    if(!ai)
-    {
-	st_destroy_listed_values(values);
-    }
-
-    return ai;
+    return initializer->value(initializer);
 }
 
-struct array_index_t * st_append_new_array_index(
-    struct array_index_t *index_list,
-    struct expression_iface_t *index_expression,
+struct array_index_iface_t * st_append_new_array_index(
+    struct array_index_iface_t *index,
+    struct expression_iface_t *expression,
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    struct array_index_t *ai = NULL;
-    struct st_location_t *ai_location = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	ai,
-	struct array_index_t,
-	parser->errors,
-	error_free_resources);
+    if(!index)
+    {
+	index = st_create_array_index(parser->config,
+				      parser->errors);
 
-    LOCDUP_OR_ERROR_JUMP(
-	ai_location,
-	location,
-	parser->errors,
-	error_free_resources);
+	if(!index)
+	{
+	    goto error_free_resources;
+	}
+    }
 
-    ai->location = ai_location;
-    ai->index_expression = index_expression;
+    int extend_result = index->extend(index,
+				      expression,
+				      location,
+				      parser->config,
+				      parser->errors);
 
-    DL_APPEND(index_list, ai);
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
 
-    return index_list;
+    return index;
     
 error_free_resources:
-    free(ai);
-    /* TODO: destroy array indices */
+    if(index)
+    {
+	index->destroy(index);
+    }
+    expression->destroy(expression);
     return NULL;
 }
