@@ -1,5 +1,7 @@
 # esstee
 
+[![Build Status](https://travis-ci.org/knordman/esstee.svg?branch=master)](https://travis-ci.org/knordman/esstee)
+
 esstee is an interpreter written in C (GNU C99), currently under work,
 for the Structured Text (ST) programming language. Structured Text is
 one of the five languages defined in the IEC-61131-3 standard, and
