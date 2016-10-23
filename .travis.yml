@@ -1,0 +1,17 @@
+language: c
+compiler: gcc
+
+# No dependencies
+install: true
+
+# The build command, tests to be added
+script: make build/program-tester
+
+# No need for the default depth of 50
+git:
+  depth: 3
+
+# Test the master branch
+branches:
+  only:
+  - master
