@@ -23,10 +23,10 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 typedef uint64_t st_bitflag_t;
 
-#define ESSTEE_OK                               0
-#define ESSTEE_TRUE                             0
+#define ESSTEE_OK                               2
+#define ESSTEE_TRUE                             1
+#define ESSTEE_FALSE                            0
 #define ESSTEE_ERROR                           -1
-#define ESSTEE_FALSE                           -2
 
 #define ESSTEE_DIVISION_BY_ZERO               -10
 #define ESSTEE_TYPE_OVERFLOW                  -11

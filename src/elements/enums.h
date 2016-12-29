@@ -17,27 +17,34 @@ You should have received a copy of the GNU General Public License
 along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <elements/itype.h>
+#pragma once
 
-struct enum_group_item_t;
+#include <elements/itype.h>
 
 struct enum_item_t {
     const char *identifier;
     const struct st_location_t *location;
 };
 
-struct enum_group_item_t * st_extend_enum_group(
-    struct enum_group_item_t *group,
-    char *identifier,
-    const struct st_location_t *location,
+struct enum_group_iface_t {
+
+    int (*extend)(
+	struct enum_group_iface_t *self,
+	char *identifier,
+	const struct st_location_t *location,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+	
+    void (*destroy)(
+	struct enum_group_iface_t *self);
+};
+
+struct enum_group_iface_t * st_create_enum_group(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
-void st_destroy_enum_group(
-    struct enum_group_item_t *group);
-
 struct type_iface_t * st_create_enum_type(
-    struct enum_group_item_t *value_group, 
+    struct enum_group_iface_t *group, 
     const char *default_item,
     const struct st_location_t *default_item_location,
     const struct config_iface_t *config,

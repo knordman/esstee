@@ -220,12 +220,16 @@ struct direct_address_term_t {
 };
 
 static const struct value_iface_t * direct_address_term_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
+    /* This is a special case, where an expression (here a direct
+     * address term), needs to modify itself while returning the
+     * value. On the other hand, e.g. for array index elements, it is
+     * assumed that all expressions are const. */
     struct direct_address_term_t *dt =
 	CONTAINER_OF(self, struct direct_address_term_t, expression);
 
-    struct direct_address_t *address = dt->content.address;
+    const struct direct_address_t *address = dt->content.address;
     
     if(ST_FLAG_IS_SET(dt->content.address->class, BIT_UNIT_ADDRESS))
     {

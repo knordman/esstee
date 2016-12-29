@@ -19,19 +19,52 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+
 #include <util/iconfig.h>
 #include <util/iissues.h>
+#include <rt/isystime.h>
+#include <rt/cursor.h>
 
-struct array_sub_index_t;
+struct array_index_element_t {
+    const struct expression_iface_t *expression;
+    const struct array_index_element_t *next;
+};
 
 struct array_index_iface_t {
 
-    int (*append)(
+    int (*step)(
 	struct array_index_iface_t *self,
-	struct array_sub_index_t *sub_index,
+	struct cursor_iface_t *cursor,
+	const struct systime_iface_t *time,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
-    
+    int (*reset)(
+	struct array_index_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
 
+    int (*allocate)(
+	struct array_index_iface_t *self,
+	struct issues_iface_t *issues);
+    
+    struct array_index_iface_t * (*clone)(
+	struct array_index_iface_t *self,
+	struct issues_iface_t *issues);
+
+    int (*extend)(
+	struct array_index_iface_t *self,
+	struct expression_iface_t *expression,
+	const struct st_location_t *expression_location,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*constant_reference)(
+    	struct array_index_iface_t *self);
+	
+    void (*destroy)(
+	struct array_index_iface_t *self);
+
+    const struct array_index_element_t *first_node;
+    const struct st_location_t *location;
 };

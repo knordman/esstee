@@ -39,15 +39,18 @@ struct issue_node_t {
     struct issue_node_t *next;
 };
 
+struct issue_group_t {
+    struct issue_group_iface_t group;
+    struct issue_node_t *nodes;
+    struct issue_context_t *context;
+};
+
 struct issue_context_t {
     struct issues_iface_t issues;
 
     struct issue_node_t *nodes;
-
+    struct issue_group_t *group;
     int group_mode;
-    struct issue_node_t *group_nodes;
-    struct st_location_t *group_locations;
-    
     struct issue_node_t *internal_error;
     struct issue_node_t *memory_error;
 
@@ -59,6 +62,9 @@ struct issue_context_t {
     st_bitflag_t last_filter;
 };
 
+/**************************************************************************/
+/* Help functions                                                         */
+/**************************************************************************/
 static void destroy_issue_nodes(
     struct issue_node_t *nodes)
 {
@@ -78,6 +84,97 @@ static void destroy_issue_nodes(
     }
 }
 
+/**************************************************************************/
+/* Issue group interface                                                  */
+/**************************************************************************/
+static void issue_group_close(
+    struct issue_group_iface_t *self)
+{
+    struct issue_group_t *group =
+	CONTAINER_OF(self, struct issue_group_t, group);
+
+    group->context->group_mode = 0;
+}
+
+static void issue_group_main_issue(
+    struct issue_group_iface_t *self,
+    const char *message,
+    st_bitflag_t issue_class,
+    int location_count,
+    ...)
+{ 
+    struct issue_group_t *group =
+	CONTAINER_OF(self, struct issue_group_t, group);
+
+    /* Create a new node with locations*/
+    struct issue_node_t *in = NULL;
+    char *issue_message = NULL;
+    struct st_location_t *locations = NULL;
+    struct st_location_t *in_location = NULL;
+    
+    ALLOC_OR_JUMP(
+	in,
+	struct issue_node_t,
+	error_free_resources);
+
+    STRDUP_OR_JUMP(
+	issue_message,
+	message,
+	error_free_resources);
+
+    va_list ap;
+    const struct st_location_t *location = NULL;
+    va_start(ap, location_count);
+    for(int i = 0; i < location_count; i++)
+    {
+	location = va_arg(ap, const struct st_location_t *);		
+
+	LOCDUP_OR_JUMP(
+	    in_location,
+	    location,
+	    location_alloc_error);
+
+	DL_APPEND(locations, in_location);
+	continue;
+
+    location_alloc_error:
+	va_end(ap);
+	goto error_free_resources;
+    }
+    va_end(ap);
+
+    in->issue.message = issue_message;
+    in->issue.class = issue_class;
+    in->issue.locations = locations;
+    in->new = 1;
+
+    /* Add group nodes as sub issues to new node */    
+    in->sub_nodes = group->context->group->nodes;
+
+    /* Reset group */
+    group->context->group->nodes = NULL;
+
+    /* Add to issue context nodes */
+    DL_APPEND(group->context->nodes, in);
+    
+    return;
+    
+error_free_resources:
+    free(in);
+    free(issue_message);
+    struct st_location_t *tmp = NULL;
+    struct st_location_t *itr = NULL;
+    DL_FOREACH_SAFE(locations, itr, tmp)
+    {
+	free(itr);
+    }
+    destroy_issue_nodes(group->context->group->nodes);
+    group->context->group->nodes = NULL;
+}
+
+/**************************************************************************/
+/* Issues interface                                                       */
+/**************************************************************************/
 static void issue_context_new_issue(
     struct issues_iface_t *self,
     const char *format,
@@ -87,6 +184,9 @@ static void issue_context_new_issue(
     struct issue_context_t *ic =
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
+    struct issue_node_t *in = NULL;
+    char *issue_message = NULL;
+    
     va_list ap;
     va_start(ap, issue_class);
     int written_bytes = vsnprintf(ic->message_buffer,
@@ -100,13 +200,12 @@ static void issue_context_new_issue(
 	goto error_free_resources;
     }
     
-    struct issue_node_t *in = NULL;
+
     ALLOC_OR_JUMP(
 	in,
 	struct issue_node_t,
 	error_free_resources);
 
-    char *issue_message = NULL;
     STRDUP_OR_JUMP(
 	issue_message,
 	ic->message_buffer,
@@ -120,7 +219,7 @@ static void issue_context_new_issue(
 
     if(ic->group_mode)
     {
-	DL_APPEND(ic->group_nodes, in);
+	DL_APPEND(ic->group->nodes, in);	
     }
     else
     {
@@ -131,7 +230,7 @@ static void issue_context_new_issue(
 
 error_free_resources:
     free(in);
-    free(issue_message);
+    free(issue_message);    
 }
 
 static void issue_context_new_issue_at(
@@ -145,12 +244,15 @@ static void issue_context_new_issue_at(
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
     struct issue_node_t *in = NULL;
+    char *issue_message = NULL;
+    struct st_location_t *locations = NULL;
+    struct st_location_t *in_location = NULL;
+    
     ALLOC_OR_JUMP(
 	in,
 	struct issue_node_t,
 	error_free_resources);
 
-    char *issue_message = NULL;
     STRDUP_OR_JUMP(
 	issue_message,
 	message,
@@ -158,20 +260,17 @@ static void issue_context_new_issue_at(
 
     va_list ap;
     const struct st_location_t *location = NULL;
-    struct st_location_t *locations = NULL;
-    struct st_location_t *copy = NULL;
-
     va_start(ap, location_count);
     for(int i = 0; i < location_count; i++)
     {
 	location = va_arg(ap, const struct st_location_t *);		
 
 	LOCDUP_OR_JUMP(
-	    copy,
+	    in_location,
 	    location,
 	    location_alloc_error);
 
-	DL_APPEND(locations, copy);
+	DL_APPEND(locations, in_location);
 	continue;
 
     location_alloc_error:
@@ -274,106 +373,14 @@ static void issue_context_internal_error(
     }
 }
 
-static void issue_context_begin_group(
+static struct issue_group_iface_t * issue_context_open_group(
     struct issues_iface_t *self)
 {
     struct issue_context_t *ic =
 	CONTAINER_OF(self, struct issue_context_t, issues);
 
-    destroy_issue_nodes(ic->group_nodes);
-    ic->group_nodes = NULL;
     ic->group_mode = 1;
-}
-
-static void issue_context_set_group_location(
-    struct issues_iface_t *self,
-    int location_count,
-    ...)
-{
-    struct issue_context_t *ic =
-	CONTAINER_OF(self, struct issue_context_t, issues);
-
-    va_list ap;
-    const struct st_location_t *location = NULL;
-    struct st_location_t *locations = NULL;
-    struct st_location_t *copy = NULL;
-    struct st_location_t *tmp = NULL;
-    struct st_location_t *location_itr = NULL;
-    
-    va_start(ap, location_count);
-    for(int i = 0; i < location_count; i++)
-    {
-	location = va_arg(ap, const struct st_location_t *);
-
-	LOCDUP_OR_JUMP(
-	    copy,
-	    location,
-	    location_alloc_error);
-
-	DL_APPEND(locations, copy);
-	continue;
-
-    location_alloc_error:
-	va_end(ap);
-	goto error_free_resources;
-    }
-    va_end(ap);
-
-    DL_CONCAT(ic->group_locations, locations);
-    
-    return;
-    
-error_free_resources:
-    DL_FOREACH_SAFE(locations, location_itr, tmp)
-    {
-	free(location_itr);
-    }
-}
-
-static void issue_context_end_group(
-    struct issues_iface_t *self)
-{
-    struct issue_context_t *ic =
-	CONTAINER_OF(self, struct issue_context_t, issues);
-
-    ic->group_mode = 0;
-    
-    struct issue_node_t *main_issue = NULL, *itr = NULL;
-    DL_FOREACH(ic->group_nodes, itr)
-    {
-	if(!itr->next)
-	{
-	    main_issue = itr;
-	    break;
-	}
-    }
-    
-    if(!main_issue)
-    {
-	if(ic->group_locations)
-	{
-	    struct st_location_t *location_itr = NULL, *tmp = NULL;
-	    DL_FOREACH_SAFE(ic->group_locations, location_itr, tmp)
-	    {
-		free(location_itr);
-	    }
-	    ic->group_locations = NULL;
-	}
-    }
-    else
-    {
-	DL_DELETE(ic->group_nodes, main_issue);
-	if(ic->group_nodes)
-	{
-	    main_issue->sub_nodes = ic->group_nodes;
-	    main_issue->issue.has_sub_issues = 1;
-	    ic->group_nodes = NULL;
-	}
-	main_issue->issue.locations = ic->group_locations;
-	ic->group_locations = NULL;
-
-	DL_APPEND(ic->nodes, main_issue);	
-    }
+    return &(ic->group->group);
 }
 
 static void issue_context_ignore_all(
@@ -581,6 +588,9 @@ static void issue_context_destroy(
     /* TODO: issues destructor */
 }
 
+/**************************************************************************/
+/* Public interface                                                       */
+/**************************************************************************/
 struct issues_iface_t * st_new_issue_context()
 {
     struct issue_context_t *ic = NULL;
@@ -589,6 +599,7 @@ struct issues_iface_t * st_new_issue_context()
     char *internal_error_description = NULL;
     char *memory_error_description = NULL;
     char *message_buffer = NULL;
+    struct issue_group_t *group = NULL;	
     
     ALLOC_OR_JUMP(
 	ic,
@@ -622,6 +633,18 @@ struct issues_iface_t * st_new_issue_context()
 	char,
 	ALLOC_ISSUE_MAX_LEN,
 	error_free_resources);
+
+    ALLOC_OR_JUMP(
+	group,
+	struct issue_group_t,
+	error_free_resources);
+
+    group->nodes = NULL;
+    group->context = ic;
+    
+    memset(&(group->group), 0, sizeof(struct issue_group_iface_t));
+    group->group.close = issue_group_close;
+    group->group.main_issue = issue_group_main_issue;
     
     internal_error->issue.message = internal_error_description;
     internal_error->issue.class = ESSTEE_MEMORY_ERROR;
@@ -643,7 +666,7 @@ struct issues_iface_t * st_new_issue_context()
     ic->nodes = NULL;
     ic->message_buffer = message_buffer;
     ic->group_mode = 0;
-    ic->group_nodes = NULL;
+    ic->group = group;
     ic->fatal_error = ESSTEE_FALSE;
     
     ic->issues.new_issue = issue_context_new_issue;
@@ -651,9 +674,7 @@ struct issues_iface_t * st_new_issue_context()
     ic->issues.build_message = issue_context_build_message;
     ic->issues.memory_error = issue_context_memory_error;
     ic->issues.internal_error = issue_context_internal_error;
-    ic->issues.begin_group = issue_context_begin_group;
-    ic->issues.set_group_location = issue_context_set_group_location;
-    ic->issues.end_group = issue_context_end_group;
+    ic->issues.open_group = issue_context_open_group;
     ic->issues.ignore_all = issue_context_ignore_all;
     ic->issues.fetch = issue_context_fetch;
     ic->issues.fetch_sub_issue = issue_context_fetch_sub_issue;
@@ -672,5 +693,6 @@ error_free_resources:
     free(memory_error);
     free(internal_error_description);
     free(memory_error_description);
+    free(group);
     return NULL;
 }

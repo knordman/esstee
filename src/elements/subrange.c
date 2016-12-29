@@ -22,6 +22,24 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/values.h>
 
 /**************************************************************************/
+/* Subrange interface                                                     */
+/**************************************************************************/
+struct subrange_t {
+    struct subrange_iface_t subrange;
+    struct value_iface_t *min;
+    struct st_location_t *min_location;
+    struct value_iface_t *max;
+    struct st_location_t *max_location;
+    struct st_location_t *location;
+};
+
+void subrange_destroy(
+    struct subrange_iface_t *self)
+{
+    /* TODO: subrange destroy */
+}
+
+/**************************************************************************/
 /* Value interface                                                        */
 /**************************************************************************/
 struct subrange_value_t {
@@ -259,7 +277,7 @@ struct subrange_type_t {
     struct type_iface_t *subranged_type;
     struct value_iface_t *default_value;
     struct st_location_t *default_value_location;
-    struct subrange_t *subrange;
+    struct subrange_iface_t *subrange;
 };
 
 static struct value_iface_t * subrange_type_create_value_of(
@@ -546,7 +564,7 @@ static int subrange_type_storage_type_check(
 /**************************************************************************/
 /* Public interface                                                       */
 /**************************************************************************/
-struct subrange_t * st_create_subrange(
+struct subrange_iface_t * st_create_subrange(
     struct value_iface_t *min,
     const struct st_location_t *min_location,
     struct value_iface_t *max,
@@ -660,7 +678,13 @@ struct subrange_t * st_create_subrange(
     sr->max = max;
     sr->max_location = max_loc;
 
-    return sr;
+    sr->subrange.min = sr->min;
+    sr->subrange.min_location = sr->min_location;
+    sr->subrange.max = sr->max;
+    sr->subrange.max_location = sr->max_location;
+    sr->subrange.destroy = subrange_destroy;
+    
+    return &(sr->subrange);
     
 error_free_resources:
     free(sr);
@@ -672,16 +696,10 @@ error_free_resources:
     return NULL;
 }
 
-void st_destroy_subrange(
-    struct subrange_t *subrange)
-{
-    /* TOOD: subrange destructor */
-}
-
 struct type_iface_t * st_create_subrange_type(
     char *storage_type_identifier,
     const struct st_location_t *storage_type_identifier_location,
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     struct value_iface_t *default_value,
     const struct st_location_t *default_value_location,
     struct named_ref_pool_iface_t *type_refs,

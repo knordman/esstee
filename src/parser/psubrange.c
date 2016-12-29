@@ -21,7 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/subrange.h>
 
 
-struct subrange_t * st_new_subrange(
+struct subrange_iface_t * st_new_subrange(
     struct value_iface_t *min,
     const struct st_location_t *min_location,
     struct value_iface_t *max,
@@ -29,16 +29,13 @@ struct subrange_t * st_new_subrange(
     const struct st_location_t *location,
     struct parser_t *parser)
 {
-    struct subrange_t *sr =
-	st_create_subrange(
-	    min,
-	    min_location,
-	    max,
-	    max_location,
-	    location,
-	    parser->config,
-	    parser->errors);
-
+    struct subrange_iface_t *sr = st_create_subrange(min,
+						     min_location,
+						     max,
+						     max_location,
+						     location,
+						     parser->config,
+						     parser->errors);
     if(!sr)
     {
 	min->destroy(min);

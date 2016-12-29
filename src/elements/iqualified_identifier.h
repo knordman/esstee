@@ -20,6 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/ivalue.h>
+#include <elements/iarray_index.h>
 #include <util/iconfig.h>
 #include <util/iissues.h>
 #include <rt/isystime.h>
@@ -27,6 +28,23 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 struct qualified_identifier_iface_t {
 
+    int (*extend_by_index)(
+	struct qualified_identifier_iface_t *self,
+	char *identifier,
+	const struct st_location_t *identifier_location,
+	struct array_index_iface_t *index,
+	const struct st_location_t *qid_location,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*extend)(
+	struct qualified_identifier_iface_t *self,
+	char *identifier,
+	const struct st_location_t *identifier_location,
+	const struct st_location_t *qid_location,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     int (*verify)(
 	const struct qualified_identifier_iface_t *self,
 	const struct config_iface_t *config,
@@ -52,6 +70,9 @@ struct qualified_identifier_iface_t {
 	struct qualified_identifier_iface_t *self,
 	struct issues_iface_t *issues);
 
+    int (*constant_reference)(
+	struct qualified_identifier_iface_t *self);
+    
     /* Path base interaction */
     int (*set_base)(
     	struct qualified_identifier_iface_t *self,
@@ -86,7 +107,7 @@ struct qualified_identifier_iface_t {
     
     /* Target access */
     const struct value_iface_t * (*target_value)(
-	struct qualified_identifier_iface_t *self);    
+	const struct qualified_identifier_iface_t *self);    
 
     const char * (*target_name)(
 	struct qualified_identifier_iface_t *self);
@@ -168,11 +189,10 @@ struct qualified_identifier_iface_t {
 	const struct value_iface_t *other_value,
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
-
+    
     /* Destructor */
     void (*destroy)(
     	struct qualified_identifier_iface_t *self);
-    
-    int constant_reference;
+
     const struct st_location_t *location;
 };

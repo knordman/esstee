@@ -202,104 +202,108 @@ static int for_statement_verify(
 	increment_value = fs->increment->return_value(fs->increment);
     }
     
-    issues->begin_group(issues);
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+    
     int var_from_assignable = fs->variable->assignable_from(fs->variable,
 							    NULL,
 							    from_value,
 							    config,
 							    issues);
+    ig->close(ig);
+    
     if(var_from_assignable != ESSTEE_TRUE)
     {
-	issues->new_issue(issues,
-			  "iteration variable '%s' cannot be assigned the from value",
-			  ESSTEE_CONTEXT_ERROR,
-			  fs->variable->identifier);
+	const char *message = issues->build_message(
+	    issues,
+	    "iteration variable '%s' cannot be assigned the from value",
+	    fs->variable->identifier);
+	
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_CONTEXT_ERROR,
+		       2,
+		       fs->identifier_location,
+		       fs->from->invoke.location);
 
-	issues->set_group_location(issues, 
-				   2,
-				   fs->identifier_location,
-				   fs->from->invoke.location);
-    }
-    issues->end_group(issues);
-
-    if(var_from_assignable != ESSTEE_TRUE)
-    {
 	return ESSTEE_ERROR;
     }
 
     const struct type_iface_t *var_type = var_value->type_of(var_value);
 
-    issues->begin_group(issues);
+    ig = issues->open_group(issues);
+    
     int type_can_hold_to_value = var_type->can_hold(var_type,
 						    to_value,
 						    config,
 						    issues);
+    ig->close(ig);
+    
     if(type_can_hold_to_value != ESSTEE_TRUE)
     {
-	issues->new_issue(issues,
-			  "iteration variable '%s' cannot hold the end value",
-			  ESSTEE_TYPE_ERROR,
-			  fs->variable->identifier);
+	const char *message = issues->build_message(
+	    issues,
+	    "iteration variable '%s' cannot hold the end value",
+	    fs->variable->identifier);
 
-	issues->set_group_location(issues,
-				   2,
-				   fs->identifier_location,
-				   fs->to->invoke.location);
-    }
-    issues->end_group(issues);
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_TYPE_ERROR,
+		       2,
+		       fs->identifier_location,
+		       fs->to->invoke.location);
 
-    if(type_can_hold_to_value != ESSTEE_TRUE)
-    {
 	return ESSTEE_ERROR;
     }
 
-    issues->begin_group(issues);
+    ig = issues->open_group(issues);
+
     int var_increment_operates = var_value->operates_with(var_value,
 							  increment_value,
 							  config,
 							  issues);
-
-    if(var_increment_operates != ESSTEE_TRUE)
-    {
-	issues->new_issue(issues,
-			  "iteration variable '%s' cannot be incremented as specified",
-			  ESSTEE_CONTEXT_ERROR,
-			  fs->variable->identifier);
-
-	issues->set_group_location(issues,
-				   2,
-				   fs->identifier_location,
-				   fs->increment->invoke.location);
-    }
-    issues->end_group(issues);
     
+    ig->close(ig);
+
     if(var_increment_operates != ESSTEE_TRUE)
     {
+	const char *message = issues->build_message(
+	    issues,
+	    "iteration variable '%s' cannot be incremented as specified",
+	    fs->variable->identifier);
+
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_CONTEXT_ERROR,
+		       2,
+		       fs->identifier_location,
+		       fs->increment->invoke.location);
+
 	return ESSTEE_ERROR;
     }
 
-    issues->begin_group(issues);
+    ig = issues->open_group(issues);
+
     int var_to_comparable = var_value->comparable_to(var_value,
 						     to_value,
 						     config,
 						     issues);
 
-    if(var_to_comparable != ESSTEE_TRUE)
-    {
-	issues->new_issue(issues,
-			  "iteration variable '%s' cannot be compared to end value",
-			  ESSTEE_CONTEXT_ERROR,
-			  fs->variable->identifier);
+    ig->close(ig);
 
-	issues->set_group_location(issues,
-				   2,
-				   fs->identifier_location,
-				   fs->to->invoke.location);
-    }
-    issues->end_group(issues);
-    
     if(var_to_comparable != ESSTEE_TRUE)
     {
+	const char *message = issues->build_message(
+	    issues,
+	    "iteration variable '%s' cannot be compared to end value",
+	    fs->variable->identifier);
+
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_CONTEXT_ERROR,
+		       2,
+		       fs->identifier_location,
+		       fs->to->invoke.location);
+
 	return ESSTEE_ERROR;
     }
 

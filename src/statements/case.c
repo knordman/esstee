@@ -176,27 +176,25 @@ static int case_statement_verify(
 	    struct case_list_element_t *case_list_itr = NULL;
 	    DL_FOREACH(case_itr->case_list, case_list_itr)
 	    {
-		issues->begin_group(issues);
-		int comparable_result = 
-		    case_list_itr->value->comparable_to(case_list_itr->value,
-							selector_value,
-							config,
-							issues);		
-		if(comparable_result != ESSTEE_TRUE)
-		{
-		    issues->new_issue(issues,
-				      "case selector not comparable to case value",
-				      ESSTEE_CONTEXT_ERROR);
-				      
-		    issues->set_group_location(issues,
-					       2,
-					       case_list_itr->location,
-					       cs->selector->invoke.location);
-		}
-		issues->end_group(issues);
+		struct issue_group_iface_t *ig = issues->open_group(issues);
 
+		int comparable_result = case_list_itr->value->comparable_to(
+		    case_list_itr->value,
+		    selector_value,
+		    config,
+		    issues);
+
+		ig->close(ig);
+		
 		if(comparable_result != ESSTEE_TRUE)
 		{
+		    ig->main_issue(ig,
+				   "case selector not comparable to case value",
+				   ESSTEE_CONTEXT_ERROR,
+				   2,
+				   case_list_itr->location,
+				   cs->selector->invoke.location);
+
 		    return ESSTEE_ERROR;
 		}
 	    }

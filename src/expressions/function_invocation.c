@@ -164,9 +164,9 @@ static int function_invocation_term_allocate(
 }
 
 static const struct value_iface_t * function_invocation_term_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
-    struct function_invocation_term_t *ft =
+    const struct function_invocation_term_t *ft =
 	CONTAINER_OF(self, struct function_invocation_term_t, expression);
     
     return ft->function->result_value(ft->function);

@@ -47,9 +47,9 @@ static int assign_temporary_and_negate(
 
     int assign_result = ESSTEE_ERROR;
     int negate_result = ESSTEE_ERROR;
-    int result = ESSTEE_ERROR;
 
-    issues->begin_group(issues);
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+
     assign_result = nt->temporary->assign(nt->temporary,
 					  to_negate_value,
 					  config,
@@ -62,24 +62,20 @@ static int assign_temporary_and_negate(
 	negate_result = (*operation)(nt->temporary, config, issues);
     }
 
+    ig->close(ig);
+
     if(assign_result != ESSTEE_OK || negate_result != ESSTEE_OK)
     {
-	issues->new_issue(
-	    issues,
-	    "expression evaluation failed",
-	    ESSTEE_RUNTIME_ERROR);
+	ig->main_issue(ig,
+		       "expression evaluation failed",
+		       ESSTEE_RUNTIME_ERROR,
+		       1,
+		       nt->location);
 
-	issues->set_group_location(issues,
-				   1,
-				   nt->location);
+	return ESSTEE_ERROR;
     }
-    else
-    {
-	result = ESSTEE_OK;
-    }
-    issues->end_group(issues);
 
-    return result;
+    return ESSTEE_OK;
 }
 
 static int negative_prefix_term_verify(
@@ -208,9 +204,9 @@ static int negative_prefix_term_reset(
 }
 
 static const struct value_iface_t * negative_prefix_term_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
-    struct negative_prefix_term_t *nt =
+    const struct negative_prefix_term_t *nt =
 	CONTAINER_OF(self, struct negative_prefix_term_t, expression);
 
     return nt->temporary;

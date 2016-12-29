@@ -170,39 +170,36 @@ static int invoke_parameters_verify(
 	const struct value_iface_t *assign_value =
 	    itr->expression->return_value(itr->expression);
 
-	issues->begin_group(issues);
+	struct issue_group_iface_t *ig =
+	    issues->open_group(issues);
+	
 	int variable_assignable = check_var->assignable_from(check_var,
 							     NULL,
 							     assign_value,
 							     config,
 							     issues);
+
+	ig->close(ig);
 	
 	if(variable_assignable != ESSTEE_TRUE)
 	{
 	    verified = ESSTEE_ERROR;
 
-	    if(itr->identifier)
+	    const char *message = "an unnamed parameter cannot be assigned from the given value";
+	    if(check_var->identifier)
 	    {
-		issues->new_issue(
+		message = issues->build_message(
 		    issues,
 		    "parameter '%s' cannot be assigned from the given value",
-		    ESSTEE_ARGUMENT_ERROR,
 		    check_var->identifier);
 	    }
-	    else
-	    {
-		issues->new_issue(
-		    issues,
-		    "one unnamed parameter cannot be assigned from the given value",
-		    ESSTEE_ARGUMENT_ERROR,
-		    check_var->identifier);
-	    }
-	    
-	    issues->set_group_location(issues,
-				       1,
-				       itr->location);
+
+	    ig->main_issue(ig,
+			   message,
+			   ESSTEE_ARGUMENT_ERROR,
+			   1,
+			   itr->location);
 	}
-	issues->end_group(issues);
 
 	last_var = check_var;
     }
@@ -407,15 +404,35 @@ int invoke_parameters_assign_from(
 	{
 	    const struct value_iface_t *parameter_value =
 		itr->expression->return_value(itr->expression);
-	    
+
+	    struct issue_group_iface_t *ig = issues->open_group(issues);
+
 	    int assign_result = assign_var->assign(assign_var,
 						   NULL,
 						   parameter_value,
 						   config,
 						   issues);
 
+	    ig->close(ig);
+
 	    if(assign_result != ESSTEE_OK)
 	    {
+		const char *message = "assignment of an unnamed parameter failed";
+		
+		if(assign_var->identifier)
+		{
+		    message = issues->build_message(
+			issues,
+			"assignment of parameter '%s' failed",
+			assign_var->identifier);
+		}
+
+		ig->main_issue(ig,
+			       message,
+			       ESSTEE_ARGUMENT_ERROR,
+			       1,
+			       itr->location);
+
 		return ESSTEE_ERROR;
 	    }
 	}

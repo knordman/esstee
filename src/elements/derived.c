@@ -218,6 +218,15 @@ static int derived_type_compatible(
 				    issues);
 }
 
+static const struct type_iface_t * derived_type_ancestor(
+    const struct type_iface_t *self)
+{
+    struct derived_type_t *dt =
+	CONTAINER_OF(self, struct derived_type_t, type);
+
+    return dt->ancestor;
+}
+
 static st_bitflag_t derived_type_class(
     const struct type_iface_t *self)
 {
@@ -398,22 +407,22 @@ static int derived_type_resolve_ancestor(
 	    return ESSTEE_ERROR;
 	}
 
-	issues->begin_group(issues);
+	struct issue_group_iface_t *ig = issues->open_group(issues);
+	
 	int ancestor_can_hold_default_value = ancestor->can_hold(ancestor,
 								 dt->default_value,
 								 config,
 								 issues);
-	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
-	{
-	    issues->set_group_location(issues,
-				       1,
-				       dt->default_value_location);
-	}
-
-	issues->end_group(issues);
+	ig->close(ig);
 	
 	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
 	{
+	    ig->main_issue(ig,
+			   "type cannot hold value",
+			   ESSTEE_TYPE_ERROR,
+			   1,
+			   dt->default_value_location);
+
 	    return ESSTEE_ERROR;
 	}
     }
@@ -472,10 +481,11 @@ struct type_iface_t * st_create_derived_type(
     dt->type.location = dt->location;
     dt->type.create_value_of = derived_type_create_value_of;
     dt->type.reset_value_of = derived_type_reset_value_of;
-    dt->type.can_hold = derived_type_can_hold;
-    dt->type.validate_direct_address = derived_type_validate_direct_address;
     dt->type.sync_direct_memory = derived_type_sync_direct_memory;
+    dt->type.validate_direct_address = derived_type_validate_direct_address;
+    dt->type.can_hold = derived_type_can_hold;    
     dt->type.compatible = derived_type_compatible;
+    dt->type.ancestor = derived_type_ancestor;
     dt->type.class = derived_type_class;
     dt->type.destroy = derived_type_destroy;
 
@@ -550,12 +560,14 @@ struct type_iface_t * st_create_derived_type_by_name(
     memset(&(dt->type), 0, sizeof(struct type_iface_t));    
     dt->type.identifier = dt->identifier;
     dt->type.location = dt->location;
+    
     dt->type.create_value_of = derived_type_create_value_of;
     dt->type.reset_value_of = derived_type_reset_value_of;
-    dt->type.can_hold = derived_type_can_hold;
-    dt->type.validate_direct_address = derived_type_validate_direct_address;
     dt->type.sync_direct_memory = derived_type_sync_direct_memory;
+    dt->type.validate_direct_address = derived_type_validate_direct_address;
+    dt->type.can_hold = derived_type_can_hold;    
     dt->type.compatible = derived_type_compatible;
+    dt->type.ancestor = derived_type_ancestor;
     dt->type.class = derived_type_class;
     dt->type.destroy = derived_type_destroy;
     

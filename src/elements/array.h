@@ -20,54 +20,66 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <elements/itype.h>
+#include <elements/iarray_index.h>
+#include <expressions/iexpression.h>
 #include <util/inamed_ref_pool.h>
 #include <elements/subrange.h>
-#include <expressions/iexpression.h>
 
-struct array_range_t;
-struct listed_value_t;
 
-struct array_index_t {
-    struct expression_iface_t *index_expression;
-    struct st_location_t *location;
-    struct array_index_t *prev;
-    struct array_index_t *next;
+struct array_range_iface_t {
+
+    int (*extend)(
+    	struct array_range_iface_t *self,
+	struct subrange_iface_t *subrange,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    void (*destroy)(
+	struct array_range_iface_t *self);
 };
 
-void st_destroy_array_index(
-    struct array_index_t *array_index);
+struct array_initializer_iface_t {
 
-struct array_range_t * st_extend_array_range(
-    struct array_range_t *array_ranges,
-    struct subrange_t *subrange,
+    int (*extend_by_value)(
+	struct array_initializer_iface_t *self,
+	struct value_iface_t *value,
+	const struct st_location_t *value_location,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
+    int (*extend_by_multiplied_value)(
+	struct array_initializer_iface_t *self,
+	struct value_iface_t *multiplier,
+	struct value_iface_t *value,
+	const struct st_location_t *location,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
+    struct value_iface_t * (*value)(
+    	struct array_initializer_iface_t *self);
+    
+    void (*destroy)(
+	struct array_initializer_iface_t *self);
+};
+
+struct array_index_iface_t * st_create_array_index(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
-void st_destroy_array_ranges(
-    struct array_range_t *array_ranges);
-
-struct listed_value_t * st_extend_array_initializer(
-    struct listed_value_t *values,
-    struct value_iface_t *multiplier,
-    struct value_iface_t *new_value,
-    const struct st_location_t *location,
+struct array_range_iface_t * st_create_array_range(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
-void st_destroy_listed_values(
-    struct listed_value_t *values);
-
-struct value_iface_t * st_create_array_init_value(
-    struct listed_value_t *values,
-    const struct st_location_t *location,
+struct array_initializer_iface_t * st_create_array_initializer(
     const struct config_iface_t *config,
     struct issues_iface_t *issues);
 
 struct type_iface_t * st_create_array_type(
-    struct array_range_t *array_ranges,
+    struct array_range_iface_t *array_range,
     char *arrayed_type_identifier,
     const struct st_location_t *arrayed_type_identifier_location,
     struct value_iface_t *default_value,
+    const struct st_location_t *default_value_location,
     struct named_ref_pool_iface_t *type_refs,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

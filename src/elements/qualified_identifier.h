@@ -18,38 +18,11 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <elements/iqualified_identifier.h>
+#include <util/inamed_ref_pool.h>
 #include <elements/array.h>
 
-struct qualified_part_t;
-
-struct qualified_part_t * st_extend_qualified_path(
-    struct qualified_part_t *path,
-    char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-struct qualified_part_t * st_extend_qualified_path_by_index(
-    struct qualified_part_t *path,
-    struct array_index_t *array_index,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-void st_destroy_qualified_path(
-    struct qualified_part_t *path);
 
 struct qualified_identifier_iface_t * st_create_qualified_identifier(
-    char *base,
-    const struct st_location_t *base_location,
-    struct qualified_part_t *inner_path,
-    struct named_ref_pool_iface_t *var_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-struct qualified_identifier_iface_t * st_create_qualified_identifier_by_index(
-    char *base,
-    const struct st_location_t *base_location,
-    struct array_index_t *array_index,
-    struct named_ref_pool_iface_t *var_refs,
+    struct named_ref_pool_iface_t *variable_context,
     const struct config_iface_t *config,
     struct issues_iface_t *issues);

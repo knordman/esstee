@@ -21,83 +21,148 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/qualified_identifier.h>
 
 
-struct qualified_part_t * st_new_inner_reference(
+struct qualified_identifier_iface_t * st_new_qualified_identifier_by_index(
     char *identifier,
-    struct qualified_part_t *outer,
-    const struct st_location_t *location,
-    struct parser_t *parser)
-{
-    struct qualified_part_t *new_path = st_extend_qualified_path(outer,
-								 identifier,
-								 location,
-								 parser->config,
-								 parser->errors);
-    if(!new_path)
-    {
-	st_destroy_qualified_path(outer);
-	free(identifier);
-    }
-
-    return new_path;
-}
-
-struct qualified_part_t * st_attach_array_index_to_inner_ref(
-    struct qualified_part_t *inner_ref,
-    struct array_index_t *array_index,
-    struct parser_t *parser)
-{
-    struct qualified_part_t *new_path = st_extend_qualified_path_by_index(inner_ref,
-									  array_index,
-									  parser->config,
-									  parser->errors);
-    if(!new_path)
-    {
-	st_destroy_qualified_path(inner_ref);
-    }
-
-    return new_path;
-}
-
-struct qualified_identifier_iface_t * st_new_qualified_identifier_inner_ref(
-    char *base,
-    const struct st_location_t *base_location,
-    struct qualified_part_t *path,
+    const struct st_location_t *identifier_location,
+    struct array_index_iface_t *index,
+    const struct st_location_t *qid_location,
     struct parser_t *parser)
 {
     struct qualified_identifier_iface_t *qid =
-	st_create_qualified_identifier(base,
-				       base_location,
-				       path,
-				       parser->pou_var_ref_pool,
+	st_create_qualified_identifier(parser->pou_var_ref_pool,
 				       parser->config,
 				       parser->errors);
+
     if(!qid)
     {
-	st_destroy_qualified_path(path);
-	free(base);
+	goto error_free_resources;
     }
 
+    int extend_result = qid->extend_by_index(qid,
+					     identifier,
+					     identifier_location,
+					     index,
+					     qid_location,
+					     parser->config,
+					     parser->errors);
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
     return qid;
+    
+error_free_resources:
+    free(identifier);
+    index->destroy(index);
+    return NULL;
 }
 
-struct qualified_identifier_iface_t * st_new_qualified_identifier_array_index(
-    char *base,
-    const struct st_location_t *base_location,    
-    struct array_index_t *array_index,
+struct qualified_identifier_iface_t * st_new_qualified_identifier_by_sub_ref(
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    char *sub_identifier,
+    const struct st_location_t *sub_identifier_location,
+    const struct st_location_t *qid_location,
     struct parser_t *parser)
 {
     struct qualified_identifier_iface_t *qid =
-	st_create_qualified_identifier_by_index(base,
-						base_location,
-						array_index,
-						parser->pou_var_ref_pool,
-						parser->config,
-						parser->errors);
+	st_create_qualified_identifier(parser->pou_var_ref_pool,
+				       parser->config,
+				       parser->errors);
+
     if(!qid)
     {
-	free(base);
-	/* TODO: destroy array index */
+	goto error_free_resources;
     }
 
+    int extend_result = qid->extend(qid,
+				    identifier,
+				    identifier_location,
+				    qid_location,
+				    parser->config,
+				    parser->errors);
+    
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    extend_result = qid->extend(qid,
+				sub_identifier,
+				sub_identifier_location,
+				qid_location,
+				parser->config,
+				parser->errors);
+
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
     return qid;
+    
+error_free_resources:
+    if(qid)
+    {
+	qid->destroy(qid);
+    }
+    free(identifier);
+    return NULL;
+}
+
+struct qualified_identifier_iface_t * st_extend_qualified_identifier_by_index(
+    struct qualified_identifier_iface_t *qid,
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    struct array_index_iface_t *index,
+    const struct st_location_t *qid_location,
+    struct parser_t *parser)
+{
+    int extend_result = qid->extend_by_index(qid,
+					     identifier,
+					     identifier_location,
+					     index,
+					     qid_location,
+					     parser->config,
+					     parser->errors);
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
+    return qid;
+    
+error_free_resources:
+    free(identifier);
+    index->destroy(index);
+    qid->destroy(qid);
+    return NULL;
+}
+
+struct qualified_identifier_iface_t * st_extend_qualified_identifier_by_sub_ref(
+    struct qualified_identifier_iface_t *qid,
+    char *identifier,
+    const struct st_location_t *identifier_location,
+    const struct st_location_t *qid_location,
+    struct parser_t *parser)
+{
+    int extend_result = qid->extend(qid,
+				    identifier,
+				    identifier_location,
+				    qid_location,
+				    parser->config,
+				    parser->errors);
+    
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+    
+    return qid;
+    
+error_free_resources:
+    free(identifier);
+    qid->destroy(qid);
+    return NULL;
 }

@@ -55,29 +55,31 @@ static int assignment_statement_simple_verify(
     }
 
     const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
-    
-    issues->begin_group(issues);
+
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+
     int assignable_result = sa->lhs->assignable_from(sa->lhs,
 						     NULL,
 						     rhs_value,
 						     config,
 						     issues);
-    if(assignable_result != ESSTEE_TRUE)
-    {
-	issues->new_issue(issues,
-			  "assignment of variable '%s' impossible",
-			  ESSTEE_CONTEXT_ERROR,
-			  sa->lhs->identifier);
-
-	issues->set_group_location(issues,
-				   2,
-				   sa->lhs_location,
-				   sa->rhs->invoke.location);
-    }
-    issues->end_group(issues);
+    
+    ig->close(ig);
     
     if(assignable_result != ESSTEE_TRUE)
     {
+	const char *message = issues->build_message(
+	    issues,
+	    "assignment of variable '%s' not possible",
+	    sa->lhs->identifier);
+
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_CONTEXT_ERROR,
+		       2,
+		       sa->lhs_location,
+		       sa->rhs->invoke.location);
+
 	return ESSTEE_ERROR;
     }
     
@@ -109,30 +111,31 @@ static int assignment_statement_simple_step(
 
     case 1: {
 	const struct value_iface_t *rhs_value = sa->rhs->return_value(sa->rhs);
-	
-	issues->begin_group(issues);
+
+	struct issue_group_iface_t *ig = issues->open_group(issues);
+
 	int assign_result = sa->lhs->assign(sa->lhs,
 					    NULL,
 					    rhs_value,
 					    config,
 					    issues);
 
-	if(assign_result != ESSTEE_OK)
-	{
-	    issues->new_issue(issues,
-			      "assignment of variable '%s' failed",
-			      ESSTEE_CONTEXT_ERROR,
-			      sa->lhs->identifier);
-	
-	    issues->set_group_location(issues,
-				       2,
-				       sa->lhs_location,
-				       sa->rhs->invoke.location);
-	}
-	issues->end_group(issues);
+	ig->close(ig);
 
 	if(assign_result != ESSTEE_OK)
 	{
+	    const char *message = issues->build_message(
+		issues,
+		"assignment of variable '%s' failed",
+		sa->lhs->identifier);
+
+	    ig->main_issue(ig,
+			   message,
+			   ESSTEE_RUNTIME_ERROR,
+			   2,
+			   sa->lhs_location,
+			   sa->rhs->invoke.location);
+
 	    return INVOKE_RESULT_ERROR;
 	}
     }

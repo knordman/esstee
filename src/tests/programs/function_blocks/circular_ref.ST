@@ -1,0 +1,15 @@
+FUNCTION_BLOCK fb_s
+
+VAR
+	myself : fb_s;
+END_VAR
+
+;
+
+END_FUNCTION_BLOCK
+
+PROGRAM t
+
+;
+
+END_PROGRAM

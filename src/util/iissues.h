@@ -23,6 +23,20 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <esstee/flags.h>
 #include <esstee/issues.h>
 
+struct issue_group_iface_t {
+
+    void (*close)(
+    	struct issue_group_iface_t *self);
+    
+    void (*main_issue)(
+	struct issue_group_iface_t *self,
+	const char *message,
+	st_bitflag_t issue_class,
+	int location_count,
+	...);
+
+};
+
 struct issues_iface_t {
 
     void (*new_issue)(
@@ -55,16 +69,8 @@ struct issues_iface_t {
 	const char *function,
 	int line);
 
-    void (*begin_group)(
-	struct issues_iface_t *self);
-
-    void (*set_group_location)(
-	struct issues_iface_t *self,
-	int location_count,
-	...);
-    
-    void (*end_group)(
-	struct issues_iface_t *self);
+    struct issue_group_iface_t * (*open_group)(
+    	struct issues_iface_t *self);
 
     void (*ignore_all)(
 	struct issues_iface_t *self);

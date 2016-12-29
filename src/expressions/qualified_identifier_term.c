@@ -92,9 +92,9 @@ static int qualified_identifier_term_reset(
 }
 
 static const struct value_iface_t * qualified_identifier_term_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
-    struct qualified_identifier_term_t *qit =
+    const struct qualified_identifier_term_t *qit =
 	CONTAINER_OF(self, struct qualified_identifier_term_t, expression);
 
     return qit->qid->target_value(qit->qid);
