@@ -107,7 +107,7 @@ struct qualified_identifier_iface_t {
     
     /* Target access */
     const struct value_iface_t * (*target_value)(
-	struct qualified_identifier_iface_t *self);    
+	const struct qualified_identifier_iface_t *self);    
 
     const char * (*target_name)(
 	struct qualified_identifier_iface_t *self);

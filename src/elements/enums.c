@@ -20,7 +20,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/enums.h>
 #include <elements/values.h>
 #include <util/macros.h>
-
 #include <stdio.h>
 
 /**************************************************************************/
@@ -129,7 +128,6 @@ struct enum_group_iface_t * st_create_enum_group(
 error_free_resources:
     return NULL;
 }
-
 
 /**************************************************************************/
 /* Value interface                                                        */

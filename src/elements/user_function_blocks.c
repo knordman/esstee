@@ -508,6 +508,10 @@ static struct value_iface_t * user_fb_type_create_value_of(
 	goto error_free_resources;
     }
 
+    /* CHANGE/TODO: reverify statements, to get chain for qualified
+     * identifier re-resolved */
+    st_verify_statements(statement_clones, config, issues);
+    
     /* Set up fb instance members */
     fv->variables = variable_table_clone;
     fv->statements = statement_clones;
@@ -546,18 +550,6 @@ static int user_fb_type_reset_value_of(
 				       config,
 				       issues);
 	
-	if(reset_result != ESSTEE_OK)
-	{
-	    return reset_result;
-	}
-    }
-
-    struct invoke_iface_t *sitr = NULL;
-    DL_FOREACH(fv->statements, sitr)
-    {
-	int reset_result = sitr->reset(sitr,
-				       config,
-				       issues);
 	if(reset_result != ESSTEE_OK)
 	{
 	    return reset_result;

@@ -365,10 +365,15 @@ struct value_iface_t * st_new_array_init_value(
     const struct st_location_t *location,
     struct parser_t *parser);
 
-struct array_index_iface_t * st_append_new_array_index(
+struct array_index_iface_t * st_new_array_index(
+    struct expression_iface_t *expression,
+    const struct st_location_t *expression_location,
+    struct parser_t *parser);
+
+struct array_index_iface_t * st_extend_array_index(
     struct array_index_iface_t *index,
     struct expression_iface_t *expression,
-    const struct st_location_t *location,
+    const struct st_location_t *expression_location,
     struct parser_t *parser);
 
 /**************************************************************************/

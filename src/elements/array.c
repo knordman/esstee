@@ -58,11 +58,12 @@ static int array_index_step(
     {
 	if(ai->invoke_state_node->expression->invoke.step)
 	{
+	    struct index_node_t *current_node = ai->invoke_state_node;
 	    ai->invoke_state_node = ai->invoke_state_node->next;
 
 	    cursor->switch_current(
 		cursor,
-		&(ai->invoke_state_node->expression->invoke),
+		&(current_node->expression->invoke),
 		config,
 		issues);
 
@@ -97,6 +98,8 @@ static int array_index_reset(
 	    }	    
 	}
     }
+
+    ai->invoke_state_node = ai->nodes;
 
     return ESSTEE_OK;
 }
@@ -161,25 +164,35 @@ static struct array_index_iface_t * array_index_clone(
 
     DL_FOREACH(ai->nodes, itr)
     {
-	struct expression_iface_t *copy_expr =
-	    itr->expression->clone(itr->expression, issues);
-	if(!copy_expr)
-	{
-	    goto error_free_resources;
-	}
-
 	ALLOC_OR_ERROR_JUMP(
 	    copy_node,
 	    struct index_node_t,
 	    issues,
 	    error_free_resources);
 
-	copy_node->expression = copy_expr;
+	memset(copy_node, 0, sizeof(struct index_node_t));
+	
+	struct expression_iface_t *copy_expr = itr->expression;
+	if(itr->expression->clone)
+	{
+	    copy_expr = itr->expression->clone(itr->expression, issues);
 
+	    if(!copy_expr)
+	    {
+		goto error_free_resources;
+	    }
+	}
+
+	copy_node->expression = copy_expr;
+	copy_node->index_element.expression = copy_node->expression;
+	
 	DL_APPEND(copy_nodes, copy_node);
 
-	copy_node->index_element.next = NULL;
-	if(copy_node->prev)
+	if(copy_node->prev == copy_node) /* First index check */
+	{
+	    copy->array_index.first_node = &(copy_node->index_element);
+	}
+	else
 	{
 	    copy_node->prev->index_element.next = &(copy_node->index_element);
 	}
@@ -221,13 +234,13 @@ static int array_index_extend(
     node->index_element.next = NULL;
 
     DL_APPEND(ai->nodes, node);
-    if(node->prev)
+    if(node->prev == node)	/* First index check */
     {
-	node->prev->index_element.next = &(node->index_element);
+	ai->array_index.first_node = &(node->index_element);
     }
     else
     {
-	ai->array_index.first_node = &(node->index_element);
+	node->prev->index_element.next = &(node->index_element);
     }
 
     if(!ai->location.source)
@@ -273,6 +286,8 @@ struct array_index_iface_t * st_create_array_index(
 	issues,
 	error_free_resources);
     memset(ai, 0, sizeof(struct array_index_t));
+
+    ai->array_index.location = &(ai->location);
 
     ai->constant_reference = ESSTEE_TRUE;
     
@@ -355,7 +370,7 @@ static int array_range_extend(
 						 config,
 						 issues);
     
-    node->entries = max_integer - min_integer;
+    node->entries = max_integer - min_integer + 1;
     DL_APPEND(ar->nodes, node);
 
     return ESSTEE_OK;
@@ -886,8 +901,8 @@ static struct value_iface_t * array_value_index(
     const struct array_index_element_t *index_itr = NULL;
 
     size_t elements_offset = 0;
-    
-    DL_FOREACH(array_index->first_node, index_itr)
+
+    for(index_itr = array_index->first_node; index_itr != NULL; index_itr = index_itr->next)
     {
 	const struct value_iface_t *index_value =
 	    index_itr->expression->return_value(index_itr->expression);
@@ -896,7 +911,7 @@ static struct value_iface_t * array_value_index(
 	{
 	    issues->new_issue_at(
 		issues,
-		"index addresses a non existing range",
+		"array index addresses a non existing range",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
 		array_index->location);
@@ -908,7 +923,7 @@ static struct value_iface_t * array_value_index(
 	{
 	    issues->new_issue_at(
 		issues,
-		"only integer indices are supported",
+		"only integer array indices are supported",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
 		index_itr->expression->invoke.location);
@@ -925,7 +940,7 @@ static struct value_iface_t * array_value_index(
 	{
 	    issues->new_issue_at(
 		issues,
-		"index out of range (smaller than minimum)",
+		"array index out of range (smaller than minimum)",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
 		index_itr->expression->invoke.location);
@@ -942,7 +957,7 @@ static struct value_iface_t * array_value_index(
 	{
 	    issues->new_issue_at(
 		issues,
-		"index out of range (larger than maximum)",
+		"array index out of range (larger than maximum)",
 		ESSTEE_ARGUMENT_ERROR,
 		1,
 		index_itr->expression->invoke.location);
@@ -971,7 +986,7 @@ static struct value_iface_t * array_value_index(
     {
 	issues->new_issue_at(
 	    issues,
-	    "index does not address all ranges",
+	    "array index does not address all ranges in array",
 	    ESSTEE_ARGUMENT_ERROR,
 	    1,
 	    array_index->location);

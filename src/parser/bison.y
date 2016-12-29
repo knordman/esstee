@@ -1005,12 +1005,12 @@ DIRECT_ADDRESS
 array_index :
 expression
 {
-    if(($$ = st_append_new_array_index(NULL, $1, &@1, parser)) == NULL)
+    if(($$ = st_new_array_index($1, &@1, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 | array_index ',' expression
 {
-    if(($$ = st_append_new_array_index($1, $3, &@3, parser)) == NULL)
+    if(($$ = st_extend_array_index($1, $3, &@3, parser)) == NULL)
 	DO_ERROR_STRATEGY(parser);
 }
 ;
@@ -1112,7 +1112,7 @@ IDENTIFIER '[' array_index ']'
 }
 | qualified_identifier '.' IDENTIFIER
 {
-    if(($$ = st_extend_qualified_identifier_by_sub_ref($1, $3, &@3, &@$, &@$, parser)) == NULL)
+    if(($$ = st_extend_qualified_identifier_by_sub_ref($1, $3, &@3, &@$, parser)) == NULL)
     	DO_ERROR_STRATEGY(parser);
 }
 ;

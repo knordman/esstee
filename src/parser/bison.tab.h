@@ -168,7 +168,6 @@ union YYSTYPE
     struct array_index_iface_t *array_index;
 
     struct qualified_identifier_iface_t *qualified_identifier;
-    struct qualified_part_t *qualified_part;
     
     struct expression_iface_t *expression;
     struct invoke_iface_t *invoke;
@@ -184,7 +183,7 @@ union YYSTYPE
     st_bitflag_t bitflag;
     int64_t integer;
 
-#line 188 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 187 "src/parser/bison.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

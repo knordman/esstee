@@ -30,9 +30,9 @@ struct value_expression_t {
 };
 
 static const struct value_iface_t * value_expression_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
-    struct value_expression_t *ve
+    const struct value_expression_t *ve
 	= CONTAINER_OF(self, struct value_expression_t, expression);
 
     return ve->value;

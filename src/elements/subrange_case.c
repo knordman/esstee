@@ -25,7 +25,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /**************************************************************************/
 struct subrange_case_value_t {
     struct value_iface_t value;
-    struct subrange_t *subrange;
+    struct subrange_iface_t *subrange;
 };
 
 static int subrange_case_value_comparable_to(
@@ -115,7 +115,7 @@ static void subrange_case_value_destroy()
 /* Public interface                                                       */
 /**************************************************************************/
 struct value_iface_t * st_create_subrange_case_selector(
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {

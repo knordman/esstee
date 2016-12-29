@@ -118,9 +118,14 @@ static int qualified_identifier_resolve_chain(
 
 		if(!subvar)
 		{
+		    const char *message = issues->build_message(
+			issues,
+			"invalid reference to subvariable in variable '%s'",
+			itr->variable->identifier);
+		    
 		    ig->main_issue(ig,
-				   "bad reference",
-				   ESSTEE_CONTEXT_ERROR,
+				   message,
+				   ESSTEE_LINK_ERROR,
 				   1,
 				   itr->location);
 		    
@@ -143,10 +148,17 @@ static int qualified_identifier_resolve_chain(
 
 		if(!index_value)
 		{
-		    issues->set_group_location(issues,
-					       1,
-					       itr->location);
-		    issues->end_group(issues);
+		    const char *message = issues->build_message(
+			issues,
+			"invalid array index for variable '%s'",
+			itr->variable->identifier);
+
+		    ig->main_issue(ig,
+				   message,
+				   ESSTEE_LINK_ERROR,
+				   1,
+				   itr->location);
+
 		    return ESSTEE_ERROR;
 		}
 
@@ -155,12 +167,10 @@ static int qualified_identifier_resolve_chain(
 		qi->target = index_value;
 		qi->target_name = itr->variable->identifier;
 	    }
-
-	    issues->end_group(issues);
 	}
 	else if(itr->next)
 	{
-	    issues->begin_group(issues);
+	    ig = issues->open_group(issues);
 	    
 	    struct variable_iface_t *subvar = itr->variable->sub_variable(
 		itr->variable,
@@ -169,16 +179,19 @@ static int qualified_identifier_resolve_chain(
 		config,
 		issues);
 
+	    ig->close(ig);
+
 	    if(!subvar)
 	    {
-		issues->set_group_location(issues,
-					   1,
-					   itr->location);
-		issues->end_group(issues);
+		ig->main_issue(ig,
+			       "invalid reference",
+			       ESSTEE_LINK_ERROR,
+			       1,
+			       itr->location);
+
 		return ESSTEE_ERROR;
 	    }
 
-	    issues->end_group(issues);
 	    itr->next->variable = subvar;
 	}
 	else
@@ -248,7 +261,7 @@ static int qualified_identifier_extend_by_index(
 
     if(!qi->path)
     {
-	qi->qid->location = part->location;
+	qi->qid.location = part->location;
 	
 	int add_base_ref_result = qi->base_context->add(
 	    qi->base_context,
@@ -306,7 +319,7 @@ static int qualified_identifier_extend(
 
     if(!qi->path)
     {
-	qi->qid->location = part->location;
+	qi->qid.location = part->location;
 	
 	int add_base_ref_result = qi->base_context->add(
 	    qi->base_context,
@@ -443,7 +456,7 @@ static int qualified_identifier_allocate(
 	    }
 	}
     }
-
+    
     return ESSTEE_OK;
 }
     
@@ -469,8 +482,6 @@ static struct qualified_identifier_iface_t * qualified_identifier_clone(
 	    error_free_resources);
 
 	memcpy(part_clone, itr, sizeof(struct qualified_part_t));
-	part_clone->index = NULL;
-	part_clone->variable = NULL;
 
 	if(itr->index)
 	{
@@ -494,11 +505,8 @@ static struct qualified_identifier_iface_t * qualified_identifier_clone(
 	issues,
 	error_free_resources);
 
-    memcpy(clone, qi, sizeof(struct qualified_identifier_t));    
-    clone->target_variable = NULL;
-    clone->target_index = NULL;
-    clone->target = NULL;
-    clone->target_name = NULL;
+    memcpy(clone, qi, sizeof(struct qualified_identifier_t));
+
     clone->path = path_clone;
     clone->qid.destroy = qualified_identifier_destroy_clone;
 
@@ -606,9 +614,9 @@ static int qualified_identifier_target_invoke_reset(
 
 /* Target access */
 static const struct value_iface_t * qualified_identifier_target_value(
-    struct qualified_identifier_iface_t *self)
+    const struct qualified_identifier_iface_t *self)
 {
-    struct qualified_identifier_t *qi =
+    const struct qualified_identifier_t *qi =
 	CONTAINER_OF(self, struct qualified_identifier_t, qid);
     
     return qi->target;
@@ -623,7 +631,7 @@ static const char * qualified_identifier_target_name(
     return qi->target_name;
 }
 
-/* Target modificaton check */
+/* Target modification check */
 static int qualified_identifier_target_assignable_from(
     const struct qualified_identifier_iface_t *self,
     const struct value_iface_t *new_value,

@@ -1,0 +1,25 @@
+FUNCTION_BLOCK fb_1_s
+
+VAR
+	other_fb : fb_2_s;
+END_VAR
+
+;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK fb_2_s
+
+VAR
+	the_other_fb : fb_1_s;
+END_VAR
+
+;
+
+END_FUNCTION_BLOCK
+
+PROGRAM t
+
+;
+
+END_PROGRAM

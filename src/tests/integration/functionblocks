@@ -1,0 +1,22 @@
+function_blocks/simple.ST!t!0![t].a:=1;[t].b:=1![t].simple.out;[t].simple.last;[t].simple.in!1;0;1
+function_blocks/simple.ST!t!0![t].a:=1;[t].b:=2![t].simple.out;[t].simple.last;[t].simple.in!2;1;1
+function_blocks/simple.ST!no_args!0!none![no_args].simple.out;[no_args].simple.last;[no_args].simple.in!0;0;0
+function_blocks/simple.ST!bad_in_type!1!none!none!
+function_blocks/noninput.ST!bad_non_input!1!none!none!
+function_blocks/toomany.ST!bad_too_many!1!none!none!
+function_blocks/circular_ref.ST!t!1!none!none
+function_blocks/circular_ref_2.ST!t!1!none!none
+function_blocks/circular_ref_3.ST!t!1!none!none
+function_blocks/circular_ref_4.ST!t!1!none!none
+function_blocks/circular_ref_5.ST!t!1!none!none
+function_blocks/circular_ref_6.ST!t!1!none!none
+function_blocks/simple_assignment.ST!t!0!none![t].a0.out;[t].a1.out;[t].a2.out;[t].a3.out;[t2].a1.out!0;10;20;0;0
+function_blocks/qualified_assignment.ST!t!0!none![t].t1.a;[t].t1.b;[t].t2.a;[t].t2.b![100,0,0,0,0];[0,200,0,0,0];[0,0,0,0,500];[0,0,300,0,0]
+function_blocks/qualified_assignment.ST!tnest!0!none![tnest].t.t1.a;[tnest].t.t1.b![100,0,0,0,0];[0,200,0,0,0]
+# invoking sub fb s
+# invoking functions
+# if else
+# case
+# for
+# while
+# repeat

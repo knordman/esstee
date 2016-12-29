@@ -106,23 +106,21 @@ static int assignment_statement_qualified_step(
     
     switch(qis->invoke_state)
     {
-    case 0:
-	if(qis->lhs->constant_reference == ESSTEE_FALSE)
-	{
-	    int identifier_step_result = qis->lhs->step(qis->lhs,
-							cursor,
-							time,
-							config,
-							issues);
+    case 0: {
+	int identifier_step_result = qis->lhs->step(qis->lhs,
+						    cursor,
+						    time,
+						    config,
+						    issues);
 	
-	    if(identifier_step_result != INVOKE_RESULT_FINISHED)
-	    {
-		return identifier_step_result;
-	    }
+	if(identifier_step_result != INVOKE_RESULT_FINISHED)
+	{
+	    return identifier_step_result;
 	}
 	
 	qis->invoke_state = 1;
 
+    }
     case 1:
 	if(qis->rhs->invoke.step)
 	{
@@ -137,7 +135,7 @@ static int assignment_statement_qualified_step(
     case 2:
 	rhs_value = qis->rhs->return_value(qis->rhs);
 	
-	if(qis->lhs->constant_reference == ESSTEE_FALSE)
+	if(qis->lhs->constant_reference(qis->lhs) == ESSTEE_FALSE)
 	{   
 	    struct issue_group_iface_t *ig =issues->open_group(issues);
 	    

@@ -39,7 +39,7 @@ struct single_identifier_term_t {
 /* Expression interface                                                   */
 /**************************************************************************/
 static const struct value_iface_t * identifier_term_variable_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
     struct single_identifier_term_t *sit =
 	CONTAINER_OF(self, struct single_identifier_term_t, expression);
@@ -83,9 +83,9 @@ error_free_resources:
 }
 
 static const struct value_iface_t * identifier_term_enum_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
-    struct single_identifier_term_t *sit = 
+    const struct single_identifier_term_t *sit = 
 	CONTAINER_OF(self, struct single_identifier_term_t, expression);
 
     return &(sit->value);

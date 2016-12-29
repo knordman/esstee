@@ -140,26 +140,22 @@ struct value_iface_t * st_new_array_init_value(
     return initializer->value(initializer);
 }
 
-struct array_index_iface_t * st_append_new_array_index(
-    struct array_index_iface_t *index,
+struct array_index_iface_t * st_new_array_index(
     struct expression_iface_t *expression,
-    const struct st_location_t *location,
+    const struct st_location_t *expression_location,
     struct parser_t *parser)
 {
+    struct array_index_iface_t * index =
+	st_create_array_index(parser->config, parser->errors);
+    
     if(!index)
     {
-	index = st_create_array_index(parser->config,
-				      parser->errors);
-
-	if(!index)
-	{
-	    goto error_free_resources;
-	}
+	goto error_free_resources;
     }
 
     int extend_result = index->extend(index,
 				      expression,
-				      location,
+				      expression_location,
 				      parser->config,
 				      parser->errors);
 
@@ -175,6 +171,31 @@ error_free_resources:
     {
 	index->destroy(index);
     }
+    expression->destroy(expression);
+    return NULL;
+}
+
+struct array_index_iface_t * st_extend_array_index(
+    struct array_index_iface_t *index,
+    struct expression_iface_t *expression,
+    const struct st_location_t *expression_location,
+    struct parser_t *parser)
+{
+    int extend_result = index->extend(index,
+				      expression,
+				      expression_location,
+				      parser->config,
+				      parser->errors);
+
+    if(extend_result != ESSTEE_OK)
+    {
+	goto error_free_resources;
+    }
+
+    return index;
+    
+error_free_resources:
+    index->destroy(index);
     expression->destroy(expression);
     return NULL;
 }

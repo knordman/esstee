@@ -1041,7 +1041,7 @@ static struct variable_iface_t * external_variable_sub_variable(
 
 static const struct value_iface_t * variable_index_value(
     struct variable_iface_t *self,
-    struct array_index_iface_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -1073,7 +1073,7 @@ static const struct value_iface_t * variable_index_value(
 
 static const struct value_iface_t * external_variable_index_value(
     struct variable_iface_t *self,
-    struct array_index_iface_t *index,
+    const struct array_index_iface_t *index,
     const struct config_iface_t *config,
     struct issues_iface_t *issues)
 {
@@ -1254,24 +1254,31 @@ static int direct_variable_type_post_resolve(
 	return ESSTEE_ERROR;
     }
 
-    issues->begin_group(issues);
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+
     int valid_result = var->stub->type->validate_direct_address(var->stub->type,
 								var->stub->address,
 								issues);
+
+    ig->close(ig);
+    
     if(valid_result != ESSTEE_OK)
     {
-	issues->new_issue(issues,
-			  "invalid direct address for variable '%s'",
-			  ESSTEE_CONTEXT_ERROR,
-			  var->variable.identifier);
+	const char *message = issues->build_message(
+	    issues,
+	    "invalid direct address for variable '%s'",
+	    var->variable.identifier);
+	
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_CONTEXT_ERROR,
+		       1,
+		       var->variable.location);
 
-	issues->set_group_location(issues,
-				   1,
-				   var->variable.location);
+	return valid_result;
     }
-    issues->end_group(issues);
 
-    return (valid_result != ESSTEE_OK) ? valid_result : ESSTEE_OK;
+    return ESSTEE_OK;
 }
 
 

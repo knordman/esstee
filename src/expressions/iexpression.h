@@ -29,7 +29,7 @@ struct expression_iface_t {
     
     const struct value_iface_t * (*return_value)(
 	const struct expression_iface_t *self);
-
+    
     struct expression_iface_t * (*clone)(
 	struct expression_iface_t *self,
 	struct issues_iface_t *issues);

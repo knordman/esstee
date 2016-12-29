@@ -58,7 +58,7 @@ static int invoke_statement_verify(
 		is->location);
 	}
 
-	issues->begin_group(issues);
+	struct issue_group_iface_t *ig = issues->open_group(issues);
 
 	int var_invoke = is->variable->invoke_verify(is->variable,
 						     NULL,
@@ -66,17 +66,18 @@ static int invoke_statement_verify(
 						     config,
 						     issues);
 
+	ig->close(ig);
+
 	if(var_invoke != ESSTEE_OK)
 	{
-	    issues->set_group_location(issues,
-				       1,
-				       is->location);
-	    issues->end_group(issues);
+	    ig->main_issue(ig,
+			   "variable cannot be invoked",
+			   ESSTEE_CONTEXT_ERROR,
+			   1,
+			   is->location);
 	    
 	    return var_invoke;
 	}
-
-	issues->end_group(issues);
     }
     else if(is->function)
     {

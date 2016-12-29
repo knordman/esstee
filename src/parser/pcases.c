@@ -85,7 +85,7 @@ struct case_t * st_append_case(
 }
 
 struct value_iface_t * st_new_subrange_case_value(
-    struct subrange_t *subrange,
+    struct subrange_iface_t *subrange,
     struct parser_t *parser)
 {
     struct value_iface_t *scv = st_create_subrange_case_selector(
@@ -95,7 +95,7 @@ struct value_iface_t * st_new_subrange_case_value(
 
     if(scv)
     {
-	st_destroy_subrange(subrange);
+	subrange->destroy(subrange);
     }
 
     return scv;

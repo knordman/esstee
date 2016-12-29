@@ -87,48 +87,46 @@ static int explicit_literal_type_resolved(
     struct value_iface_t *literal =
 	(struct value_iface_t *)referrer;
 
-    issues->begin_group(issues);
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+
     int can_hold_result = literal_type->can_hold(literal_type,
 						 literal,
 						 config,
-						 issues);    
-    if(can_hold_result != ESSTEE_TRUE)
-    {
-	issues->new_issue(issues,
-			  "type '%s' cannot be specified as an explicit type for literal",
-			  ESSTEE_TYPE_ERROR,
-			  literal_type->identifier);
-	
-	issues->set_group_location(issues,
-				   1,
-				   location);
-    }
-    issues->end_group(issues);
+						 issues);
+    ig->close(ig);
     
     if(can_hold_result != ESSTEE_TRUE)
     {
+	const char *message = issues->build_message(
+	    issues,
+	    "type '%s' cannot be specified as an explicit type for literal",
+	    literal_type->identifier);
+
+	ig->main_issue(ig,
+		       message,
+		       ESSTEE_TYPE_ERROR,
+		       1,
+		       location);
+
 	return ESSTEE_ERROR;
     }
-    
-    issues->begin_group(issues);
+
+    ig = issues->open_group(issues);
+
     int override_result = literal->override_type(literal,
 						 literal_type,
 						 config,
 						 issues);
+    ig->close(ig);
+    
     if(override_result != ESSTEE_OK)
     {
-	issues->new_issue(issues,
-			  "type override failed",
-			  ESSTEE_TYPE_ERROR);
-	
-	issues->set_group_location(issues,
-				   1,
-				   location);
-    }
-    issues->end_group(issues);
+	ig->main_issue(ig,
+		       "type override failed",
+		       ESSTEE_TYPE_ERROR,
+		       1,
+		       location);
 
-    if(override_result != ESSTEE_OK)
-    {
 	return ESSTEE_ERROR;
     }
     

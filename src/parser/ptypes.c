@@ -142,7 +142,7 @@ struct type_iface_t * st_new_enum_type(
     struct parser_t *parser)
 {
     struct type_iface_t *et = st_create_enum_type(
-	value_group,
+	enum_group,
 	default_item,
 	default_item_location,
 	parser->config,
@@ -171,6 +171,7 @@ struct type_iface_t * st_new_array_type(
 	arrayed_type_identifier,
 	arrayed_type_identifier_location,
 	default_value,
+	default_value_location,
 	parser->pou_type_ref_pool,
 	parser->config,
 	parser->errors);

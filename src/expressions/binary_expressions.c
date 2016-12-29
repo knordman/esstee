@@ -230,28 +230,23 @@ static int be_verify(
 
     const struct value_iface_t *right_value =
 	be->right_operand->return_value(be->right_operand);
-    
-    issues->begin_group(issues);
+
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+
     int left_operates_with_right
 	= left_value->operates_with(left_value, right_value, config, issues);
 
+    ig->close(ig);
+    
     if(left_operates_with_right != ESSTEE_TRUE)
     {
-	issues->new_issue(
-	    issues,
+	ig->main_issue(ig,
 	    "left value does not support the operation using the right value",
-	    ESSTEE_CONTEXT_ERROR);
+		       ESSTEE_CONTEXT_ERROR,
+		       2,
+		       be->left_operand->invoke.location,
+		       be->right_operand->invoke.location);
 
-	issues->set_group_location(
-	    issues,
-	    2,
-	    be->left_operand->invoke.location,
-	    be->right_operand->invoke.location);
-    }
-    issues->end_group(issues);
-
-    if(left_operates_with_right != ESSTEE_TRUE)
-    {
 	return ESSTEE_ERROR;
     }
     
@@ -401,31 +396,26 @@ static int be_comparison_verify(
 
     const struct value_iface_t *right_value
 	= be->right_operand->return_value(be->right_operand);
-    
-    issues->begin_group(issues);
+
+    struct issue_group_iface_t *ig = issues->open_group(issues);
+
     int left_comparable_to_right
 	= left_value->comparable_to(left_value, right_value, config, issues);
 
+    ig->close(ig);
+    
     if(left_comparable_to_right != ESSTEE_TRUE)
     {
-	issues->new_issue(
-	    issues,
+	ig->main_issue(
+	    ig,
 	    "left value is not comparable to the right value",
-	    ESSTEE_CONTEXT_ERROR);
-
-	issues->set_group_location(
-	    issues,
+	    ESSTEE_CONTEXT_ERROR,
 	    2,
 	    be->left_operand->invoke.location,
 	    be->right_operand->invoke.location);
-    }
-    issues->end_group(issues);
 
-    if(left_comparable_to_right != ESSTEE_TRUE)
-    {
 	return ESSTEE_ERROR;
     }
-    
 
     return ESSTEE_OK;
 }
@@ -599,9 +589,9 @@ static int binary_expression_allocate_bool(
 }
 
 static const struct value_iface_t * binary_expression_return_value(
-    struct expression_iface_t *self)
+    const struct expression_iface_t *self)
 {
-    struct binary_expression_t *be =
+    const struct binary_expression_t *be =
 	CONTAINER_OF(self, struct binary_expression_t, expression);
 
     return be->temporary;

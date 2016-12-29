@@ -407,22 +407,22 @@ static int derived_type_resolve_ancestor(
 	    return ESSTEE_ERROR;
 	}
 
-	issues->begin_group(issues);
+	struct issue_group_iface_t *ig = issues->open_group(issues);
+	
 	int ancestor_can_hold_default_value = ancestor->can_hold(ancestor,
 								 dt->default_value,
 								 config,
 								 issues);
-	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
-	{
-	    issues->set_group_location(issues,
-				       1,
-				       dt->default_value_location);
-	}
-
-	issues->end_group(issues);
+	ig->close(ig);
 	
 	if(ancestor_can_hold_default_value != ESSTEE_TRUE)
 	{
+	    ig->main_issue(ig,
+			   "type cannot hold value",
+			   ESSTEE_TYPE_ERROR,
+			   1,
+			   dt->default_value_location);
+
 	    return ESSTEE_ERROR;
 	}
     }
