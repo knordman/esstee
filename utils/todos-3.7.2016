@@ -1,16 +1,3 @@
-Integration tests (preliminary)
-DONE literals
-DONE conditionals
-DONE expressions
-DONE direct memory
-DONE derived types
-DONE arrays
-DONE subrange
-DONE enum
-DONE loops
-DONE functions
--- function blocks
-
 Functionality
 built-in functions and function blocks
 -- *_TO_*, dint_to_bool
@@ -20,6 +7,7 @@ built-in functions and function blocks
 -- F_TRIG
 
 Python bindings for esstee
+-- use cffi
 
 Wishlist
 -- assignment of an array to another array (ok when dimensions match and type)

@@ -396,7 +396,7 @@ static int subrange_type_can_hold(
 							       config,
 							       issues);
 
-    if(subranged_type_can_hold != ESSTEE_OK)
+    if(subranged_type_can_hold != ESSTEE_TRUE)
     {
 	return subranged_type_can_hold;
     }

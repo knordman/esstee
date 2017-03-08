@@ -508,9 +508,8 @@ static struct value_iface_t * user_fb_type_create_value_of(
 	goto error_free_resources;
     }
 
-    /* CHANGE/TODO: reverify statements, to get chain for qualified
-     * identifier re-resolved */
-    st_verify_statements(statement_clones, config, issues);
+    /* Run post clone hook for statements */
+    st_post_clone_hook_for_statements(statement_clones, config, issues);
     
     /* Set up fb instance members */
     fv->variables = variable_table_clone;

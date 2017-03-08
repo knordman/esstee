@@ -30,6 +30,7 @@ struct invoke_statement_t {
     struct invoke_parameters_iface_t *parameters;
     struct variable_iface_t *variable;
     struct function_iface_t *function;
+    char *identifier;
     int invoke_state;
 };
 
@@ -94,9 +95,14 @@ static int invoke_statement_verify(
     }
     else
     {
+	const char *message = issues->build_message(
+	    issues,
+	    "no known variable or function named '%s'",
+	    is->identifier);
+	
 	issues->new_issue_at(
 	    issues,
-	    "no known variable or function referenced",
+	    message,
 	    ISSUE_ERROR_CLASS,
 	    1,
 	    is->location);
@@ -364,6 +370,12 @@ struct invoke_iface_t * st_create_invoke_statement(
     LOCDUP_OR_ERROR_JUMP(
 	is_location,
 	identifier_location,
+	issues,
+	error_free_resources);
+
+    STRDUP_OR_ERROR_JUMP(
+	is->identifier,
+	identifier,
 	issues,
 	error_free_resources);
 

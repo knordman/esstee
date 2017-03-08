@@ -92,7 +92,7 @@ build/lib/libesstee.so : $(OBJECTS)
 	ln -fs $(abspath $@)$(REAL) $(abspath $@)$(SO)
 	ln -fs $(abspath $@)$(SO) $(abspath $@)
 
-build/program-tester :	build/tests/programs/main.o build/lib/libesstee.a
+build/program-tester :	build/tests/program_tester/main.o build/lib/libesstee.a
 	gcc $(LDFLAGS) $^ -o $@
 #	gcc $< $(LDFLAGS) -Lbuild/lib -lesstee -o $@
 

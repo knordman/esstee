@@ -32,5 +32,10 @@ int st_verify_statements(
     const struct config_iface_t *config,
     struct issues_iface_t *errors);
 
+int st_post_clone_hook_for_statements(
+    struct invoke_iface_t *statements,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues);
+
 void st_destroy_statements(
     struct invoke_iface_t *statements);

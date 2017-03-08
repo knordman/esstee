@@ -63,6 +63,25 @@ int st_verify_statements(
     return result;
 }
 
+int st_post_clone_hook_for_statements(
+    struct invoke_iface_t *statements,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    int result = ESSTEE_OK;
+    struct invoke_iface_t *itr = NULL;
+    DL_FOREACH(statements, itr)
+    {
+	if(itr->post_clone && itr->post_clone(itr, config, issues) != ESSTEE_OK)
+	{
+	    result = ESSTEE_ERROR;
+	}
+    }
+
+    return result;
+}
+
+
 void st_destroy_statements(
     struct invoke_iface_t *statements)
 {

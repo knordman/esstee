@@ -300,6 +300,21 @@ int st_link(struct st_t *st)
 	return ESSTEE_ERROR;
     }
 
+    /* Resolve function references (global) */
+    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
+    {
+	cuitr->function_ref_pool->reset_resolved(cuitr->function_ref_pool);
+	st_resolve_function_refs(cuitr->function_ref_pool, st->functions);
+	cuitr->function_ref_pool->trigger_resolve_callbacks(cuitr->function_ref_pool,
+							    st->config,
+							    st->errors);
+    }
+
+    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
+    {
+	return ESSTEE_ERROR;
+    }
+
     /* Finalize function block headers */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {
@@ -345,22 +360,7 @@ int st_link(struct st_t *st)
     {
 	return ESSTEE_ERROR;
     }
-    
-    /* Resolve function references (global) */
-    for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
-    {
-	cuitr->function_ref_pool->reset_resolved(cuitr->function_ref_pool);
-	st_resolve_function_refs(cuitr->function_ref_pool, st->functions);
-	cuitr->function_ref_pool->trigger_resolve_callbacks(cuitr->function_ref_pool,
-							    st->config,
-							    st->errors);
-    }
-
-    if(st->errors->count(st->errors, ESSTEE_FILTER_ANY_ERROR) > 0)
-    {
-	return ESSTEE_ERROR;
-    }
-    
+        
     /* Finalize function block statements */
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)
     {

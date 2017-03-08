@@ -13,10 +13,16 @@ function_blocks/circular_ref_6.ST!t!1!none!none
 function_blocks/simple_assignment.ST!t!0!none![t].a0.out;[t].a1.out;[t].a2.out;[t].a3.out;[t2].a1.out!0;10;20;0;0
 function_blocks/qualified_assignment.ST!t!0!none![t].t1.a;[t].t1.b;[t].t2.a;[t].t2.b![100,0,0,0,0];[0,200,0,0,0];[0,0,0,0,500];[0,0,300,0,0]
 function_blocks/qualified_assignment.ST!tnest!0!none![tnest].t.t1.a;[tnest].t.t1.b![100,0,0,0,0];[0,200,0,0,0]
-# invoking sub fb s
-# invoking functions
-# if else
-# case
-# for
-# while
-# repeat
+function_blocks/invoke.ST!t!0!none![t].fb.a;[t].fb.b;[t].fb.c!1;2;3
+function_blocks/conditionals.ST!t_if!0![t_if].fb.i1:=1![t_if].fb.i2!10
+function_blocks/conditionals.ST!t_if!0![t_if].fb.i1:=2![t_if].fb.i2!20
+function_blocks/conditionals.ST!t_if!0![t_if].fb.i1:=3![t_if].fb.i2!30
+function_blocks/conditionals.ST!t_if!0![t_if].fb.i1:=9![t_if].fb.i2!40
+function_blocks/conditionals.ST!t_case!0![t_case].fb.i1:=1![t_case].fb.i2!10
+function_blocks/conditionals.ST!t_case!0![t_case].fb.i1:=2![t_case].fb.i2!20
+function_blocks/conditionals.ST!t_case!0![t_case].fb.i1:=3![t_case].fb.i2!30
+function_blocks/conditionals.ST!t_case!0![t_case].fb.i1:=9![t_case].fb.i2!40
+function_blocks/loops.ST!t_for!0!none![t_for].fb.out![1,2,3,4,5]
+function_blocks/loops.ST!t_for!0!none![t_for].fb.out2![2,4,6,8,10]
+function_blocks/loops.ST!t_while!0!none![t_while].fb.itr;[t_while].fb.control;[t_while].fb.control_two;[t_while].fb.itr_two!6;5;0;4
+function_blocks/loops.ST!t_repeat!0!none![t_repeat].fb.itr;[t_repeat].fb.control;[t_repeat].fb.control_two;[t_repeat].fb.itr_two!6;5;1;5

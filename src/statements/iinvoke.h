@@ -57,10 +57,16 @@ struct invoke_iface_t {
     	struct invoke_iface_t *self,
 	struct issues_iface_t *issues);
 
+    int (*post_clone)(
+	struct invoke_iface_t *self,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+
     void (*destroy)(
 	struct invoke_iface_t *self);
 
     const struct st_location_t *location;
+    
     /* Invoke lists */
     struct invoke_iface_t *call_stack_prev;
     struct invoke_iface_t *call_stack_next;

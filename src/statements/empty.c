@@ -56,6 +56,14 @@ static int empty_statement_reset(
     return ESSTEE_OK;
 }
 
+static int empty_statement_post_clone(
+    struct invoke_iface_t *self,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    return ESSTEE_OK;
+}
+
 static void empty_statement_destroy(
     struct invoke_iface_t *self)
 {
@@ -120,6 +128,7 @@ struct invoke_iface_t * st_append_empty_statement(
     es->invoke.step = empty_statement_step;
     es->invoke.location = es->location;
     es->invoke.clone = empty_statement_clone;
+    es->invoke.post_clone = empty_statement_post_clone;
     es->invoke.reset = empty_statement_reset;
     es->invoke.destroy = empty_statement_destroy;
 
