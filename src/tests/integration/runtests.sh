@@ -120,4 +120,6 @@ done
 if [ -z "$SOME_TEST_FAILED" -a -n "$TEST_PASSED" ]
 then
     echo "All tests passed!"
+else
+    exit 1
 fi

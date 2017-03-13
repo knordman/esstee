@@ -10,6 +10,6 @@ VAR
 	udi : UDINT;
 END_VAR
 
-si := USINT_TO_SINT(255);
+b := USINT_TO_BOOL(100);
 
 END_PROGRAM
