@@ -13,3 +13,4 @@ src/tests/integration/test.gdb.commands
 .emacs.desktop.lock
 .settings
 .project
+docker

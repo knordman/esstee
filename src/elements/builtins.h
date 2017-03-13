@@ -19,6 +19,13 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <elements/pous.h>
+#include <elements/ifunction.h>
+#include <elements/ifunction_block.h>
 
-struct function_t * st_new_built_in_functions();
+struct function_iface_t * st_new_builtin_functions(
+    struct type_iface_t *builtin_types
+);
+
+struct function_block_iface_t * st_new_builtin_function_blocks(
+    struct type_iface_t *builtin_types
+);

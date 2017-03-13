@@ -56,6 +56,7 @@ OBJECTS := 		build/util/issue_context.o \
 			build/elements/variable.o \
 			build/elements/block_header.o \
 			build/elements/subrange_case.o \
+			build/elements/builtins.o \
 			build/statements/case.o \
 			build/statements/conditionals.o \
 			build/statements/empty.o \

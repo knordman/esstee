@@ -30,6 +30,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <rt/systime.h>
 #include <elements/ifunction_block.h>
 #include <elements/types.h>
+#include <elements/builtins.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +79,7 @@ struct st_t * st_new_instance(
     struct dmem_iface_t *dm = NULL;
     struct st_t *st = NULL;
     struct systime_iface_t *s = NULL;
+    struct function_iface_t *f = NULL;
     
     ALLOC_OR_JUMP(
 	st,
@@ -90,12 +92,23 @@ struct st_t * st_new_instance(
     dm    = st_new_direct_memory(direct_memory_bytes);
     s     = st_new_systime();
     cur   = st_new_cursor();
-    
+
     pe    = st_new_issue_context();
     
     if(!(e && et && c && dm && s && pe && cur))
     {
 	goto error_free_resources;
+    }
+
+    /* Link elementary and built-in types */
+    st->global_types = NULL;
+    st->global_types = st_link_types(et, st->global_types, NULL);
+    
+    f = st_new_builtin_functions(st->global_types);
+
+    if(!(f))
+    {
+    	goto error_free_resources;
     }
 
     yylex_init_extra(&(st->parser.scanner_options), &(st->parser.yyscanner));
@@ -110,9 +123,8 @@ struct st_t * st_new_instance(
     st->parser.pou_var_ref_pool = NULL;
     
     st->elementary_types = et;
-    st->global_types = NULL;
     st->global_variables = NULL;
-    st->functions = NULL;
+    st->functions = f;
     st->programs = NULL;
     st->main = NULL;
     st->cursor = cur;
@@ -201,10 +213,7 @@ int st_link(struct st_t *st)
     
     /* Reset all link information */
     reset_linking(st);
-    
-    /* Link elementary and built-in types */
-    st->global_types = st_link_types(st->elementary_types, st->global_types, st->errors);
-    
+        
     /* Link all resources */
     struct compilation_unit_t *cuitr = NULL;
     for(cuitr = st->compilation_units; cuitr != NULL; cuitr = cuitr->hh.next)

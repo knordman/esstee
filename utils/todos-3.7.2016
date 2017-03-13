@@ -1,6 +1,8 @@
 Functionality
 built-in functions and function blocks
--- *_TO_*, dint_to_bool
+-- MAX
+-- MIN
+-- ABS
 -- TOF
 -- TON
 -- R_TRIG
@@ -25,8 +27,6 @@ Misc
 122 /* TODO: check clearing of references */ ../src/parser/ppous.c
 100 NULL, /* TODO: fix dependency on config */ ../src/expressions/direct_address_term.c
 101 NULL, /* TODO: fix dependency on config */ ../src/expressions/direct_address_term.c
-30 if(!itr->identifier)	/* TODO: process parameters without identifier */ ../src/elements/invoke_parameters.c
-34 /* TODO: handle assignemnts without identifier */ ../src/elements/invoke_parameters.c
 
 Destructors
 1 /* TODO: destructor */ ../src/statements/empty.c

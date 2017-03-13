@@ -34,7 +34,7 @@ struct type_iface_t * st_link_types(
     DL_FOREACH(type_list, itr)
     {
 	HASH_FIND_STR(type_table, itr->identifier, found);
-	if(found != NULL)
+	if(found != NULL && issues)
 	{
 	    const char *message = issues->build_message(
 		issues,

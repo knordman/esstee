@@ -151,6 +151,11 @@ static void issue_group_main_issue(
     /* Add group nodes as sub issues to new node */    
     in->sub_nodes = group->context->group->nodes;
 
+    if(in->sub_nodes)
+    {
+	in->issue.has_sub_issues = ESSTEE_TRUE;
+    }
+
     /* Reset group */
     group->context->group->nodes = NULL;
 

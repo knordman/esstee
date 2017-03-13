@@ -73,6 +73,13 @@ struct type_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    int (*cast_value_of)(
+	const struct type_iface_t *self,
+	struct value_iface_t *value_of,
+	const struct value_iface_t *cast_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     void (*sync_direct_memory)(
 	const struct type_iface_t *self,
 	struct value_iface_t *value_of,

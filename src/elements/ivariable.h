@@ -66,6 +66,13 @@ struct variable_iface_t {
 	const struct config_iface_t *config,
 	struct issues_iface_t *issues);
 
+    int (*cast_assign)(
+	struct variable_iface_t *self,
+	const struct array_index_iface_t *index,
+	const struct value_iface_t *new_value,
+	const struct config_iface_t *config,
+	struct issues_iface_t *issues);
+    
     int (*not)(
 	struct variable_iface_t *self,
 	const struct array_index_iface_t *index,

@@ -1,15 +1,20 @@
 language: c
 compiler: gcc
 
-# No dependencies
-install: true
+sudo: required
 
-# The build command, tests to be added
-script: make build/program-tester
+services:
+  - docker
+
+before_install:
+- docker pull knordman/bison-flex-builder:latest
+- docker run -v $(pwd):/compile knordman/bison-flex-builder:latest make -C /compile build/program-tester
+
+script: cd src/tests/integration && find . -name "*.tests" | xargs cat | ./runtests.sh
 
 # No need for the default depth of 50
 git:
-  depth: 3
+  depth: 1
 
 # Test the master branch
 branches:

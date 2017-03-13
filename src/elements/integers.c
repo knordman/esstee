@@ -712,6 +712,86 @@ static int integer_type_reset_value_of(
     return ESSTEE_OK;
 }
 
+static int integer_type_cast_value_of(
+    const struct type_iface_t *self,
+    struct value_iface_t *value_of,
+    const struct value_iface_t *cast_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct integer_type_t *it =
+	CONTAINER_OF(self, struct integer_type_t, type);
+
+    struct integer_value_t *iv
+	= CONTAINER_OF(value_of, struct integer_value_t, value);
+
+    if(!cast_value->integer)
+    {
+	issues->new_issue(issues,
+			  "cannot cast non-integer value to integer type",
+			  ESSTEE_TYPE_ERROR);
+
+	return ESSTEE_ERROR;
+    }
+
+    int64_t raw_new_value = cast_value->integer(cast_value, config, issues);
+
+    if(ST_FLAG_IS_SET(it->class, INTEGER_BOOL_TYPE))
+    {
+	iv->num = (raw_new_value != 0) ? 1 : 0;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_SINT_TYPE))
+    {
+	iv->num = (int8_t)raw_new_value;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_INT_TYPE))
+    {
+	iv->num = (int16_t)raw_new_value;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_DINT_TYPE))
+    {
+	iv->num = (int32_t)raw_new_value;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_LINT_TYPE))
+    {
+	iv->num = raw_new_value;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_USINT_TYPE))
+    {
+	iv->num = (int64_t)((uint8_t)raw_new_value);
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_UINT_TYPE))
+    {
+	iv->num = (int64_t)((uint16_t)raw_new_value);
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_UDINT_TYPE))
+    {
+	iv->num = (int64_t)((uint32_t)raw_new_value);
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_ULINT_TYPE))
+    {
+	iv->num = (int64_t)((uint32_t)raw_new_value);
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_BYTE_TYPE))
+    {
+	iv->num &= 0xff;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_WORD_TYPE))
+    {
+	iv->num &= 0xffff;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_DWORD_TYPE))
+    {
+	iv->num &= 0xffffffff;
+    }
+    else if(ST_FLAG_IS_SET(it->class, INTEGER_LWORD_TYPE))
+    {
+	iv->num &= 0xffffffff;
+    }
+    
+    return ESSTEE_OK;
+}
+
 static void integer_type_sync_direct_memory(
     const struct type_iface_t *self,
     struct value_iface_t *value_of,
@@ -1007,6 +1087,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = bool_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = bool_type_sync_direct_memory,
 	    .validate_direct_address = bool_type_validate_direct_address,
 	    .can_hold = bool_type_can_hold,
@@ -1024,6 +1105,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1041,7 +1123,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
-	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1059,6 +1141,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1076,6 +1159,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .can_hold = integer_type_can_hold,
 	    .class = integer_type_class,
@@ -1092,6 +1176,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1109,6 +1194,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1126,6 +1212,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1143,6 +1230,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1160,6 +1248,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1177,6 +1266,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1194,6 +1284,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,
@@ -1211,6 +1302,7 @@ static struct integer_type_t integer_type_templates[] = {
     {	.type = {
 	    .create_value_of = integer_type_create_value_of,
 	    .reset_value_of = integer_type_reset_value_of,
+	    .cast_value_of = integer_type_cast_value_of,
 	    .sync_direct_memory = integer_type_sync_direct_memory,
 	    .validate_direct_address = integer_type_validate_direct_address,
 	    .can_hold = integer_type_can_hold,

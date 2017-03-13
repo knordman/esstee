@@ -243,6 +243,53 @@ static int external_variable_assign(
 				       issues);
 }
 
+static int variable_cast_assign(
+    struct variable_iface_t *self,
+    const struct array_index_iface_t *index,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    struct value_iface_t *value = referred_value(var,
+						 index,
+						 config,
+						 issues);
+
+    int assign_result = var->stub->type->cast_value_of(
+	var->stub->type,
+	value,
+	new_value,
+	config,
+	issues);
+
+    if(assign_result != ESSTEE_OK)
+    {
+	return assign_result;
+    }
+
+    return ESSTEE_OK;
+}
+
+static int external_variable_cast_assign(
+    struct variable_iface_t *self,
+    const struct array_index_iface_t *index,
+    const struct value_iface_t *new_value,
+    const struct config_iface_t *config,
+    struct issues_iface_t *issues)
+{
+    struct variable_t *var =
+	CONTAINER_OF(self, struct variable_t, variable);
+
+    return var->external_alias->cast_assign(var->external_alias,
+					    index,
+					    new_value,
+					    config,
+					    issues);
+}
+
 typedef int (*variable_modifier_t)(
     struct value_iface_t *,
     const struct config_iface_t *,
@@ -1457,6 +1504,7 @@ struct variable_iface_t * st_create_variable_block(
 	    var->variable.clone = external_variable_clone;
 	    var->variable.assignable_from = external_variable_assignable_from;
 	    var->variable.assign = external_variable_assign;
+	    var->variable.cast_assign = external_variable_cast_assign;
 	    
 	    var->variable.not = external_variable_not;
 	    var->variable.negate = external_variable_negate;
@@ -1503,6 +1551,7 @@ struct variable_iface_t * st_create_variable_block(
 	    var->variable.clone = variable_clone;
 	    var->variable.assignable_from = variable_assignable_from;
 	    var->variable.assign = variable_assign;
+	    var->variable.cast_assign = variable_cast_assign;
 	    
 	    var->variable.not = variable_not;
 	    var->variable.negate = variable_negate;
@@ -1632,6 +1681,7 @@ struct variable_iface_t * st_create_variable_type_name(
     var->variable.clone = variable_clone;
     var->variable.assignable_from = variable_assignable_from;
     var->variable.assign = variable_assign;
+    var->variable.cast_assign = variable_cast_assign;
     var->variable.value = variable_value;
 
     int ref_result = type_refs->add(
@@ -1679,11 +1729,14 @@ struct variable_iface_t * st_create_variable_type(
 	issues,
 	error_free_resources);
 
-    LOCDUP_OR_ERROR_JUMP(
-	var_location,
-	location,
-	issues,
-	error_free_resources);
+    if(location)
+    {
+	LOCDUP_OR_ERROR_JUMP(
+	    var_location,
+	    location,
+	    issues,
+	    error_free_resources);
+    }
 	
     stub->identifier = identifier;
     stub->type = type;
@@ -1705,6 +1758,7 @@ struct variable_iface_t * st_create_variable_type(
     var->variable.reset = variable_reset;
     var->variable.assignable_from = variable_assignable_from;
     var->variable.assign = variable_assign;
+    var->variable.cast_assign = variable_cast_assign;
     var->variable.value = variable_value;
 
     return &(var->variable);
