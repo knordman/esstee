@@ -1,79 +1,19 @@
-(*
-FUNCTION myfunc : INT
-
-VAR_INPUT
-	a : INT;
-END_VAR
-
-myfunc := a + 1;
-
-END_FUNCTION
-
-
-
-
-FUNCTION_BLOCK m1
-
-VAR_INPUT
-	e : SINT;
-END_VAR
-
-VAR
-	a : SINT;
-	b : SINT;
-END_VAR
-
-b := 127 / 1;
-a := -(-(1 + 1) * 10);
-e := e + a;
-
-return;
-
-END_FUNCTION_BLOCK
-
-
-
-*)
-
 PROGRAM testprgm
 
-(*
-TYPE
-	mytype : USINT;
-
-END_TYPE
-*)
-
 VAR
-	i : INT;
-	a : UINT;
-(*
-	myvar AT %MB0 : USINT;
-	m2 : DINT;
-
-	b1 AT %MX0.0 : BOOL := true;
-	b2 : BOOL;
-
-*)
-
+	i: INT;
+	a: UINT;
 END_VAR
 
-(*
-i := 5;
+FOR i := 1 TO 20 DO
 
-a := i - 10;
-*)
-
-
-FOR i := 1 to 20 DO
-
-    if i > 10 then
+    IF i > 10 THEN
        a := 99;
-    else
+    ELSE
 
-        a := 10-i;
+        a := 10 - i;
 
-    end_if;
+    END_IF;
 
 END_FOR;
 
