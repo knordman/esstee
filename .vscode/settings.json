@@ -1,5 +1,25 @@
 {
   "C_Cpp.clang_format_fallbackStyle": "Chromium",
   "C_Cpp.clang_format_style": "Chromium",
-  "C_Cpp.clang_format_sortIncludes": false
+  "C_Cpp.clang_format_sortIncludes": false,
+  "files.associations": {
+    "queries.h": "c",
+    "any": "c",
+    "array": "c",
+    "charconv": "c",
+    "compare": "c",
+    "format": "c",
+    "functional": "c",
+    "ratio": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "utility": "c",
+    "variant": "c",
+    "chrono": "c",
+    "condition_variable": "c",
+    "future": "c",
+    "mutex": "c",
+    "semaphore": "c",
+    "shared_mutex": "c"
+  }
 }

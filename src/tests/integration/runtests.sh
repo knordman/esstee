@@ -98,6 +98,7 @@ do
     then
 	printf "############################################\n"
 	printf "Test failed!\n"
+	printf " test\t\t\t%s\n" $TEST_CMD
 	printf " exit status\t\t%d\n" $TEST_STATUS
 	printf " expected exit\t\t%d\n" $EXIT_STATUS
 	printf " pre queries\t\t%s\n" $PRE_QUERIES
