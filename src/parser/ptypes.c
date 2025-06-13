@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,203 +27,149 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <utlist.h>
 
-
-struct type_iface_t * st_append_type_declaration(
-    struct type_iface_t *type_block,
-    struct type_iface_t *type,
-    struct parser_t *parser)
-{
-    DL_APPEND(type_block, type);
-    return type_block;
+struct type_iface_t* st_append_type_declaration(struct type_iface_t* type_block,
+                                                struct type_iface_t* type,
+                                                struct parser_t* parser) {
+  DL_APPEND(type_block, type);
+  return type_block;
 }
 
-struct type_iface_t * st_new_derived_type(
-    char *type_name,
-    struct type_iface_t *parent_type,
-    const struct st_location_t *location,
-    struct value_iface_t *default_value,
-    const struct st_location_t *default_value_location,
-    struct parser_t *parser)
-{
-    struct type_iface_t *dt =
-	st_create_derived_type(
-	    type_name,
-	    parent_type,
-	    location,
-	    default_value,
-	    default_value_location,
-	    parser->pou_type_ref_pool,
-	    parser->config,
-	    parser->errors);
+struct type_iface_t* st_new_derived_type(
+    char* type_name,
+    struct type_iface_t* parent_type,
+    const struct st_location_t* location,
+    struct value_iface_t* default_value,
+    const struct st_location_t* default_value_location,
+    struct parser_t* parser) {
+  struct type_iface_t* dt = st_create_derived_type(
+      type_name, parent_type, location, default_value, default_value_location,
+      parser->pou_type_ref_pool, parser->config, parser->errors);
 
-    if(!dt)
-    {
-	free(type_name);
-	parent_type->destroy(parent_type);
-	if(default_value)
-	{
-	    default_value->destroy(default_value);
-	}
+  if (!dt) {
+    free(type_name);
+    parent_type->destroy(parent_type);
+    if (default_value) {
+      default_value->destroy(default_value);
     }
+  }
 
-    return dt;
+  return dt;
 }
 
-struct type_iface_t * st_new_derived_type_by_name(
-    char *type_name,
-    char *parent_type_name,
-    const struct st_location_t *parent_type_name_location,
-    const struct st_location_t *location,
-    struct value_iface_t *default_value,
-    const struct st_location_t *default_value_location,
-    struct parser_t *parser)
-{
-    struct type_iface_t *dt =
-	st_create_derived_type_by_name(
-	    type_name,
-	    location,
-	    parent_type_name,
-	    parent_type_name_location,
-	    default_value,
-	    default_value_location,
-	    parser->pou_type_ref_pool,
-	    parser->config,
-	    parser->errors);
+struct type_iface_t* st_new_derived_type_by_name(
+    char* type_name,
+    char* parent_type_name,
+    const struct st_location_t* parent_type_name_location,
+    const struct st_location_t* location,
+    struct value_iface_t* default_value,
+    const struct st_location_t* default_value_location,
+    struct parser_t* parser) {
+  struct type_iface_t* dt = st_create_derived_type_by_name(
+      type_name, location, parent_type_name, parent_type_name_location,
+      default_value, default_value_location, parser->pou_type_ref_pool,
+      parser->config, parser->errors);
 
-    if(!dt)
-    {
-	free(type_name);
-	free(parent_type_name);
-	if(default_value)
-	{
-	    default_value->destroy(default_value);
-	}
+  if (!dt) {
+    free(type_name);
+    free(parent_type_name);
+    if (default_value) {
+      default_value->destroy(default_value);
     }
+  }
 
-    return dt;
+  return dt;
 }
 
-struct type_iface_t * st_new_subrange_type(
-    char *storage_type_identifier,
-    const struct st_location_t *storage_type_identifier_location,
-    struct subrange_iface_t *subrange,
-    struct value_iface_t *default_value,
-    const struct st_location_t *default_value_location,
-    struct parser_t *parser)
-{
-    struct type_iface_t *st =
-	st_create_subrange_type(
-	    storage_type_identifier,
-	    storage_type_identifier_location,
-	    subrange,
-	    default_value,
-	    default_value_location,
-	    parser->pou_type_ref_pool,
-	    parser->config,
-	    parser->errors);
+struct type_iface_t* st_new_subrange_type(
+    char* storage_type_identifier,
+    const struct st_location_t* storage_type_identifier_location,
+    struct subrange_iface_t* subrange,
+    struct value_iface_t* default_value,
+    const struct st_location_t* default_value_location,
+    struct parser_t* parser) {
+  struct type_iface_t* st = st_create_subrange_type(
+      storage_type_identifier, storage_type_identifier_location, subrange,
+      default_value, default_value_location, parser->pou_type_ref_pool,
+      parser->config, parser->errors);
 
-    if(!st)
-    {
-	subrange->destroy(subrange);
-	free(storage_type_identifier);
-	if(default_value)
-	{
-	    default_value->destroy(default_value);
-	}
+  if (!st) {
+    subrange->destroy(subrange);
+    free(storage_type_identifier);
+    if (default_value) {
+      default_value->destroy(default_value);
     }
+  }
 
-    return st;
+  return st;
 }
 
-struct type_iface_t * st_new_enum_type(
-    struct enum_group_iface_t *enum_group, 
-    char *default_item, 
-    const struct st_location_t *default_item_location,
-    struct parser_t *parser)
-{
-    struct type_iface_t *et = st_create_enum_type(
-	enum_group,
-	default_item,
-	default_item_location,
-	parser->config,
-	parser->errors);
+struct type_iface_t* st_new_enum_type(
+    struct enum_group_iface_t* enum_group,
+    char* default_item,
+    const struct st_location_t* default_item_location,
+    struct parser_t* parser) {
+  struct type_iface_t* et =
+      st_create_enum_type(enum_group, default_item, default_item_location,
+                          parser->config, parser->errors);
 
-    if(!et)
-    {
-	enum_group->destroy(enum_group);
-    }
+  if (!et) {
+    enum_group->destroy(enum_group);
+  }
 
-    free(default_item);
-    
-    return et;
+  free(default_item);
+
+  return et;
 }
 
-struct type_iface_t * st_new_array_type(
-    struct array_range_iface_t *array_ranges,
-    char *arrayed_type_identifier,
-    const struct st_location_t *arrayed_type_identifier_location,
-    struct value_iface_t *default_value,
-    const struct st_location_t *default_value_location,
-    struct parser_t *parser)
-{
-    struct type_iface_t *at = st_create_array_type(
-	array_ranges,
-	arrayed_type_identifier,
-	arrayed_type_identifier_location,
-	default_value,
-	default_value_location,
-	parser->pou_type_ref_pool,
-	parser->config,
-	parser->errors);
+struct type_iface_t* st_new_array_type(
+    struct array_range_iface_t* array_ranges,
+    char* arrayed_type_identifier,
+    const struct st_location_t* arrayed_type_identifier_location,
+    struct value_iface_t* default_value,
+    const struct st_location_t* default_value_location,
+    struct parser_t* parser) {
+  struct type_iface_t* at = st_create_array_type(
+      array_ranges, arrayed_type_identifier, arrayed_type_identifier_location,
+      default_value, default_value_location, parser->pou_type_ref_pool,
+      parser->config, parser->errors);
 
-    if(!at)
-    {
-	array_ranges->destroy(array_ranges);
-	if(default_value)
-	{
-	    default_value->destroy(default_value);
-	}
-	free(arrayed_type_identifier);
+  if (!at) {
+    array_ranges->destroy(array_ranges);
+    if (default_value) {
+      default_value->destroy(default_value);
     }
+    free(arrayed_type_identifier);
+  }
 
-    return at;
+  return at;
 }
 
-struct type_iface_t * st_new_struct_type(
-    struct struct_elements_iface_t *elements,
-    struct parser_t *parser)
-{
-    struct type_iface_t *st = st_create_struct_type(elements,
-						    parser->config,
-						    parser->errors);
-    if(!st)
-    {
-	elements->destroy(elements);
-    }
+struct type_iface_t* st_new_struct_type(
+    struct struct_elements_iface_t* elements,
+    struct parser_t* parser) {
+  struct type_iface_t* st =
+      st_create_struct_type(elements, parser->config, parser->errors);
+  if (!st) {
+    elements->destroy(elements);
+  }
 
-    return st;
+  return st;
 }
 
-struct type_iface_t * st_new_string_type(
-    char *string_type_identifier,
-    struct value_iface_t *length,
-    const struct st_location_t *length_location,
-    struct value_iface_t *default_value,
-    struct parser_t *parser)
-{
-    struct type_iface_t *ns = st_new_custom_length_string_type(
-	string_type_identifier,
-	length,
-	length_location,
-	default_value,
-	parser->config,
-	parser->errors);
+struct type_iface_t* st_new_string_type(
+    char* string_type_identifier,
+    struct value_iface_t* length,
+    const struct st_location_t* length_location,
+    struct value_iface_t* default_value,
+    struct parser_t* parser) {
+  struct type_iface_t* ns = st_new_custom_length_string_type(
+      string_type_identifier, length, length_location, default_value,
+      parser->config, parser->errors);
 
-    if(!ns)
-    {
-	length->destroy(length);
-	default_value->destroy(default_value);
-    }
-	
-    return ns;
+  if (!ns) {
+    length->destroy(length);
+    default_value->destroy(default_value);
+  }
+
+  return ns;
 }

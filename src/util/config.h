@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,28 +24,22 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <uthash.h>
 
 struct bool_option_t {
-    const char *option;
-    int value;
+  const char* option;
+  int value;
 
-    UT_hash_handle hh;
+  UT_hash_handle hh;
 };
 
 struct config_t {
-    struct config_iface_t config;
-    struct bool_option_t *options_table;
-    struct bool_option_t *options_chunk;
+  struct config_iface_t config;
+  struct bool_option_t* options_table;
+  struct bool_option_t* options_chunk;
 };
 
-int st_config_get(
-    const struct config_iface_t *self,
-    const char *option);
+int st_config_get(const struct config_iface_t* self, const char* option);
 
-int st_config_set(
-    struct config_iface_t *self,
-    const char *option,
-    int value);
+int st_config_set(struct config_iface_t* self, const char* option, int value);
 
-struct config_iface_t * st_new_config(void);
+struct config_iface_t* st_new_config(void);
 
-void st_destroy_config(
-    struct config_iface_t *self);
+void st_destroy_config(struct config_iface_t* self);

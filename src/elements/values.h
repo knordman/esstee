@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,11 +21,9 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <elements/ivalue.h>
 
-st_bitflag_t st_general_value_empty_class(
-    const struct value_iface_t *self);
+st_bitflag_t st_general_value_empty_class(const struct value_iface_t* self);
 
-int st_general_value_equals(
-    const struct value_iface_t *self,
-    const struct value_iface_t *other_value,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+int st_general_value_equals(const struct value_iface_t* self,
+                            const struct value_iface_t* other_value,
+                            const struct config_iface_t* config,
+                            struct issues_iface_t* issues);

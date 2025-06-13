@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,13 +23,11 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iconfig.h>
 #include <util/iissues.h>
 
-int st_type_general_compatible(
-    const struct type_iface_t *self,
-    const struct type_iface_t *other_type,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+int st_type_general_compatible(const struct type_iface_t* self,
+                               const struct type_iface_t* other_type,
+                               const struct config_iface_t* config,
+                               struct issues_iface_t* issues);
 
-void st_destroy_types_in_list(
-    struct type_iface_t *types);
+void st_destroy_types_in_list(struct type_iface_t* types);
 
-struct type_iface_t * st_new_elementary_types();
+struct type_iface_t* st_new_elementary_types();

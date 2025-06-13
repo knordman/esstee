@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,16 +23,16 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/block_header.h>
 #include <util/inamed_ref_pool.h>
 
-struct function_iface_t * st_new_user_function(
-    char *identifier,
-    const struct st_location_t *location,
-    char *return_type_identifier,
-    const struct st_location_t *return_type_identifier_location,
-    struct header_t *header,
-    struct named_ref_pool_iface_t *global_type_refs,
-    struct named_ref_pool_iface_t *type_refs,
-    struct named_ref_pool_iface_t *global_var_refs,
-    struct named_ref_pool_iface_t *var_refs,
-    struct invoke_iface_t *statements,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct function_iface_t* st_new_user_function(
+    char* identifier,
+    const struct st_location_t* location,
+    char* return_type_identifier,
+    const struct st_location_t* return_type_identifier_location,
+    struct header_t* header,
+    struct named_ref_pool_iface_t* global_type_refs,
+    struct named_ref_pool_iface_t* type_refs,
+    struct named_ref_pool_iface_t* global_var_refs,
+    struct named_ref_pool_iface_t* var_refs,
+    struct invoke_iface_t* statements,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

@@ -14,7 +14,7 @@ LDFLAGS :=			-lm
 #  Target specification
 # ------------------------------------------------------------------------------
 
-OBJECTS := 		build/util/issue_context.o \
+OBJECTS := 	build/util/issue_context.o \
 			build/util/config.o \
 			build/util/named_ref_pool.o \
 			build/parser/parser.o \
@@ -93,24 +93,18 @@ build/lib/libesstee.so : $(OBJECTS)
 	ln -fs $(abspath $@)$(REAL) $(abspath $@)$(SO)
 	ln -fs $(abspath $@)$(SO) $(abspath $@)
 
-build/program-tester :	build/tests/program_tester/main.o build/lib/libesstee.a
+build/program-tester : build/tests/program_tester/main.o build/lib/libesstee.a
 	gcc $(LDFLAGS) $^ -o $@
 #	gcc $< $(LDFLAGS) -Lbuild/lib -lesstee -o $@
 
-build/tester : 		build/tests/temp/main.o \
-			$(OBJECTS)
-
 # ------------------------------------------------------------------------------
-#  Unit test specification
+#  Test specification
 # ------------------------------------------------------------------------------
 
-tests : build/bitflag_test
+.PHONY: tests
 
-build/bitflag_test :			build/tests/unit/parser/bitflag_test.o \
-					build/tests/unit/main.o
-	$(LINKCXX)
-
-# ...
+tests : build/program-tester
+	find src/tests/integration -name "*.tests" -exec cat {} + | (cd ./src/tests/integration && ./runtests.sh)
 
 # ------------------------------------------------------------------------------
 #  General targets

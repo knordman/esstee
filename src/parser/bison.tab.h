@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -30,6 +31,10 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
 #ifndef YY_YY_SRC_PARSER_BISON_TAB_H_INCLUDED
 # define YY_YY_SRC_PARSER_BISON_TAB_H_INCLUDED
 /* Debug traces.  */
@@ -40,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 33 "src/parser/bison.y" /* yacc.c:1909  */
+#line 33 "src/parser/bison.y"
 
 #include <esstee/locations.h>
 typedef struct st_location_t YYLTYPE;
@@ -52,102 +57,106 @@ typedef void* yyscan_t; /* Type is defined in flex.h, but flex.h depends on YYLT
 struct parser_t;
 #include <util/bitflag.h>
 
-#line 56 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 61 "src/parser/bison.tab.h"
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    QUERY_MODE = 258,
-    GREATER = 259,
-    LESSER = 260,
-    GEQUALS = 261,
-    LEQUALS = 262,
-    EQUALS = 263,
-    NEQUALS = 264,
-    TO_POWER = 265,
-    AND = 266,
-    OR = 267,
-    NOT = 268,
-    XOR = 269,
-    MOD = 270,
-    unary_minus = 271,
-    PROGRAM = 272,
-    END_PROGRAM = 273,
-    FUNCTION_BLOCK = 274,
-    END_FUNCTION_BLOCK = 275,
-    FUNCTION = 276,
-    END_FUNCTION = 277,
-    VAR = 278,
-    VAR_INPUT = 279,
-    VAR_OUTPUT = 280,
-    VAR_TEMP = 281,
-    VAR_IN_OUT = 282,
-    VAR_EXTERNAL = 283,
-    VAR_GLOBAL = 284,
-    END_VAR = 285,
-    OF = 286,
-    ARRAY = 287,
-    DIRECT_ADDRESS = 288,
-    CONSTANT = 289,
-    R_EDGE = 290,
-    F_EDGE = 291,
-    RETAIN = 292,
-    NON_RETAIN = 293,
-    AT = 294,
-    TYPE = 295,
-    END_TYPE = 296,
-    STRUCT = 297,
-    END_STRUCT = 298,
-    ELEMENTARY_TYPE_NAME = 299,
-    STRING_TYPE_NAME = 300,
-    IF = 301,
-    THEN = 302,
-    END_IF = 303,
-    ELSIF = 304,
-    ELSE = 305,
-    CASE = 306,
-    END_CASE = 307,
-    RETURN = 308,
-    EXIT = 309,
-    ASSIGN = 310,
-    FOR = 311,
-    END_FOR = 312,
-    TO = 313,
-    BY = 314,
-    DO = 315,
-    WHILE = 316,
-    END_WHILE = 317,
-    REPEAT = 318,
-    END_REPEAT = 319,
-    UNTIL = 320,
-    DOTDOT = 321,
-    LITERAL_BOOLEAN_TRUE = 322,
-    LITERAL_BOOLEAN_FALSE = 323,
-    IDENTIFIER = 324,
-    IDENTIFIER_CASE_LABEL = 325,
-    IDENTIFER_TYPE_SPEC_LITERAL = 326,
-    LITERAL_DECIMAL = 327,
-    LITERAL_BINARY = 328,
-    LITERAL_OCTAL = 329,
-    LITERAL_HEX = 330,
-    LITERAL_REAL = 331,
-    LITERAL_DURATION = 332,
-    LITERAL_TOD = 333,
-    LITERAL_DATE = 334,
-    LITERAL_DATE_TOD = 335,
-    LITERAL_SINGLE_BYTE_STRING = 336,
-    LITERAL_DOUBLE_BYTE_STRING = 337
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    QUERY_MODE = 258,              /* QUERY_MODE  */
+    GREATER = 259,                 /* GREATER  */
+    LESSER = 260,                  /* LESSER  */
+    GEQUALS = 261,                 /* GEQUALS  */
+    LEQUALS = 262,                 /* LEQUALS  */
+    EQUALS = 263,                  /* EQUALS  */
+    NEQUALS = 264,                 /* NEQUALS  */
+    TO_POWER = 265,                /* TO_POWER  */
+    AND = 266,                     /* AND  */
+    OR = 267,                      /* OR  */
+    NOT = 268,                     /* NOT  */
+    XOR = 269,                     /* XOR  */
+    MOD = 270,                     /* MOD  */
+    unary_minus = 271,             /* unary_minus  */
+    PROGRAM = 272,                 /* PROGRAM  */
+    END_PROGRAM = 273,             /* END_PROGRAM  */
+    FUNCTION_BLOCK = 274,          /* FUNCTION_BLOCK  */
+    END_FUNCTION_BLOCK = 275,      /* END_FUNCTION_BLOCK  */
+    FUNCTION = 276,                /* FUNCTION  */
+    END_FUNCTION = 277,            /* END_FUNCTION  */
+    VAR = 278,                     /* VAR  */
+    VAR_INPUT = 279,               /* VAR_INPUT  */
+    VAR_OUTPUT = 280,              /* VAR_OUTPUT  */
+    VAR_TEMP = 281,                /* VAR_TEMP  */
+    VAR_IN_OUT = 282,              /* VAR_IN_OUT  */
+    VAR_EXTERNAL = 283,            /* VAR_EXTERNAL  */
+    VAR_GLOBAL = 284,              /* VAR_GLOBAL  */
+    END_VAR = 285,                 /* END_VAR  */
+    OF = 286,                      /* OF  */
+    ARRAY = 287,                   /* ARRAY  */
+    DIRECT_ADDRESS = 288,          /* DIRECT_ADDRESS  */
+    CONSTANT = 289,                /* CONSTANT  */
+    R_EDGE = 290,                  /* R_EDGE  */
+    F_EDGE = 291,                  /* F_EDGE  */
+    RETAIN = 292,                  /* RETAIN  */
+    NON_RETAIN = 293,              /* NON_RETAIN  */
+    AT = 294,                      /* AT  */
+    TYPE = 295,                    /* TYPE  */
+    END_TYPE = 296,                /* END_TYPE  */
+    STRUCT = 297,                  /* STRUCT  */
+    END_STRUCT = 298,              /* END_STRUCT  */
+    ELEMENTARY_TYPE_NAME = 299,    /* ELEMENTARY_TYPE_NAME  */
+    STRING_TYPE_NAME = 300,        /* STRING_TYPE_NAME  */
+    IF = 301,                      /* IF  */
+    THEN = 302,                    /* THEN  */
+    END_IF = 303,                  /* END_IF  */
+    ELSIF = 304,                   /* ELSIF  */
+    ELSE = 305,                    /* ELSE  */
+    CASE = 306,                    /* CASE  */
+    END_CASE = 307,                /* END_CASE  */
+    RETURN = 308,                  /* RETURN  */
+    EXIT = 309,                    /* EXIT  */
+    ASSIGN = 310,                  /* ASSIGN  */
+    FOR = 311,                     /* FOR  */
+    END_FOR = 312,                 /* END_FOR  */
+    TO = 313,                      /* TO  */
+    BY = 314,                      /* BY  */
+    DO = 315,                      /* DO  */
+    WHILE = 316,                   /* WHILE  */
+    END_WHILE = 317,               /* END_WHILE  */
+    REPEAT = 318,                  /* REPEAT  */
+    END_REPEAT = 319,              /* END_REPEAT  */
+    UNTIL = 320,                   /* UNTIL  */
+    DOTDOT = 321,                  /* DOTDOT  */
+    LITERAL_BOOLEAN_TRUE = 322,    /* LITERAL_BOOLEAN_TRUE  */
+    LITERAL_BOOLEAN_FALSE = 323,   /* LITERAL_BOOLEAN_FALSE  */
+    IDENTIFIER = 324,              /* IDENTIFIER  */
+    IDENTIFIER_CASE_LABEL = 325,   /* IDENTIFIER_CASE_LABEL  */
+    IDENTIFER_TYPE_SPEC_LITERAL = 326, /* IDENTIFER_TYPE_SPEC_LITERAL  */
+    LITERAL_DECIMAL = 327,         /* LITERAL_DECIMAL  */
+    LITERAL_BINARY = 328,          /* LITERAL_BINARY  */
+    LITERAL_OCTAL = 329,           /* LITERAL_OCTAL  */
+    LITERAL_HEX = 330,             /* LITERAL_HEX  */
+    LITERAL_REAL = 331,            /* LITERAL_REAL  */
+    LITERAL_DURATION = 332,        /* LITERAL_DURATION  */
+    LITERAL_TOD = 333,             /* LITERAL_TOD  */
+    LITERAL_DATE = 334,            /* LITERAL_DATE  */
+    LITERAL_DATE_TOD = 335,        /* LITERAL_DATE_TOD  */
+    LITERAL_SINGLE_BYTE_STRING = 336, /* LITERAL_SINGLE_BYTE_STRING  */
+    LITERAL_DOUBLE_BYTE_STRING = 337 /* LITERAL_DOUBLE_BYTE_STRING  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 104 "src/parser/bison.y" /* yacc.c:1909  */
+#line 104 "src/parser/bison.y"
 
     char *string;
 
@@ -183,8 +192,10 @@ union YYSTYPE
     st_bitflag_t bitflag;
     int64_t integer;
 
-#line 187 "src/parser/bison.tab.h" /* yacc.c:1909  */
+#line 196 "src/parser/bison.tab.h"
+
 };
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -205,6 +216,8 @@ struct YYLTYPE
 
 
 
+
 int yyparse (yyscan_t yyscanner, struct parser_t *parser);
+
 
 #endif /* !YY_YY_SRC_PARSER_BISON_TAB_H_INCLUDED  */

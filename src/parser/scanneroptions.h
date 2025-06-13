@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,5 +20,5 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 struct scanner_options_t {
-    int query_mode_start;
+  int query_mode_start;
 };

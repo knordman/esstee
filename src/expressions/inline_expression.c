@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,62 +24,51 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* Expression interface                                                   */
 /**************************************************************************/
 struct value_expression_t {
-    struct expression_iface_t expression;
-    struct st_location_t *location;
-    struct value_iface_t *value;
+  struct expression_iface_t expression;
+  struct st_location_t* location;
+  struct value_iface_t* value;
 };
 
-static const struct value_iface_t * value_expression_return_value(
-    const struct expression_iface_t *self)
-{
-    const struct value_expression_t *ve
-	= CONTAINER_OF(self, struct value_expression_t, expression);
+static const struct value_iface_t* value_expression_return_value(
+    const struct expression_iface_t* self) {
+  const struct value_expression_t* ve =
+      CONTAINER_OF(self, struct value_expression_t, expression);
 
-    return ve->value;
+  return ve->value;
 }
 
-static void value_expression_destroy(
-    struct expression_iface_t *self)
-{
-    /* TODO: value expression destructor */
+static void value_expression_destroy(struct expression_iface_t* self) {
+  /* TODO: value expression destructor */
 }
 
 /**************************************************************************/
 /* Public interface                                                       */
 /**************************************************************************/
-struct expression_iface_t * st_create_value_expression(
-    struct value_iface_t *value,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct value_expression_t *ve = NULL;
-    struct st_location_t *value_location = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	ve,
-	struct value_expression_t,
-	issues,
-	error_free_resources);
+struct expression_iface_t* st_create_value_expression(
+    struct value_iface_t* value,
+    const struct st_location_t* location,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct value_expression_t* ve = NULL;
+  struct st_location_t* value_location = NULL;
 
-    LOCDUP_OR_ERROR_JUMP(
-	value_location,
-	location,
-	issues,
-	error_free_resources);
+  ALLOC_OR_ERROR_JUMP(ve, struct value_expression_t, issues,
+                      error_free_resources);
 
-    ve->location = value_location;
-    ve->value = value;
+  LOCDUP_OR_ERROR_JUMP(value_location, location, issues, error_free_resources);
 
-    memset(&(ve->expression), 0, sizeof(struct expression_iface_t));
-    
-    ve->expression.invoke.location = ve->location;    
-    ve->expression.return_value = value_expression_return_value;
-    ve->expression.destroy = value_expression_destroy;
+  ve->location = value_location;
+  ve->value = value;
 
-    return &(ve->expression);
-    
+  memset(&(ve->expression), 0, sizeof(struct expression_iface_t));
+
+  ve->expression.invoke.location = ve->location;
+  ve->expression.return_value = value_expression_return_value;
+  ve->expression.destroy = value_expression_destroy;
+
+  return &(ve->expression);
+
 error_free_resources:
-    free(ve);
-    return NULL;    
+  free(ve);
+  return NULL;
 }

@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,50 +27,42 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <rt/isystime.h>
 
 struct program_iface_t {
+  int (*finalize_header)(struct program_iface_t* self,
+                         struct type_iface_t* global_type_table,
+                         struct variable_iface_t* global_var_table,
+                         const struct config_iface_t* config,
+                         struct issues_iface_t* issues);
 
-    int (*finalize_header)(
-	struct program_iface_t *self,
-	struct type_iface_t *global_type_table,
-	struct variable_iface_t *global_var_table,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*finalize_statements)(struct program_iface_t* self,
+                             const struct config_iface_t* config,
+                             struct issues_iface_t* issues);
 
-    int (*finalize_statements)(
-	struct program_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*start)(struct program_iface_t* self,
+               struct cursor_iface_t* cursor,
+               const struct config_iface_t* config,
+               struct issues_iface_t* issues);
 
-    int (*start)(
-	struct program_iface_t *self,
-	struct cursor_iface_t *cursor,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);	
+  int (*run_cycle)(struct program_iface_t* self,
+                   struct cursor_iface_t* cursor,
+                   struct systime_iface_t* systime,
+                   const struct config_iface_t* config,
+                   struct issues_iface_t* issues);
 
-    int (*run_cycle)(
-	struct program_iface_t *self,
-	struct cursor_iface_t *cursor,
-	struct systime_iface_t *systime,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  struct variable_iface_t* (*variable)(struct program_iface_t* self,
+                                       const char* variable_identifier,
+                                       const struct config_iface_t* config,
+                                       struct issues_iface_t* issues);
 
-    struct variable_iface_t * (*variable)(
-	struct program_iface_t *self,
-	const char *variable_identifier,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*display)(struct program_iface_t* self,
+                 char* buffer,
+                 size_t buffer_size,
+                 const struct config_iface_t* config);
 
-    int (*display)(
-	struct program_iface_t *self,
-	char *buffer,
-	size_t buffer_size,
-	const struct config_iface_t *config);
-    
-    void (*destroy)(
-	struct program_iface_t *self);
+  void (*destroy)(struct program_iface_t* self);
 
-    const char *identifier;
-    const struct st_location_t *location;
-    struct program_iface_t *prev;
-    struct program_iface_t *next;
-    UT_hash_handle hh;
+  const char* identifier;
+  const struct st_location_t* location;
+  struct program_iface_t* prev;
+  struct program_iface_t* next;
+  UT_hash_handle hh;
 };

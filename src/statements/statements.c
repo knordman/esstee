@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,67 +23,50 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdlib.h>
 
-
-int st_allocate_statements(
-    struct invoke_iface_t *statements,
-    struct issues_iface_t *issues)
-{
-    struct invoke_iface_t *itr = NULL;
-    DL_FOREACH(statements, itr)
-    {
-	if(!itr->allocate)
-	{
-	    continue;
-	}
-	
-	if(itr->allocate(itr, issues) != ESSTEE_OK)
-	{
-	    return ESSTEE_ERROR;
-	}
+int st_allocate_statements(struct invoke_iface_t* statements,
+                           struct issues_iface_t* issues) {
+  struct invoke_iface_t* itr = NULL;
+  DL_FOREACH(statements, itr) {
+    if (!itr->allocate) {
+      continue;
     }
 
-    return ESSTEE_OK;
-}
-
-int st_verify_statements(
-    struct invoke_iface_t *statements,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    int result = ESSTEE_OK;
-    struct invoke_iface_t *itr = NULL;
-    DL_FOREACH(statements, itr)
-    {
-	if(itr->verify(itr, config, issues) != ESSTEE_OK)
-	{
-	    result = ESSTEE_ERROR;
-	}
+    if (itr->allocate(itr, issues) != ESSTEE_OK) {
+      return ESSTEE_ERROR;
     }
+  }
 
-    return result;
+  return ESSTEE_OK;
 }
 
-int st_post_clone_hook_for_statements(
-    struct invoke_iface_t *statements,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    int result = ESSTEE_OK;
-    struct invoke_iface_t *itr = NULL;
-    DL_FOREACH(statements, itr)
-    {
-	if(itr->post_clone && itr->post_clone(itr, config, issues) != ESSTEE_OK)
-	{
-	    result = ESSTEE_ERROR;
-	}
+int st_verify_statements(struct invoke_iface_t* statements,
+                         const struct config_iface_t* config,
+                         struct issues_iface_t* issues) {
+  int result = ESSTEE_OK;
+  struct invoke_iface_t* itr = NULL;
+  DL_FOREACH(statements, itr) {
+    if (itr->verify(itr, config, issues) != ESSTEE_OK) {
+      result = ESSTEE_ERROR;
     }
+  }
 
-    return result;
+  return result;
 }
 
+int st_post_clone_hook_for_statements(struct invoke_iface_t* statements,
+                                      const struct config_iface_t* config,
+                                      struct issues_iface_t* issues) {
+  int result = ESSTEE_OK;
+  struct invoke_iface_t* itr = NULL;
+  DL_FOREACH(statements, itr) {
+    if (itr->post_clone && itr->post_clone(itr, config, issues) != ESSTEE_OK) {
+      result = ESSTEE_ERROR;
+    }
+  }
 
-void st_destroy_statements(
-    struct invoke_iface_t *statements)
-{
-    /* TODO: destroy statements */
+  return result;
+}
+
+void st_destroy_statements(struct invoke_iface_t* statements) {
+  /* TODO: destroy statements */
 }
