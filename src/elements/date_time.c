@@ -43,52 +43,35 @@ static int duration_value_display(const struct value_iface_t* self,
       CONTAINER_OF(self, struct duration_value_t, value);
 
   int total_written_bytes = 0;
-  if (dv->duration.d > 0.0) {
-    int written_bytes = snprintf(buffer, buffer_size, "%.2fd", dv->duration.d);
-    CHECK_WRITTEN_BYTES(written_bytes);
-    buffer += written_bytes;
-    buffer_size -= written_bytes;
-    total_written_bytes += written_bytes;
-  }
+  int written_bytes = snprintf(buffer, buffer_size, "%.2fd", dv->duration.d);
+  CHECK_WRITTEN_BYTES(written_bytes);
+  buffer += written_bytes;
+  buffer_size -= written_bytes;
+  total_written_bytes += written_bytes;
 
-  if (dv->duration.h > 0.0) {
-    int written_bytes = snprintf(buffer, buffer_size, "%.2fh", dv->duration.h);
-    CHECK_WRITTEN_BYTES(written_bytes);
-    buffer += written_bytes;
-    buffer_size -= written_bytes;
-    total_written_bytes += written_bytes;
-  }
+  written_bytes = snprintf(buffer, buffer_size, "%.2fh", dv->duration.h);
+  CHECK_WRITTEN_BYTES(written_bytes);
+  buffer += written_bytes;
+  buffer_size -= written_bytes;
+  total_written_bytes += written_bytes;
 
-  if (dv->duration.m > 0.0) {
-    int written_bytes = snprintf(buffer, buffer_size, "%.2fm", dv->duration.m);
-    CHECK_WRITTEN_BYTES(written_bytes);
-    buffer += written_bytes;
-    buffer_size -= written_bytes;
-    total_written_bytes += written_bytes;
-  }
+  written_bytes = snprintf(buffer, buffer_size, "%.2fm", dv->duration.m);
+  CHECK_WRITTEN_BYTES(written_bytes);
+  buffer += written_bytes;
+  buffer_size -= written_bytes;
+  total_written_bytes += written_bytes;
 
-  if (dv->duration.s > 0.0) {
-    int written_bytes = snprintf(buffer, buffer_size, "%.2fs", dv->duration.s);
-    CHECK_WRITTEN_BYTES(written_bytes);
-    buffer += written_bytes;
-    buffer_size -= written_bytes;
-    total_written_bytes += written_bytes;
-  }
+  written_bytes = snprintf(buffer, buffer_size, "%.2fs", dv->duration.s);
+  CHECK_WRITTEN_BYTES(written_bytes);
+  buffer += written_bytes;
+  buffer_size -= written_bytes;
+  total_written_bytes += written_bytes;
 
-  if (dv->duration.ms > 0.0) {
-    int written_bytes =
-        snprintf(buffer, buffer_size, "%.2fms", dv->duration.ms);
-    CHECK_WRITTEN_BYTES(written_bytes);
-    buffer += written_bytes;
-    buffer_size -= written_bytes;
-    total_written_bytes += written_bytes;
-  }
-
-  if (total_written_bytes == 0) {
-    int written_bytes = snprintf(buffer, buffer_size, "%.2fms", 0.0);
-    CHECK_WRITTEN_BYTES(written_bytes);
-    total_written_bytes += written_bytes;
-  }
+  written_bytes = snprintf(buffer, buffer_size, "%.2fms", dv->duration.ms);
+  CHECK_WRITTEN_BYTES(written_bytes);
+  buffer += written_bytes;
+  buffer_size -= written_bytes;
+  total_written_bytes += written_bytes;
 
   return total_written_bytes;
 }
