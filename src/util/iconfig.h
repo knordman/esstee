@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,13 +20,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 struct config_iface_t {
+  int (*get)(const struct config_iface_t* self, const char* option);
 
-    int (*get)(
-	const struct config_iface_t *self,
-	const char *option);
-
-    int (*set)(
-	struct config_iface_t *self,
-	const char *option,
-	int value);
+  int (*set)(struct config_iface_t* self, const char* option, int value);
 };

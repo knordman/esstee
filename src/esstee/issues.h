@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <esstee/locations.h>
 
 struct st_issue_t {
-    char *message;
-    st_bitflag_t class;
-    int has_sub_issues;
-    struct st_location_t *locations;
+  char* message;
+  st_bitflag_t class;
+  int has_sub_issues;
+  struct st_location_t* locations;
 };

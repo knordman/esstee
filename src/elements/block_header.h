@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,13 +23,11 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/ivariable.h>
 
 struct header_t {
-    struct type_iface_t *types;
-    struct variable_iface_t *variables;
+  struct type_iface_t* types;
+  struct variable_iface_t* variables;
 };
 
-int st_create_header_tables(
-    struct header_t *header,
-    struct issues_iface_t *issues);
+int st_create_header_tables(struct header_t* header,
+                            struct issues_iface_t* issues);
 
-void st_destroy_header(
-    struct header_t *header);
+void st_destroy_header(struct header_t* header);

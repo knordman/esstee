@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <esstee/flags.h>
 #include <inttypes.h>
 
-#define ST_FLAG_IS_SET(collection, flags)	(collection & (flags))
-#define ST_SET_FLAGS(collection, flags)	        collection = collection | (flags)
-#define ST_CLEAR_FLAGS(collection, flags)	collection = collection & ~(flags)
-
+#define ST_FLAG_IS_SET(collection, flags) (collection & (flags))
+#define ST_SET_FLAGS(collection, flags) collection = collection | (flags)
+#define ST_CLEAR_FLAGS(collection, flags) collection = collection & ~(flags)

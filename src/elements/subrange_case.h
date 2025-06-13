@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iconfig.h>
 #include <util/iissues.h>
 
-struct value_iface_t * st_create_subrange_case_selector(
-    struct subrange_iface_t *subrange,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct value_iface_t* st_create_subrange_case_selector(
+    struct subrange_iface_t* subrange,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

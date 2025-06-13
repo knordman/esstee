@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,32 +23,30 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/inamed_ref_pool.h>
 
 struct subrange_iface_t {
-    
-    void (*destroy)(
-	struct subrange_iface_t *self);
+  void (*destroy)(struct subrange_iface_t* self);
 
-    const struct value_iface_t *min;
-    const struct st_location_t *min_location;
-    const struct value_iface_t *max;
-    const struct st_location_t *max_location;
-    const struct st_location_t *location;
+  const struct value_iface_t* min;
+  const struct st_location_t* min_location;
+  const struct value_iface_t* max;
+  const struct st_location_t* max_location;
+  const struct st_location_t* location;
 };
 
-struct subrange_iface_t * st_create_subrange(
-    struct value_iface_t *min,
-    const struct st_location_t *min_location,
-    struct value_iface_t *max,
-    const struct st_location_t *max_location,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct subrange_iface_t* st_create_subrange(
+    struct value_iface_t* min,
+    const struct st_location_t* min_location,
+    struct value_iface_t* max,
+    const struct st_location_t* max_location,
+    const struct st_location_t* location,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);
 
-struct type_iface_t * st_create_subrange_type(
-    char *storage_type_identifier,
-    const struct st_location_t *storage_type_identifier_location,
-    struct subrange_iface_t *subrange,
-    struct value_iface_t *default_value,
-    const struct st_location_t *default_value_location,
-    struct named_ref_pool_iface_t *type_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct type_iface_t* st_create_subrange_type(
+    char* storage_type_identifier,
+    const struct st_location_t* storage_type_identifier_location,
+    struct subrange_iface_t* subrange,
+    struct value_iface_t* default_value,
+    const struct st_location_t* default_value_location,
+    struct named_ref_pool_iface_t* type_refs,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

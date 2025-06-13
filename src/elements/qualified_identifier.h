@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,8 +21,7 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/inamed_ref_pool.h>
 #include <elements/array.h>
 
-
-struct qualified_identifier_iface_t * st_create_qualified_identifier(
-    struct named_ref_pool_iface_t *variable_context,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct qualified_identifier_iface_t* st_create_qualified_identifier(
+    struct named_ref_pool_iface_t* variable_context,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

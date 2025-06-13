@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,345 +24,269 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* Invoke interface                                                       */
 /**************************************************************************/
 struct qualified_assignment_statement_t {
-    struct invoke_iface_t invoke;
-    struct st_location_t *location;
-    struct qualified_identifier_iface_t *lhs;
-    struct expression_iface_t *rhs;
-    int invoke_state;
+  struct invoke_iface_t invoke;
+  struct st_location_t* location;
+  struct qualified_identifier_iface_t* lhs;
+  struct expression_iface_t* rhs;
+  int invoke_state;
 };
 
 static int assignment_statement_qualified_verify(
-    struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_assignment_statement_t *qis =
-	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+    struct invoke_iface_t* self,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct qualified_assignment_statement_t* qis =
+      CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int identifier_verify_result = qis->lhs->verify(qis->lhs,
-						    config,
-						    issues);
-    if(identifier_verify_result != ESSTEE_OK)
-    {
-	return identifier_verify_result;
+  int identifier_verify_result = qis->lhs->verify(qis->lhs, config, issues);
+  if (identifier_verify_result != ESSTEE_OK) {
+    return identifier_verify_result;
+  }
+
+  int rhs_verify_result = ESSTEE_OK;
+  if (qis->rhs->invoke.verify) {
+    rhs_verify_result =
+        qis->rhs->invoke.verify(&(qis->rhs->invoke), config, issues);
+  }
+  if (rhs_verify_result != ESSTEE_OK) {
+    return rhs_verify_result;
+  }
+
+  if (qis->lhs->constant_reference(qis->lhs) == ESSTEE_TRUE) {
+    const struct value_iface_t* rhs_value = qis->rhs->return_value(qis->rhs);
+
+    struct issue_group_iface_t* ig = issues->open_group(issues);
+
+    int assignable_result =
+        qis->lhs->target_assignable_from(qis->lhs, rhs_value, config, issues);
+    ig->close(ig);
+
+    if (assignable_result != ESSTEE_TRUE) {
+      const char* message = issues->build_message(
+          issues, "assignment of element '%s' it not possible",
+          qis->lhs->target_name(qis->lhs));
+
+      ig->main_issue(ig, message, ESSTEE_CONTEXT_ERROR, 2, qis->lhs->location,
+                     qis->rhs->invoke.location);
+
+      return assignable_result;
     }
-    
-    int rhs_verify_result = ESSTEE_OK;
-    if(qis->rhs->invoke.verify)
-    {
-	rhs_verify_result = qis->rhs->invoke.verify(&(qis->rhs->invoke),
-						    config,
-						    issues);
-    }
-    if(rhs_verify_result != ESSTEE_OK)
-    {
-	return rhs_verify_result;
-    }
+  }
 
-    if(qis->lhs->constant_reference(qis->lhs) == ESSTEE_TRUE)
-    {
-	const struct value_iface_t *rhs_value = qis->rhs->return_value(qis->rhs);
-
-	struct issue_group_iface_t *ig = issues->open_group(issues);
-	
-	int assignable_result = qis->lhs->target_assignable_from(qis->lhs,
-								 rhs_value,
-								 config,
-								 issues);
-	ig->close(ig);
-	
-	if(assignable_result != ESSTEE_TRUE)
-	{
-	    const char *message = issues->build_message(
-		issues,
-		"assignment of element '%s' it not possible",
-		qis->lhs->target_name(qis->lhs));
-
-	    ig->main_issue(ig,
-			   message,
-			   ESSTEE_CONTEXT_ERROR,
-			   2,
-			   qis->lhs->location,
-			   qis->rhs->invoke.location);
-
-	    return assignable_result;
-	}
-    }
-
-    return ESSTEE_OK;
+  return ESSTEE_OK;
 }
 
 static int assignment_statement_qualified_step(
-    struct invoke_iface_t *self,
-    struct cursor_iface_t *cursor,
-    const struct systime_iface_t *time,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_assignment_statement_t *qis =
-	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+    struct invoke_iface_t* self,
+    struct cursor_iface_t* cursor,
+    const struct systime_iface_t* time,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct qualified_assignment_statement_t* qis =
+      CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    const struct value_iface_t *rhs_value = NULL;
-    
-    switch(qis->invoke_state)
-    {
+  const struct value_iface_t* rhs_value = NULL;
+
+  switch (qis->invoke_state) {
     case 0: {
-	int identifier_step_result = qis->lhs->step(qis->lhs,
-						    cursor,
-						    time,
-						    config,
-						    issues);
-	
-	if(identifier_step_result != INVOKE_RESULT_FINISHED)
-	{
-	    return identifier_step_result;
-	}
-	
-	qis->invoke_state = 1;
+      int identifier_step_result =
+          qis->lhs->step(qis->lhs, cursor, time, config, issues);
 
+      if (identifier_step_result != INVOKE_RESULT_FINISHED) {
+        return identifier_step_result;
+      }
+
+      qis->invoke_state = 1;
     }
     case 1:
-	if(qis->rhs->invoke.step)
-	{
-	    qis->invoke_state = 2;
-	    cursor->switch_current(cursor,
-				   &(qis->rhs->invoke),
-				   config,
-				   issues);
-	    return INVOKE_RESULT_IN_PROGRESS;
-	}
+      if (qis->rhs->invoke.step) {
+        qis->invoke_state = 2;
+        cursor->switch_current(cursor, &(qis->rhs->invoke), config, issues);
+        return INVOKE_RESULT_IN_PROGRESS;
+      }
 
     case 2:
-	rhs_value = qis->rhs->return_value(qis->rhs);
-	
-	if(qis->lhs->constant_reference(qis->lhs) == ESSTEE_FALSE)
-	{   
-	    struct issue_group_iface_t *ig =issues->open_group(issues);
-	    
-	    int assignable_result = qis->lhs->target_assignable_from(qis->lhs,
-								     rhs_value,
-								     config,
-								     issues);
-	    ig->close(ig);
-	    
-	    if(assignable_result != ESSTEE_TRUE)
-	    {
-		const char *message = issues->build_message(
-		    issues,
-		    "assignment of element '%s' failed",
-		    qis->lhs->target_name(qis->lhs));
+      rhs_value = qis->rhs->return_value(qis->rhs);
 
-		ig->main_issue(ig,
-			       message,
-			       ESSTEE_CONTEXT_ERROR,
-			       2,
-			       qis->lhs->location,
-			       qis->rhs->invoke.location);
+      if (qis->lhs->constant_reference(qis->lhs) == ESSTEE_FALSE) {
+        struct issue_group_iface_t* ig = issues->open_group(issues);
 
-		return INVOKE_RESULT_ERROR;
-	    }
-	}
+        int assignable_result = qis->lhs->target_assignable_from(
+            qis->lhs, rhs_value, config, issues);
+        ig->close(ig);
 
-	struct issue_group_iface_t *ig =issues->open_group(issues);
-	
-	int assign_result = qis->lhs->target_assign(qis->lhs,
-						    rhs_value,
-						    config,
-						    issues);
+        if (assignable_result != ESSTEE_TRUE) {
+          const char* message =
+              issues->build_message(issues, "assignment of element '%s' failed",
+                                    qis->lhs->target_name(qis->lhs));
 
-	ig->close(ig);
-	
-	if(assign_result != ESSTEE_OK)
-	{
-	    const char *message = issues->build_message(
-		issues,
-		"assignment of element '%s' failed",
-		qis->lhs->target_name(qis->lhs));
-		
-	    ig->main_issue(ig,
-			   message,
-			   ESSTEE_CONTEXT_ERROR,
-			   2,
-			   qis->lhs->location,
-			   qis->rhs->invoke.location);
+          ig->main_issue(ig, message, ESSTEE_CONTEXT_ERROR, 2,
+                         qis->lhs->location, qis->rhs->invoke.location);
 
-	    return INVOKE_RESULT_ERROR;
-	}
-    }
+          return INVOKE_RESULT_ERROR;
+        }
+      }
 
-    return INVOKE_RESULT_FINISHED;
+      struct issue_group_iface_t* ig = issues->open_group(issues);
+
+      int assign_result =
+          qis->lhs->target_assign(qis->lhs, rhs_value, config, issues);
+
+      ig->close(ig);
+
+      if (assign_result != ESSTEE_OK) {
+        const char* message =
+            issues->build_message(issues, "assignment of element '%s' failed",
+                                  qis->lhs->target_name(qis->lhs));
+
+        ig->main_issue(ig, message, ESSTEE_CONTEXT_ERROR, 2, qis->lhs->location,
+                       qis->rhs->invoke.location);
+
+        return INVOKE_RESULT_ERROR;
+      }
+  }
+
+  return INVOKE_RESULT_FINISHED;
 }
 
 static int assignment_statement_qualified_reset(
-    struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_assignment_statement_t *qis =
-	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+    struct invoke_iface_t* self,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct qualified_assignment_statement_t* qis =
+      CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    qis->invoke_state = 0;
-    
-    int id_reset_result = qis->lhs->reset(qis->lhs,
-					  config,
-					  issues);
-    if(id_reset_result != ESSTEE_OK)
-    {
-	return id_reset_result;
-    }
-    
-    if(qis->rhs->invoke.reset)
-    {
-	int reset_result = qis->rhs->invoke.reset(&(qis->rhs->invoke),
-						  config,
-						  issues);
-	if(reset_result != ESSTEE_OK)
-	{
-	    return reset_result;
-	}
-    }
+  qis->invoke_state = 0;
 
-    return ESSTEE_OK;
+  int id_reset_result = qis->lhs->reset(qis->lhs, config, issues);
+  if (id_reset_result != ESSTEE_OK) {
+    return id_reset_result;
+  }
+
+  if (qis->rhs->invoke.reset) {
+    int reset_result =
+        qis->rhs->invoke.reset(&(qis->rhs->invoke), config, issues);
+    if (reset_result != ESSTEE_OK) {
+      return reset_result;
+    }
+  }
+
+  return ESSTEE_OK;
 }
 
 static void assignment_statement_qualified_destroy(
-    struct invoke_iface_t *self)
-{
-    /* TODO: destructor */
+    struct invoke_iface_t* self) {
+  /* TODO: destructor */
 }
 
 static void assignment_statement_qualified_clone_destroy(
-    struct invoke_iface_t *self)
-{
-    /* TODO: destructor */
+    struct invoke_iface_t* self) {
+  /* TODO: destructor */
 }
 
-static struct invoke_iface_t * assignment_statement_qualified_clone(
-    struct invoke_iface_t *self,
-    struct issues_iface_t *issues)
-{
-    struct qualified_assignment_statement_t *qis =
-	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+static struct invoke_iface_t* assignment_statement_qualified_clone(
+    struct invoke_iface_t* self,
+    struct issues_iface_t* issues) {
+  struct qualified_assignment_statement_t* qis =
+      CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    struct qualified_assignment_statement_t *copy = NULL;
-    struct qualified_identifier_iface_t *lhs_copy = NULL;
-    struct expression_iface_t *rhs_copy = NULL;
+  struct qualified_assignment_statement_t* copy = NULL;
+  struct qualified_identifier_iface_t* lhs_copy = NULL;
+  struct expression_iface_t* rhs_copy = NULL;
 
-    ALLOC_OR_ERROR_JUMP(
-	copy,
-	struct qualified_assignment_statement_t,
-	issues,
-	error_free_resources);
-    
-    memcpy(copy, qis, sizeof(struct qualified_assignment_statement_t));
+  ALLOC_OR_ERROR_JUMP(copy, struct qualified_assignment_statement_t, issues,
+                      error_free_resources);
 
-    lhs_copy = qis->lhs->clone(qis->lhs, issues);
+  memcpy(copy, qis, sizeof(struct qualified_assignment_statement_t));
 
-    if(!lhs_copy)
-    {
-	goto error_free_resources;
+  lhs_copy = qis->lhs->clone(qis->lhs, issues);
+
+  if (!lhs_copy) {
+    goto error_free_resources;
+  }
+
+  copy->lhs = lhs_copy;
+
+  if (qis->rhs->clone) {
+    ALLOC_OR_JUMP(rhs_copy, struct expression_iface_t, error_free_resources);
+
+    rhs_copy = qis->rhs->clone(qis->rhs, issues);
+    if (!rhs_copy) {
+      goto error_free_resources;
     }
 
-    copy->lhs = lhs_copy;
-    
-    if(qis->rhs->clone)
-    {
-	ALLOC_OR_JUMP(
-	    rhs_copy,
-	    struct expression_iface_t,
-	    error_free_resources);
+    copy->rhs = rhs_copy;
+  }
 
-	rhs_copy = qis->rhs->clone(qis->rhs, issues);
-	if(!rhs_copy)
-	{
-	    goto error_free_resources;
-	}
+  copy->invoke.destroy = assignment_statement_qualified_clone_destroy;
 
-	copy->rhs = rhs_copy;
-    }
-    
-    copy->invoke.destroy = assignment_statement_qualified_clone_destroy;
-
-    return &(copy->invoke);
+  return &(copy->invoke);
 
 error_free_resources:
-    free(copy);
-    free(lhs_copy);
-    free(rhs_copy);
-    return NULL;
+  free(copy);
+  free(lhs_copy);
+  free(rhs_copy);
+  return NULL;
 }
 
 static int assignment_statement_qualified_allocate(
-    struct invoke_iface_t *self,
-    struct issues_iface_t *issues)
-{
-    struct qualified_assignment_statement_t *qis =
-	CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
+    struct invoke_iface_t* self,
+    struct issues_iface_t* issues) {
+  struct qualified_assignment_statement_t* qis =
+      CONTAINER_OF(self, struct qualified_assignment_statement_t, invoke);
 
-    int lhs_allocate_result = qis->lhs->allocate(qis->lhs, issues);
+  int lhs_allocate_result = qis->lhs->allocate(qis->lhs, issues);
 
-    if(lhs_allocate_result != ESSTEE_OK)
-    {
-	return lhs_allocate_result;
+  if (lhs_allocate_result != ESSTEE_OK) {
+    return lhs_allocate_result;
+  }
+
+  if (qis->rhs->invoke.allocate) {
+    int rhs_allocate_result =
+        qis->rhs->invoke.allocate(&(qis->rhs->invoke), issues);
+
+    if (rhs_allocate_result != ESSTEE_OK) {
+      return rhs_allocate_result;
     }
+  }
 
-    if(qis->rhs->invoke.allocate)
-    {
-	int rhs_allocate_result = qis->rhs->invoke.allocate(
-	    &(qis->rhs->invoke),
-	    issues);
-
-	if(rhs_allocate_result != ESSTEE_OK)
-	{
-	    return rhs_allocate_result;
-	}
-    }
-
-    return ESSTEE_OK;
+  return ESSTEE_OK;
 }
 
 /**************************************************************************/
 /* Public interface                                                       */
 /**************************************************************************/
-struct invoke_iface_t * st_create_assignment_statement_qualified(
-    struct qualified_identifier_iface_t *qualified_identifier,
-    struct expression_iface_t *assignment,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct qualified_assignment_statement_t *qis = NULL;
-    struct st_location_t *qis_location = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	qis,
-	struct qualified_assignment_statement_t,
-	issues,
-	error_free_resources);
+struct invoke_iface_t* st_create_assignment_statement_qualified(
+    struct qualified_identifier_iface_t* qualified_identifier,
+    struct expression_iface_t* assignment,
+    const struct st_location_t* location,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct qualified_assignment_statement_t* qis = NULL;
+  struct st_location_t* qis_location = NULL;
 
-    LOCDUP_OR_ERROR_JUMP(
-	qis_location,
-	location,
-	issues,
-	error_free_resources);
+  ALLOC_OR_ERROR_JUMP(qis, struct qualified_assignment_statement_t, issues,
+                      error_free_resources);
 
-    qis->location = qis_location;
-    qis->lhs = qualified_identifier;
-    qis->rhs = assignment;
-    
-    memset(&(qis->invoke), 0, sizeof(struct invoke_iface_t));
-    qis->invoke.location = qis->location;
-    qis->invoke.step = assignment_statement_qualified_step;
-    qis->invoke.verify = assignment_statement_qualified_verify;
-    qis->invoke.clone = assignment_statement_qualified_clone;
-    qis->invoke.reset = assignment_statement_qualified_reset;
-    qis->invoke.allocate = assignment_statement_qualified_allocate;
-    qis->invoke.destroy = assignment_statement_qualified_destroy;
+  LOCDUP_OR_ERROR_JUMP(qis_location, location, issues, error_free_resources);
 
-    return &(qis->invoke);
-    
+  qis->location = qis_location;
+  qis->lhs = qualified_identifier;
+  qis->rhs = assignment;
+
+  memset(&(qis->invoke), 0, sizeof(struct invoke_iface_t));
+  qis->invoke.location = qis->location;
+  qis->invoke.step = assignment_statement_qualified_step;
+  qis->invoke.verify = assignment_statement_qualified_verify;
+  qis->invoke.clone = assignment_statement_qualified_clone;
+  qis->invoke.reset = assignment_statement_qualified_reset;
+  qis->invoke.allocate = assignment_statement_qualified_allocate;
+  qis->invoke.destroy = assignment_statement_qualified_destroy;
+
+  return &(qis->invoke);
+
 error_free_resources:
-    free(qis);
-    free(qis_location);
-    return NULL;
+  free(qis);
+  free(qis_location);
+  return NULL;
 }

@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,103 +24,78 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <uthash.h>
 #include <string.h>
 
-
 static struct bool_option_t bool_options_template[] = {
-    { .option = "resolve_links_on_parse_error",
-      .value = ESSTEE_FALSE
-    },
+    {.option = "resolve_links_on_parse_error", .value = ESSTEE_FALSE},
 };
 
-struct config_iface_t * st_new_config(void)
-{
-    struct config_t *conf = NULL;
-    struct bool_option_t *bool_options = NULL;
+struct config_iface_t* st_new_config(void) {
+  struct config_t* conf = NULL;
+  struct bool_option_t* bool_options = NULL;
 
-    ALLOC_OR_JUMP(conf, struct config_t, error_free_resources);
-    bool_options = (struct bool_option_t *)malloc(sizeof(bool_options_template));
-    if(!bool_options)
-    {
-	goto error_free_resources;
-    }
+  ALLOC_OR_JUMP(conf, struct config_t, error_free_resources);
+  bool_options = (struct bool_option_t*)malloc(sizeof(bool_options_template));
+  if (!bool_options) {
+    goto error_free_resources;
+  }
 
-    memcpy(
-	bool_options,
-	bool_options_template,
-	sizeof(bool_options_template));
+  memcpy(bool_options, bool_options_template, sizeof(bool_options_template));
 
-    conf->options_chunk = bool_options;
-    conf->options_table = NULL;
-    
-    for(int i=0; i < sizeof(bool_options_template)/sizeof(struct bool_option_t); i++)  
-    {
-	HASH_ADD_KEYPTR( 
-	    hh,  
-	    conf->options_table,  
-	    conf->options_chunk[i].option,
-	    strlen(conf->options_chunk[i].option),  
-	    &(conf->options_chunk[i]));
-    }
-    
-    conf->config.get = st_config_get;
-    conf->config.set = st_config_set;
+  conf->options_chunk = bool_options;
+  conf->options_table = NULL;
 
-    return &(conf->config);
-    
+  for (int i = 0;
+       i < sizeof(bool_options_template) / sizeof(struct bool_option_t); i++) {
+    HASH_ADD_KEYPTR(hh, conf->options_table, conf->options_chunk[i].option,
+                    strlen(conf->options_chunk[i].option),
+                    &(conf->options_chunk[i]));
+  }
+
+  conf->config.get = st_config_get;
+  conf->config.set = st_config_set;
+
+  return &(conf->config);
+
 error_free_resources:
-    free(conf);
-    free(bool_options);
-    return NULL;
+  free(conf);
+  free(bool_options);
+  return NULL;
 }
 
-int st_config_get(
-    const struct config_iface_t *self,
-    const char *option)
-{
-    const struct config_t *conf = CONTAINER_OF(self, struct config_t, config);
+int st_config_get(const struct config_iface_t* self, const char* option) {
+  const struct config_t* conf = CONTAINER_OF(self, struct config_t, config);
 
-    struct bool_option_t *found = NULL;
-    
-    HASH_FIND_STR(conf->options_table, option, found);
-    if(!found)
-    {
-	return ESSTEE_ERROR;
-    }
+  struct bool_option_t* found = NULL;
 
-    return found->value;
+  HASH_FIND_STR(conf->options_table, option, found);
+  if (!found) {
+    return ESSTEE_ERROR;
+  }
+
+  return found->value;
 }
 
-int st_config_set(
-    struct config_iface_t *self,
-    const char *option,
-    int value)
-{
-    struct config_t *conf = CONTAINER_OF(self, struct config_t, config);
+int st_config_set(struct config_iface_t* self, const char* option, int value) {
+  struct config_t* conf = CONTAINER_OF(self, struct config_t, config);
 
-    struct bool_option_t *found = NULL;
-    
-    HASH_FIND_STR(conf->options_table, option, found);
-    if(!found)
-    {
-	return ESSTEE_ERROR;
-    }
+  struct bool_option_t* found = NULL;
 
-    if(value == ESSTEE_TRUE)
-    {
-	found->value = ESSTEE_TRUE;
-    }
-    else
-    {
-	found->value = ESSTEE_FALSE;
-    }
+  HASH_FIND_STR(conf->options_table, option, found);
+  if (!found) {
+    return ESSTEE_ERROR;
+  }
 
-    return ESSTEE_OK;
+  if (value == ESSTEE_TRUE) {
+    found->value = ESSTEE_TRUE;
+  } else {
+    found->value = ESSTEE_FALSE;
+  }
+
+  return ESSTEE_OK;
 }
 
-void st_destroy_config(
-    struct config_iface_t *self)
-{
-    struct config_t *conf = CONTAINER_OF(self, struct config_t, config);
+void st_destroy_config(struct config_iface_t* self) {
+  struct config_t* conf = CONTAINER_OF(self, struct config_t, config);
 
-    free(conf->options_chunk);
-    free(conf);
+  free(conf->options_chunk);
+  free(conf);
 }

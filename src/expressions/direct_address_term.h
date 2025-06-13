@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,10 +22,8 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <expressions/iexpression.h>
 #include <elements/idirectmemory.h>
 
-struct expression_iface_t * st_create_direct_address_term(
-    struct direct_address_t *address,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
-
-
+struct expression_iface_t* st_create_direct_address_term(
+    struct direct_address_t* address,
+    const struct st_location_t* location,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

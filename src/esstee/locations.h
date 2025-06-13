@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,11 +20,11 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 struct st_location_t {
-    const char *source;
-    int first_line;
-    int first_column;
-    int last_line;
-    int last_column;
-    struct st_location_t *prev;
-    struct st_location_t *next;
+  const char* source;
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+  struct st_location_t* prev;
+  struct st_location_t* next;
 };

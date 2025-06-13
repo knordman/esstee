@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,17 +20,16 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/iinvoke_parameter.h>
 #include <expressions/iexpression.h>
 
-struct invoke_parameters_iface_t * st_create_invoke_parameters(
-    struct invoke_parameter_t *first_parameter,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);	
-    
-struct invoke_parameter_t * st_create_invoke_parameter(
-    char *identifier,
-    const struct st_location_t *location,
-    struct expression_iface_t *assigned,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);	
+struct invoke_parameters_iface_t* st_create_invoke_parameters(
+    struct invoke_parameter_t* first_parameter,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);
 
-void st_destroy_invoke_parameter(
-    struct invoke_parameter_t *parameter);
+struct invoke_parameter_t* st_create_invoke_parameter(
+    char* identifier,
+    const struct st_location_t* location,
+    struct expression_iface_t* assigned,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);
+
+void st_destroy_invoke_parameter(struct invoke_parameter_t* parameter);

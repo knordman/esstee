@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,16 +24,13 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/iissues.h>
 
 struct expression_iface_t {
+  struct invoke_iface_t invoke;
 
-    struct invoke_iface_t invoke;
-    
-    const struct value_iface_t * (*return_value)(
-	const struct expression_iface_t *self);
-    
-    struct expression_iface_t * (*clone)(
-	struct expression_iface_t *self,
-	struct issues_iface_t *issues);
-    
-    void (*destroy)(
-	struct expression_iface_t *self);
+  const struct value_iface_t* (*return_value)(
+      const struct expression_iface_t* self);
+
+  struct expression_iface_t* (*clone)(struct expression_iface_t* self,
+                                      struct issues_iface_t* issues);
+
+  void (*destroy)(struct expression_iface_t* self);
 };

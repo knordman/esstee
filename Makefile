@@ -14,7 +14,7 @@ LDFLAGS :=			-lm
 #  Target specification
 # ------------------------------------------------------------------------------
 
-OBJECTS := 		build/util/issue_context.o \
+OBJECTS := 	build/util/issue_context.o \
 			build/util/config.o \
 			build/util/named_ref_pool.o \
 			build/parser/parser.o \

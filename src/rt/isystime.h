@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,18 +22,11 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 
 struct systime_iface_t {
+  int (*reset)(struct systime_iface_t* self);
 
-    int (*reset)(
-	struct systime_iface_t *self);
-    
-    uint64_t (*get_time_ms)(
-	struct systime_iface_t *self);
+  uint64_t (*get_time_ms)(struct systime_iface_t* self);
 
-    uint64_t (*add_time_ms)(
-	struct systime_iface_t *self,
-	uint64_t ms);
+  uint64_t (*add_time_ms)(struct systime_iface_t* self, uint64_t ms);
 
-    uint64_t (*elapsed_from)(
-	struct systime_iface_t *self,
-	uint64_t timestamp);
+  uint64_t (*elapsed_from)(struct systime_iface_t* self, uint64_t timestamp);
 };

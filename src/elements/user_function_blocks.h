@@ -24,12 +24,12 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <statements/iinvoke.h>
 #include <util/inamed_ref_pool.h>
 
-struct type_iface_t * st_new_user_function_block(
-    char *identifier,
-    const struct st_location_t *location,
-    struct header_t *header,
-    struct invoke_iface_t *statements,
-    struct named_ref_pool_iface_t *type_refs,
-    struct named_ref_pool_iface_t *var_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct type_iface_t* st_new_user_function_block(
+    char* identifier,
+    const struct st_location_t* location,
+    struct header_t* header,
+    struct invoke_iface_t* statements,
+    struct named_ref_pool_iface_t* type_refs,
+    struct named_ref_pool_iface_t* var_refs,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,4 +21,4 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <util/iissues.h>
 
-struct issues_iface_t * st_new_issue_context();
+struct issues_iface_t* st_new_issue_context();

@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,402 +25,294 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 /* Invoke interface                                                       */
 /**************************************************************************/
 struct invoke_statement_t {
-    struct invoke_iface_t invoke;
-    struct st_location_t *location;
-    struct invoke_parameters_iface_t *parameters;
-    struct variable_iface_t *variable;
-    struct function_iface_t *function;
-    char *identifier;
-    int invoke_state;
+  struct invoke_iface_t invoke;
+  struct st_location_t* location;
+  struct invoke_parameters_iface_t* parameters;
+  struct variable_iface_t* variable;
+  struct function_iface_t* function;
+  char* identifier;
+  int invoke_state;
 };
 
-static int invoke_statement_verify(
-    struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	CONTAINER_OF(self, struct invoke_statement_t, invoke);
-    
-    if(is->variable)
-    {
-	if(is->function)
-	{
-	    const char *message = issues->build_message(
-		issues,
-		"variable '%s' shadows function with same name",
-		is->variable->identifier);
+static int invoke_statement_verify(struct invoke_iface_t* self,
+                                   const struct config_iface_t* config,
+                                   struct issues_iface_t* issues) {
+  struct invoke_statement_t* is =
+      CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-	    issues->new_issue_at(
-		issues,
-		message,
-		ESSTEE_GENERAL_WARNING_ISSUE,
-		1,
-		is->location);
-	}
+  if (is->variable) {
+    if (is->function) {
+      const char* message = issues->build_message(
+          issues, "variable '%s' shadows function with same name",
+          is->variable->identifier);
 
-	struct issue_group_iface_t *ig = issues->open_group(issues);
-
-	int var_invoke = is->variable->invoke_verify(is->variable,
-						     NULL,
-						     is->parameters,
-						     config,
-						     issues);
-
-	ig->close(ig);
-
-	if(var_invoke != ESSTEE_OK)
-	{
-	    ig->main_issue(ig,
-			   "variable cannot be invoked",
-			   ESSTEE_CONTEXT_ERROR,
-			   1,
-			   is->location);
-	    
-	    return var_invoke;
-	}
+      issues->new_issue_at(issues, message, ESSTEE_GENERAL_WARNING_ISSUE, 1,
+                           is->location);
     }
-    else if(is->function)
-    {
-	int verify_result = is->function->verify_invoke(
-	    is->function,
-	    is->parameters,
-	    config,
-	    issues);
 
-	if(verify_result != ESSTEE_OK)
-	{
-	    return verify_result;
-	}
-    }
-    else
-    {
-	const char *message = issues->build_message(
-	    issues,
-	    "no known variable or function named '%s'",
-	    is->identifier);
-	
-	issues->new_issue_at(
-	    issues,
-	    message,
-	    ISSUE_ERROR_CLASS,
-	    1,
-	    is->location);
+    struct issue_group_iface_t* ig = issues->open_group(issues);
 
-	return ESSTEE_ERROR;
+    int var_invoke = is->variable->invoke_verify(
+        is->variable, NULL, is->parameters, config, issues);
+
+    ig->close(ig);
+
+    if (var_invoke != ESSTEE_OK) {
+      ig->main_issue(ig, "variable cannot be invoked", ESSTEE_CONTEXT_ERROR, 1,
+                     is->location);
+
+      return var_invoke;
     }
-    
-    return ESSTEE_OK;
+  } else if (is->function) {
+    int verify_result = is->function->verify_invoke(
+        is->function, is->parameters, config, issues);
+
+    if (verify_result != ESSTEE_OK) {
+      return verify_result;
+    }
+  } else {
+    const char* message = issues->build_message(
+        issues, "no known variable or function named '%s'", is->identifier);
+
+    issues->new_issue_at(issues, message, ISSUE_ERROR_CLASS, 1, is->location);
+
+    return ESSTEE_ERROR;
+  }
+
+  return ESSTEE_OK;
 }
 
-static int invoke_statement_step(
-    struct invoke_iface_t *self,
-    struct cursor_iface_t *cursor,
-    const struct systime_iface_t *time,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+static int invoke_statement_step(struct invoke_iface_t* self,
+                                 struct cursor_iface_t* cursor,
+                                 const struct systime_iface_t* time,
+                                 const struct config_iface_t* config,
+                                 struct issues_iface_t* issues) {
+  struct invoke_statement_t* is =
+      CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    switch(is->invoke_state)
-    {
+  switch (is->invoke_state) {
     case 0:
-	cursor->push_return_context(cursor, self);
-	
-	if(is->parameters)
-	{
-	    int step_result = is->parameters->step(is->parameters,
-						   cursor,
-						   time,
-						   config,
-						   issues);
-	    
-	    if(step_result != INVOKE_RESULT_FINISHED)
-	    {
-		return step_result;
-	    }
+      cursor->push_return_context(cursor, self);
 
-	    is->invoke_state = 1;
-	}
+      if (is->parameters) {
+        int step_result =
+            is->parameters->step(is->parameters, cursor, time, config, issues);
+
+        if (step_result != INVOKE_RESULT_FINISHED) {
+          return step_result;
+        }
+
+        is->invoke_state = 1;
+      }
 
     case 1:
-	if(is->variable)
-	{
-	    int step_result = is->variable->invoke_step(
-		is->variable,
-		NULL,
-		is->parameters,
-		cursor,
-		time,
-		config,
-		issues);
+      if (is->variable) {
+        int step_result = is->variable->invoke_step(
+            is->variable, NULL, is->parameters, cursor, time, config, issues);
 
-	    if(step_result != INVOKE_RESULT_FINISHED)
-	    {
-		return step_result;
-	    }
+        if (step_result != INVOKE_RESULT_FINISHED) {
+          return step_result;
+        }
 
-	    is->invoke_state = 2;
-	}
-	else if(is->function)
-	{
-	    int step_result = is->function->step(
-		is->function,
-		is->parameters,
-		cursor,
-		time,
-		config,
-		issues);
+        is->invoke_state = 2;
+      } else if (is->function) {
+        int step_result = is->function->step(is->function, is->parameters,
+                                             cursor, time, config, issues);
 
-	    if(step_result != INVOKE_RESULT_FINISHED)
-	    {
-		return step_result;
-	    }
+        if (step_result != INVOKE_RESULT_FINISHED) {
+          return step_result;
+        }
 
-	    is->invoke_state = 2;
-	}
-	
+        is->invoke_state = 2;
+      }
+
     case 2:
     default:
-	break;
-    }
+      break;
+  }
 
-    cursor->pop_return_context(cursor);
-    
-    return INVOKE_RESULT_FINISHED;
+  cursor->pop_return_context(cursor);
+
+  return INVOKE_RESULT_FINISHED;
 }
 
-static void invoke_statement_destroy(
-    struct invoke_iface_t *self)
-{
-    /* struct invoke_statement_t *is = */
-    /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
+static void invoke_statement_destroy(struct invoke_iface_t* self) {
+  /* struct invoke_statement_t *is = */
+  /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
 
-    /* TODO: invoke destructor */
+  /* TODO: invoke destructor */
 }
 
-static void invoke_statement_clone_destroy(
-    struct invoke_iface_t *self)
-{
-    /* struct invoke_statement_t *is = */
-    /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
+static void invoke_statement_clone_destroy(struct invoke_iface_t* self) {
+  /* struct invoke_statement_t *is = */
+  /* 	CONTAINER_OF(self, struct invoke_statement_t, invoke); */
 
-    /* TODO: clone destructor invoke statement */
+  /* TODO: clone destructor invoke statement */
 }
 
-static int invoke_statement_reset(
-    struct invoke_iface_t *self,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+static int invoke_statement_reset(struct invoke_iface_t* self,
+                                  const struct config_iface_t* config,
+                                  struct issues_iface_t* issues) {
+  struct invoke_statement_t* is =
+      CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    if(is->variable)
-    {
-	int reset_result = is->variable->invoke_reset(is->variable,
-						      NULL,
-						      config,
-						      issues);
-	if(reset_result != ESSTEE_OK)
-	{
-	    return reset_result;
-	}
+  if (is->variable) {
+    int reset_result =
+        is->variable->invoke_reset(is->variable, NULL, config, issues);
+    if (reset_result != ESSTEE_OK) {
+      return reset_result;
     }
-    else if(is->function)
-    {
-	int reset_result = is->function->reset(is->function,
-					       config,
-					       issues);
-	if(reset_result != ESSTEE_OK)
-	{
-	    return reset_result;
-	}
+  } else if (is->function) {
+    int reset_result = is->function->reset(is->function, config, issues);
+    if (reset_result != ESSTEE_OK) {
+      return reset_result;
     }
+  }
 
-    is->invoke_state = 0;
-    if(is->parameters)
-    {
-	int reset_result = is->parameters->reset(is->parameters,
-						 config,
-						 issues);
+  is->invoke_state = 0;
+  if (is->parameters) {
+    int reset_result = is->parameters->reset(is->parameters, config, issues);
 
-	if(reset_result != ESSTEE_OK)
-	{
-	    return reset_result;
-	}
+    if (reset_result != ESSTEE_OK) {
+      return reset_result;
     }
+  }
 
-    return ESSTEE_OK;
+  return ESSTEE_OK;
 }
 
-static int invoke_statement_allocate(
-    struct invoke_iface_t *self,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+static int invoke_statement_allocate(struct invoke_iface_t* self,
+                                     struct issues_iface_t* issues) {
+  struct invoke_statement_t* is =
+      CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    if(is->parameters)
-    {
-	return is->parameters->allocate(is->parameters, issues);
-    }
+  if (is->parameters) {
+    return is->parameters->allocate(is->parameters, issues);
+  }
 
-    return ESSTEE_OK;
+  return ESSTEE_OK;
 }
 
-struct invoke_iface_t * invoke_statement_clone(
-    struct invoke_iface_t *self,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	CONTAINER_OF(self, struct invoke_statement_t, invoke);
+struct invoke_iface_t* invoke_statement_clone(struct invoke_iface_t* self,
+                                              struct issues_iface_t* issues) {
+  struct invoke_statement_t* is =
+      CONTAINER_OF(self, struct invoke_statement_t, invoke);
 
-    struct invoke_statement_t *copy = NULL;
-    ALLOC_OR_ERROR_JUMP(
-	copy,
-	struct invoke_statement_t,
-	issues,
-	error_free_resources);
+  struct invoke_statement_t* copy = NULL;
+  ALLOC_OR_ERROR_JUMP(copy, struct invoke_statement_t, issues,
+                      error_free_resources);
 
-    memcpy(copy, is, sizeof(struct invoke_statement_t));
+  memcpy(copy, is, sizeof(struct invoke_statement_t));
 
-    if(is->parameters)
-    {
-	struct invoke_parameters_iface_t *parameters_copy =
-	    is->parameters->clone(is->parameters, issues);
+  if (is->parameters) {
+    struct invoke_parameters_iface_t* parameters_copy =
+        is->parameters->clone(is->parameters, issues);
 
-	if(!parameters_copy)
-	{
-	    goto error_free_resources;
-	}
+    if (!parameters_copy) {
+      goto error_free_resources;
+    }
 
-	copy->parameters = parameters_copy;
-    }    
+    copy->parameters = parameters_copy;
+  }
 
-    copy->invoke.destroy = invoke_statement_clone_destroy;
+  copy->invoke.destroy = invoke_statement_clone_destroy;
 
-    return &(copy->invoke);
+  return &(copy->invoke);
 
 error_free_resources:
-    free(copy);
-    return NULL;
+  free(copy);
+  return NULL;
 }
 
 /**************************************************************************/
 /* Linker callbacks                                                       */
 /**************************************************************************/
 static int invoke_statement_as_variable_resolved(
-    void *referrer,
-    void *target,
+    void* referrer,
+    void* target,
     st_bitflag_t remark,
-    const char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	(struct invoke_statement_t *)referrer;
+    const char* identifier,
+    const struct st_location_t* location,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct invoke_statement_t* is = (struct invoke_statement_t*)referrer;
 
-    is->variable = (struct variable_iface_t *)target;
+  is->variable = (struct variable_iface_t*)target;
 
-    return ESSTEE_OK;
+  return ESSTEE_OK;
 }
 
 static int invoke_statement_as_function_resolved(
-    void *referrer,
-    void *target,
+    void* referrer,
+    void* target,
     st_bitflag_t remark,
-    const char *identifier,
-    const struct st_location_t *location,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is =
-	(struct invoke_statement_t *)referrer;
+    const char* identifier,
+    const struct st_location_t* location,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct invoke_statement_t* is = (struct invoke_statement_t*)referrer;
 
-    is->function = (struct function_iface_t *)target;
+  is->function = (struct function_iface_t*)target;
 
-    return ESSTEE_OK;
+  return ESSTEE_OK;
 }
 
 /**************************************************************************/
 /* Public interface                                                       */
 /**************************************************************************/
-struct invoke_iface_t * st_create_invoke_statement(
-    char *identifier,
-    const struct st_location_t *identifier_location,
-    struct invoke_parameters_iface_t *invoke_parameters,
-    const struct st_location_t *location,
-    struct named_ref_pool_iface_t *var_refs,
-    struct named_ref_pool_iface_t *function_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues)
-{
-    struct invoke_statement_t *is = NULL;
-    struct st_location_t *is_location = NULL;
-    
-    ALLOC_OR_ERROR_JUMP(
-	is,
-	struct invoke_statement_t,
-	issues,
-	error_free_resources);
-    
-    LOCDUP_OR_ERROR_JUMP(
-	is_location,
-	identifier_location,
-	issues,
-	error_free_resources);
+struct invoke_iface_t* st_create_invoke_statement(
+    char* identifier,
+    const struct st_location_t* identifier_location,
+    struct invoke_parameters_iface_t* invoke_parameters,
+    const struct st_location_t* location,
+    struct named_ref_pool_iface_t* var_refs,
+    struct named_ref_pool_iface_t* function_refs,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues) {
+  struct invoke_statement_t* is = NULL;
+  struct st_location_t* is_location = NULL;
 
-    STRDUP_OR_ERROR_JUMP(
-	is->identifier,
-	identifier,
-	issues,
-	error_free_resources);
+  ALLOC_OR_ERROR_JUMP(is, struct invoke_statement_t, issues,
+                      error_free_resources);
 
-    int var_ref_result = var_refs->add(
-	var_refs, 
-	identifier,
-	is,
-	identifier_location,
-	invoke_statement_as_variable_resolved,
-	issues);
+  LOCDUP_OR_ERROR_JUMP(is_location, identifier_location, issues,
+                       error_free_resources);
 
-    if(var_ref_result != ESSTEE_OK)
-    {
-	goto error_free_resources;
-    }
+  STRDUP_OR_ERROR_JUMP(is->identifier, identifier, issues,
+                       error_free_resources);
 
-    int function_ref_result = function_refs->add(
-	function_refs, 
-	identifier,
-	is,
-	identifier_location,
-	invoke_statement_as_function_resolved,
-	issues);
+  int var_ref_result =
+      var_refs->add(var_refs, identifier, is, identifier_location,
+                    invoke_statement_as_variable_resolved, issues);
 
-    if(function_ref_result != ESSTEE_OK)
-    {
-	goto error_free_resources;
-    }
+  if (var_ref_result != ESSTEE_OK) {
+    goto error_free_resources;
+  }
 
-    is->location = is_location;
-    is->parameters = invoke_parameters;
+  int function_ref_result =
+      function_refs->add(function_refs, identifier, is, identifier_location,
+                         invoke_statement_as_function_resolved, issues);
 
-    memset(&(is->invoke), 0, sizeof(struct invoke_iface_t));
-    is->invoke.location = is->location;
-    is->invoke.step = invoke_statement_step;
-    is->invoke.verify = invoke_statement_verify;
-    is->invoke.allocate = invoke_statement_allocate;
-    is->invoke.reset = invoke_statement_reset;
-    is->invoke.clone = invoke_statement_clone;
-    is->invoke.destroy = invoke_statement_destroy;
-    
-    return &(is->invoke);
-    
+  if (function_ref_result != ESSTEE_OK) {
+    goto error_free_resources;
+  }
+
+  is->location = is_location;
+  is->parameters = invoke_parameters;
+
+  memset(&(is->invoke), 0, sizeof(struct invoke_iface_t));
+  is->invoke.location = is->location;
+  is->invoke.step = invoke_statement_step;
+  is->invoke.verify = invoke_statement_verify;
+  is->invoke.allocate = invoke_statement_allocate;
+  is->invoke.reset = invoke_statement_reset;
+  is->invoke.clone = invoke_statement_clone;
+  is->invoke.destroy = invoke_statement_destroy;
+
+  return &(is->invoke);
+
 error_free_resources:
-    free(is);
-    free(is_location);
-    return NULL;
+  free(is);
+  free(is_location);
+  return NULL;
 }

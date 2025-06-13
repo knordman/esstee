@@ -28,35 +28,29 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <uthash.h>
 
 struct function_block_iface_t {
+  int (*resolve_header_type_references)(struct function_block_iface_t* self,
+                                        struct type_iface_t* global_type_table,
+                                        const struct config_iface_t* config,
+                                        struct issues_iface_t* issues);
 
-    int (*resolve_header_type_references)(
-	struct function_block_iface_t *self,
-	struct type_iface_t *global_type_table,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*check_dependencies)(struct function_block_iface_t* self,
+                            const struct config_iface_t* config,
+                            struct issues_iface_t* issues);
 
-    int (*check_dependencies)(
-    	struct function_block_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
-	
-    int (*finalize_header)(
-	struct function_block_iface_t *self,
-	struct variable_iface_t *global_var_table,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*finalize_header)(struct function_block_iface_t* self,
+                         struct variable_iface_t* global_var_table,
+                         const struct config_iface_t* config,
+                         struct issues_iface_t* issues);
 
-    int (*finalize_statements)(
-	struct function_block_iface_t *self,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*finalize_statements)(struct function_block_iface_t* self,
+                             const struct config_iface_t* config,
+                             struct issues_iface_t* issues);
 
-    void (*destroy)(
-    	struct function_block_iface_t *self);    
-    
-    const char *identifier;
-    const struct st_location_t *location;
-    struct function_block_iface_t *prev;
-    struct function_block_iface_t *next;
-    UT_hash_handle hh;
+  void (*destroy)(struct function_block_iface_t* self);
+
+  const char* identifier;
+  const struct st_location_t* location;
+  struct function_block_iface_t* prev;
+  struct function_block_iface_t* next;
+  UT_hash_handle hh;
 };

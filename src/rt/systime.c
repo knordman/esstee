@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,53 +23,38 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stddef.h>
 
+struct systime_iface_t* st_new_systime(void) {
+  struct systime_t* syst = NULL;
+  ALLOC_OR_JUMP(syst, struct systime_t, error_free_resources);
 
-struct systime_iface_t * st_new_systime(void)
-{
-    struct systime_t *syst = NULL;
-    ALLOC_OR_JUMP(
-	syst,
-	struct systime_t,
-	error_free_resources);
+  syst->systime.add_time_ms = st_systime_add_time_ms;
+  syst->systime.get_time_ms = st_systime_get_time_ms;
+  syst->systime.reset = st_systime_reset;
 
-    syst->systime.add_time_ms = st_systime_add_time_ms;
-    syst->systime.get_time_ms = st_systime_get_time_ms;
-    syst->systime.reset = st_systime_reset;
+  return &(syst->systime);
 
-    return &(syst->systime);
-    
 error_free_resources:
-    return NULL;
+  return NULL;
 }
 
-int st_systime_reset(
-    struct systime_iface_t *self)
-{
-    struct systime_t *syst =
-	CONTAINER_OF(self, struct systime_t, systime);
+int st_systime_reset(struct systime_iface_t* self) {
+  struct systime_t* syst = CONTAINER_OF(self, struct systime_t, systime);
 
-    syst->current_time = 0;
+  syst->current_time = 0;
 
-    return ESSTEE_OK;
-}
-    
-uint64_t st_systime_get_time_ms(
-    struct systime_iface_t *self)
-{
-    struct systime_t *syst =
-	CONTAINER_OF(self, struct systime_t, systime);
-
-    return syst->current_time;    
+  return ESSTEE_OK;
 }
 
-uint64_t st_systime_add_time_ms(
-    struct systime_iface_t *self,
-    uint64_t ms)
-{
-    struct systime_t *syst =
-	CONTAINER_OF(self, struct systime_t, systime);
+uint64_t st_systime_get_time_ms(struct systime_iface_t* self) {
+  struct systime_t* syst = CONTAINER_OF(self, struct systime_t, systime);
 
-    syst->current_time += ms;
+  return syst->current_time;
+}
 
-    return ESSTEE_OK;
+uint64_t st_systime_add_time_ms(struct systime_iface_t* self, uint64_t ms) {
+  struct systime_t* syst = CONTAINER_OF(self, struct systime_t, systime);
+
+  syst->current_time += ms;
+
+  return ESSTEE_OK;
 }

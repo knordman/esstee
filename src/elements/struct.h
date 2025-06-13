@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2016 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,57 +23,49 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <util/inamed_ref_pool.h>
 
 struct struct_elements_iface_t {
+  int (*extend_by_type)(struct struct_elements_iface_t* self,
+                        char* identifier,
+                        const struct st_location_t* identifier_location,
+                        struct type_iface_t* type,
+                        const struct config_iface_t* config,
+                        struct issues_iface_t* issues);
 
-    int (*extend_by_type)(
-	struct struct_elements_iface_t *self,
-	char *identifier,
-	const struct st_location_t *identifier_location,
-	struct type_iface_t *type,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
+  int (*extend_by_type_name)(struct struct_elements_iface_t* self,
+                             char* identifier,
+                             const struct st_location_t* identifier_location,
+                             char* type_name,
+                             const struct st_location_t* type_name_location,
+                             struct named_ref_pool_iface_t* type_refs,
+                             const struct config_iface_t* config,
+                             struct issues_iface_t* issues);
 
-    int (*extend_by_type_name)(
-	struct struct_elements_iface_t *self,
-	char *identifier,
-	const struct st_location_t *identifier_location,
-	char *type_name,
-	const struct st_location_t *type_name_location,
-	struct named_ref_pool_iface_t *type_refs,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
-
-    void (*destroy)(
-     	struct struct_elements_iface_t *self);
+  void (*destroy)(struct struct_elements_iface_t* self);
 };
 
 struct struct_initializer_iface_t {
+  int (*extend)(struct struct_initializer_iface_t* self,
+                char* identifier,
+                const struct st_location_t* identifier_location,
+                struct value_iface_t* value,
+                const struct config_iface_t* config,
+                struct issues_iface_t* issues);
 
-    int (*extend)(
-	struct struct_initializer_iface_t *self,
-	char *identifier,
-	const struct st_location_t *identifier_location,
-	struct value_iface_t *value,
-	const struct config_iface_t *config,
-	struct issues_iface_t *issues);
-	
-    struct value_iface_t * (*value)(
-    	struct struct_initializer_iface_t *self);
+  struct value_iface_t* (*value)(struct struct_initializer_iface_t* self);
 
-    void (*destroy)(
-     	struct struct_initializer_iface_t *self);
-   
-    const struct st_location_t *location;
+  void (*destroy)(struct struct_initializer_iface_t* self);
+
+  const struct st_location_t* location;
 };
 
-struct struct_elements_iface_t * st_create_struct_elements(
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct struct_elements_iface_t* st_create_struct_elements(
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);
 
-struct struct_initializer_iface_t * st_create_struct_initializer(
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct struct_initializer_iface_t* st_create_struct_initializer(
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);
 
-struct type_iface_t * st_create_struct_type(
-    struct struct_elements_iface_t *elements,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct type_iface_t* st_create_struct_type(
+    struct struct_elements_iface_t* elements,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);

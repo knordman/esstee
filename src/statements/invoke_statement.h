@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2015 Kristian Nordman
 
-This file is part of esstee. 
+This file is part of esstee.
 
 esstee is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,12 +23,12 @@ along with esstee.  If not, see <http://www.gnu.org/licenses/>.
 #include <elements/iinvoke_parameter.h>
 #include <util/inamed_ref_pool.h>
 
-struct invoke_iface_t * st_create_invoke_statement(
-    char *identifier,
-    const struct st_location_t *identifier_location,
-    struct invoke_parameters_iface_t *invoke_parameters,
-    const struct st_location_t *location,
-    struct named_ref_pool_iface_t *var_refs,
-    struct named_ref_pool_iface_t *function_refs,
-    const struct config_iface_t *config,
-    struct issues_iface_t *issues);
+struct invoke_iface_t* st_create_invoke_statement(
+    char* identifier,
+    const struct st_location_t* identifier_location,
+    struct invoke_parameters_iface_t* invoke_parameters,
+    const struct st_location_t* location,
+    struct named_ref_pool_iface_t* var_refs,
+    struct named_ref_pool_iface_t* function_refs,
+    const struct config_iface_t* config,
+    struct issues_iface_t* issues);
